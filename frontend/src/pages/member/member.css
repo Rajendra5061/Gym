@@ -1,0 +1,179 @@
+/* Member portal visuals: the welcome banner, gradient tiles, quick actions, the profile
+   summary/details pair, workout plan cards and the feedback star rating. Everything else
+   comes from base.css so the portal matches the back office. */
+
+/* ------------------------------------------------------------------ banner */
+.member-hero {
+  background: var(--grad-hero);
+  color: var(--on-dark);
+  border-radius: var(--r-lg);
+  padding: 26px 28px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  flex-wrap: wrap;
+}
+.member-hero .grow { flex: 1; min-width: 220px; }
+.member-hero-title { font-size: var(--fs-2xl); font-weight: 700; }
+.member-hero-sub { margin-top: 6px; font-size: var(--fs-md); color: #ffffffdd; }
+.member-hero-badges { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: 14px; }
+.member-hero-badge {
+  background: #ffffff26; border: 1px solid #ffffff3d; border-radius: var(--r-pill);
+  padding: 5px 12px; font-size: var(--fs-sm); font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.member-hero-avatar {
+  width: 74px; height: 74px; border-radius: 50%; flex: none;
+  background: #ffffff2e; border: 2px solid #ffffff5c;
+  display: grid; place-items: center; font-size: 26px; font-weight: 700;
+}
+
+/* ------------------------------------------------------------------- tiles */
+.member-tiles {
+  display: grid; gap: var(--sp-5); margin-top: var(--sp-5);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.m-tile {
+  border-radius: var(--r-lg); padding: 18px 20px; color: var(--on-dark);
+  box-shadow: var(--shadow-card); display: flex; align-items: center; gap: var(--sp-4);
+}
+.m-tile .grow { flex: 1; min-width: 0; }
+.m-tile-title { font-size: var(--fs-sm); font-weight: 600; color: #ffffffdd; }
+.m-tile-value { font-size: 27px; font-weight: 700; margin-top: 4px; }
+.m-tile-caption { font-size: var(--fs-xs); color: #ffffffcc; margin-top: 3px; }
+.m-tile-icon {
+  width: 48px; height: 48px; border-radius: var(--r-md); flex: none;
+  background: #ffffff33; display: grid; place-items: center;
+}
+/* The banner and the tile row are not page cards, so they carry their own trailing gap. */
+.member-hero + .page-card,
+.member-tiles + .page-card { margin-top: var(--sp-5); }
+
+.m-tile-blue   { background: var(--grad-blue); }
+.m-tile-green  { background: var(--grad-green); }
+.m-tile-orange { background: var(--grad-orange); }
+.m-tile-cyan   { background: var(--grad-cyan); }
+
+/* ---------------------------------------------------------- quick actions */
+/* Everything below carries the `m-` prefix the tiles already use: all five page stylesheets
+   load on every page, so a bare `.star`, `.plan-card` or `.detail-row` here would silently
+   restyle the back office. */
+.m-quick-actions {
+  display: grid; gap: var(--sp-4);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.m-quick-card {
+  display: flex; align-items: center; gap: var(--sp-3); text-decoration: none;
+  background: var(--card); border: 1px solid var(--divider); border-radius: var(--r-lg);
+  padding: 16px 18px; color: var(--text); transition: border-color .12s ease, box-shadow .12s ease;
+}
+.m-quick-card:hover { text-decoration: none; border-color: color-mix(in srgb, var(--primary) 35%, var(--divider)); box-shadow: var(--shadow-card); }
+.m-quick-card-icon {
+  width: 42px; height: 42px; border-radius: var(--r-md); flex: none;
+  background: var(--primary-soft); color: var(--primary-dark); display: grid; place-items: center;
+}
+.m-quick-card-title { display: block; font-weight: 700; font-size: var(--fs-base); }
+.m-quick-card-sub { display: block; font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
+
+/* -------------------------------------------------------------- two panes */
+.member-panes {
+  display: grid; gap: var(--sp-5); align-items: start;
+  grid-template-columns: 320px minmax(0, 1fr);
+}
+/* Two panes of equal weight (the feedback screen): they stretch to a shared height so the
+   shorter one does not stop halfway up the taller one. */
+.member-panes-even { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: stretch; }
+@media (max-width: 900px) {
+  .member-panes { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ------------------------------------------------------------ profile card */
+.profile-summary { text-align: center; padding: 26px 20px; }
+.m-avatar-xl {
+  width: 96px; height: 96px; border-radius: 50%; margin: 0 auto 14px;
+  background: var(--grad-hero); color: var(--on-dark);
+  display: grid; place-items: center; font-size: 32px; font-weight: 700;
+}
+.profile-name { font-size: var(--fs-xl); font-weight: 700; }
+.profile-username { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 3px; }
+
+.m-quick-info { margin-top: 20px; text-align: left; }
+.m-quick-info-heading {
+  font-size: var(--fs-sm); font-weight: 700; color: var(--text-2);
+  text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px;
+}
+.m-quick-info-row {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: 10px 0; border-bottom: 1px solid var(--divider); font-size: var(--fs-md);
+}
+.m-quick-info-row:last-child { border-bottom: 0; }
+.m-quick-info-row .label { color: var(--text-2); display: inline-flex; align-items: center; gap: 7px; }
+.m-quick-info-row .label svg { color: var(--text-muted); }
+.m-quick-info-row .value { margin-left: auto; font-weight: 600; text-align: right; }
+
+/* ------------------------------------------------------ dark caption bar */
+.caption-bar {
+  background: var(--chrome); color: var(--on-dark);
+  padding: 13px 18px; font-size: var(--fs-base); font-weight: 700;
+  display: flex; align-items: center; gap: 9px;
+}
+.m-detail-rows { display: flex; flex-direction: column; }
+.m-detail-row {
+  display: grid; grid-template-columns: 220px minmax(0, 1fr);
+  gap: var(--sp-4); padding: 12px 18px; font-size: var(--fs-md);
+  border-bottom: 1px solid var(--divider);
+}
+.m-detail-row:nth-child(odd) { background: var(--surface-alt); }
+.m-detail-row:last-child { border-bottom: 0; }
+.m-detail-row .label { color: var(--text-2); font-weight: 600; }
+.m-detail-row .value { font-weight: 600; word-break: break-word; }
+@media (max-width: 640px) {
+  .m-detail-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+
+/* ------------------------------------------------------- workout plan card */
+.m-plan-cards {
+  display: grid; gap: var(--sp-5);
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+.m-plan-card {
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column;
+}
+.m-plan-card-head {
+  background: var(--chrome); color: var(--on-dark);
+  padding: 13px 16px; display: flex; align-items: center; gap: var(--sp-3);
+}
+.m-plan-card-name { font-weight: 700; font-size: var(--fs-base); flex: 1; min-width: 0; }
+.m-plan-card-date {
+  background: #ffffff26; border-radius: var(--r-pill); padding: 3px 10px;
+  font-size: var(--fs-xs); font-weight: 700; white-space: nowrap;
+}
+.m-plan-card-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.m-plan-card-meta { font-size: var(--fs-xs); color: var(--text-muted); }
+.m-plan-card-detail {
+  font-size: var(--fs-md); color: var(--text-2); white-space: pre-wrap;
+  max-height: 132px; overflow: hidden;
+}
+.m-plan-card-foot { margin-top: auto; padding-top: 6px; }
+
+/* ------------------------------------------------------------ star rating */
+.m-star-row { display: flex; gap: 4px; align-items: center; }
+.m-star {
+  background: none; border: 0; padding: 0; cursor: pointer; line-height: 1;
+  font-size: 26px; color: color-mix(in srgb, var(--text-muted) 45%, var(--divider));
+}
+.m-star.on { color: var(--warning); }
+.m-star:disabled { cursor: default; }
+
+.m-feedback-item {
+  border: 1px solid var(--divider); border-radius: var(--r-md);
+  padding: 14px 16px; background: var(--card);
+}
+.m-feedback-item + .m-feedback-item { margin-top: var(--sp-3); }
+.m-feedback-response {
+  margin-top: 10px; padding: 10px 12px; border-left: 3px solid var(--primary);
+  background: var(--primary-soft); border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: var(--fs-md);
+}

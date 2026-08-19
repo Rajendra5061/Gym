@@ -1,0 +1,627 @@
+@import './tokens.css';
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: var(--fs-base);
+  color: var(--text);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1, h2, h3, h4 { margin: 0; font-weight: 700; }
+input, select, textarea, button { font-family: inherit; font-size: inherit; }
+
+/* ---------------------------------------------------------------- app chrome */
+/* Rail beside content, not stacked above it. `min-width: 0` lets wide tables inside the main
+   column shrink instead of forcing the whole page to scroll sideways. */
+.app { min-height: 100%; display: flex; flex-direction: row; background: var(--surface); }
+.app-body { flex: 1 1 auto; min-width: 0; }
+
+/* ------------------------------------------------------------------ sidebar */
+/*
+ * All navigation lives in a left rail. Nineteen admin destinations never fit one horizontal row
+ * at the 1280px minimum, and a vertical rail also matches the grouped sidebar the Reports screen
+ * already uses, so the app has one navigation idiom rather than two.
+ *
+ * The rail is painted with `--chrome`, which is near-black in BOTH themes, so everything drawn on
+ * it — the white-alpha hovers and rules, the muted greys — is already correct in dark mode and
+ * stays a literal on purpose. Tokenising them would flip them to dark-on-dark.
+ */
+.sidebar {
+  flex: 0 0 240px; width: 240px;
+  background: var(--chrome); color: var(--on-dark);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh; z-index: 40;
+}
+.sidebar-brand {
+  display: flex; align-items: center; gap: 9px;
+  padding: 0 var(--sp-4); height: 52px; flex: 0 0 auto;
+  font-size: 17px; font-weight: 700; color: var(--on-dark);
+  border-bottom: 1px solid #ffffff14;
+}
+.sidebar-brand:hover { text-decoration: none; color: var(--on-dark); }
+.sidebar-brand span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Lives in the rail rather than the header, so the control sits with the thing it controls. */
+.sidebar-collapse {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 11px var(--sp-4);
+  border: 0; border-bottom: 1px solid #ffffff14;
+  background: none; color: #8d97ac; cursor: pointer;
+  font-size: var(--fs-sm); font-weight: 600; letter-spacing: .02em;
+  text-align: left; white-space: nowrap; overflow: hidden;
+}
+.sidebar-collapse:hover { background: #ffffff12; color: var(--on-dark); }
+.sidebar-collapse svg { flex: 0 0 auto; transition: transform .15s ease; }
+.sidebar.collapsed .sidebar-collapse { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
+.sidebar.collapsed .sidebar-collapse span { display: none; }
+/* Points the way the click will move the rail: left to close, right to reopen. */
+.sidebar.collapsed .sidebar-collapse svg { transform: rotate(180deg); }
+
+/* The rail scrolls on its own so a long menu never pushes the sign-out control off screen. */
+.sidebar-nav { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 8px var(--sp-3) 8px; }
+.sidebar-nav::-webkit-scrollbar { width: 6px; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: #ffffff26; border-radius: 3px; }
+
+.sidebar-section { margin-top: 10px; }
+.sidebar-section:first-child { margin-top: 0; }
+.sidebar-section-label {
+  padding: 0 10px 4px; font-size: 10px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: #79839a;
+}
+.sidebar-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; margin-bottom: 1px; border-radius: var(--r-md);
+  color: #cfd4e0; font-size: var(--fs-md); font-weight: 600;
+  white-space: nowrap; overflow: hidden;
+}
+.sidebar-link svg { flex: 0 0 auto; }
+.sidebar-link span { overflow: hidden; text-overflow: ellipsis; }
+.sidebar-link:hover { background: #ffffff1a; color: var(--on-dark); text-decoration: none; }
+.sidebar-link.active { background: var(--primary); color: var(--on-dark); }
+
+/* ------------------------------------------------------------------- header */
+/* Sits beside the rail rather than above it, so the sidebar owns the full height and the header
+   only spans the content column. Sticky, so the current screen stays named while a long table
+   scrolls underneath. */
+.app-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.topbar {
+  flex: 0 0 auto; height: 58px;
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: 0 var(--sp-6);
+  background: var(--card); border-bottom: 1px solid var(--divider);
+  position: sticky; top: 0; z-index: 30;
+}
+.app-footer {
+  flex: 0 0 auto;
+  padding: 14px var(--sp-6);
+  border-top: 1px solid var(--divider);
+  background: var(--card);
+  font-size: var(--fs-sm); color: var(--text-muted); text-align: center;
+}
+.topbar-title { font-size: var(--fs-lg); font-weight: 700; color: var(--text); }
+.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-3); }
+
+
+.topbar-bell {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: var(--r-md);
+  color: var(--text-2);
+}
+.topbar-bell:hover { background: var(--surface-alt); color: var(--text); text-decoration: none; }
+.topbar-bell.active { background: var(--primary-soft); color: var(--primary); }
+.topbar-badge {
+  position: absolute; top: 3px; right: 2px;
+  min-width: 17px; height: 17px; padding: 0 4px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-pill); border: 2px solid var(--card);
+  background: var(--danger); color: var(--on-dark);
+  font-size: 10px; font-weight: 700; line-height: 1;
+}
+
+/* ------------------------------------------------------------ account menu */
+/* One avatar in the corner rather than a name and a logout button competing for the same space,
+   so the header stays quiet at every width. */
+.account-menu { position: relative; }
+.account-trigger {
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; padding: 0;
+  border: 1px solid transparent; border-radius: 50%; cursor: pointer;
+  background: var(--primary); color: var(--on-dark); font-size: var(--fs-md); font-weight: 700;
+  transition: box-shadow .12s ease, background .12s ease;
+}
+.account-trigger:hover { background: var(--primary-dark); }
+.account-trigger.open { box-shadow: 0 0 0 3px var(--primary-soft); }
+
+.account-pop {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
+  min-width: 232px; padding: 6px;
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-pop);
+}
+.account-pop-head { padding: 10px 10px 12px; border-bottom: 1px solid var(--divider); margin-bottom: 6px; }
+.account-pop-name { font-size: var(--fs-md); font-weight: 700; }
+.account-pop-sub { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
+.account-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 9px 10px; border: 0; border-radius: var(--r-md);
+  background: none; color: var(--text); cursor: pointer;
+  font-size: var(--fs-md); font-weight: 600; text-align: left;
+}
+.account-item:hover { background: var(--surface); color: var(--text); text-decoration: none; }
+.account-item-danger { color: var(--danger); }
+.account-item-danger:hover { background: var(--danger-soft); }
+
+@media (max-width: 1280px) { .topbar { padding: 0 var(--sp-4); } }
+
+/* The rail narrows before the content does, so tables keep their width the longest. */
+@media (max-width: 1440px) { .sidebar:not(.collapsed) { flex-basis: 220px; width: 220px; } }
+@media (max-width: 1280px) { .sidebar:not(.collapsed) { flex-basis: 200px; width: 200px; } }
+
+/* --- collapsed rail: icons only, so the content column gains ~170px ------------------------ */
+.sidebar.collapsed { flex-basis: 70px; width: 70px; }
+.sidebar.collapsed .sidebar-brand { justify-content: center; padding: 0; }
+.sidebar.collapsed .sidebar-brand span { display: none; }
+.sidebar.collapsed .sidebar-nav { padding-left: 8px; padding-right: 8px; }
+.sidebar.collapsed .sidebar-link { justify-content: center; padding: 9px 0; gap: 0; }
+.sidebar.collapsed .sidebar-link span { display: none; }
+/* The heading has no room, but the gap it leaves still separates the groups. */
+.sidebar.collapsed .sidebar-section-label { height: 1px; padding: 0; margin: 8px 10px; overflow: hidden;
+  text-indent: -999px; background: #ffffff1f; }
+
+/* ---------------------------------------------------------------- page shell */
+.page { max-width: 1360px; margin: 0 auto; padding: var(--sp-6); }
+/* No `overflow: hidden` here. It clipped absolutely-positioned children at the card edge — the
+   member type-ahead on Record Payment lost its suggestion list that way. The corners are rounded
+   on the first and last child instead, which is all the clipping was doing. */
+.page-card {
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-card);
+}
+.page-card > :first-child { border-top-left-radius: inherit; border-top-right-radius: inherit; }
+.page-card > :last-child { border-bottom-left-radius: inherit; border-bottom-right-radius: inherit; }
+.page-card + .page-card { margin-top: var(--sp-5); }
+.page-card-header {
+  display: flex; align-items: flex-start; gap: var(--sp-4);
+  padding: 18px var(--sp-5); border-bottom: 1px solid var(--divider);
+}
+.page-card-header .grow { flex: 1; min-width: 0; }
+.page-card-title { display: flex; align-items: center; gap: 10px; font-size: var(--fs-xl); font-weight: 700; }
+.page-card-subtitle { margin-top: 3px; font-size: var(--fs-sm); color: var(--text-muted); }
+.page-card-body { padding: var(--sp-5); }
+/* Only the search box lives here now — the secondary filters moved into the header's Filters
+   menu and Reset went with them ("Clear all" inside the menu does that job). It sits to the
+   right, in the slot Reset used to occupy, so it lines up under the Filters button. */
+.filter-strip {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end;
+  gap: var(--sp-4);
+  /* A band recessed out of the card it sits in. There is no token for "card, one shade off", and
+     `--surface` sits *below* the card in dark mode, so the strip is mixed from the card itself:
+     4% of the body text colour, which is dark on a light theme and light on a dark one, so the
+     band separates from the card by the same amount either way. */
+  padding: 10px var(--sp-5); background: color-mix(in srgb, var(--text) 4%, var(--card));
+  border-bottom: 1px solid var(--divider);
+}
+/*
+ * No caption above the search box. Its placeholder already says what it matches, and the label
+ * cost a whole extra row of height on every page for a single field. Hiding it here rather than
+ * editing seventeen pages also keeps them all consistent. The label is a <span>, never
+ * associated with the input, so nothing accessible is lost — the placeholder becomes the
+ * input's accessible name.
+ */
+.filter-strip .field-label { display: none; }
+/* Wide enough that the placeholder is not cut off mid-word. */
+.filter-strip .filter-field { min-width: 300px; }
+.filter-field { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+.filter-actions { margin-left: auto; display: flex; gap: var(--sp-2); }
+
+/* ----------------------------------------------------------- filter dropdown */
+.filter-menu { position: relative; }
+.filter-menu-trigger.open { border-color: var(--primary); color: var(--primary); }
+.filter-menu-badge {
+  min-width: 18px; height: 18px; padding: 0 5px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--r-pill); background: var(--primary); color: var(--on-dark);
+  font-size: 11px; font-weight: 700; line-height: 1;
+}
+.filter-menu-pop {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 50;
+  width: 460px; max-width: calc(100vw - 48px);
+  /* Deliberately not scrollable. No page folds away more than eight controls, so the panel is
+     always short — and a scroll container here clipped the member type-ahead's suggestion list
+     at the panel's bottom edge, which is worse than a tall panel. */
+  padding: var(--sp-4);
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-pop);
+}
+.filter-menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+.filter-menu-grid .filter-field { min-width: 0; }
+.filter-menu-foot {
+  display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2);
+  margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--divider);
+}
+.filter-menu-foot .btn-ghost { margin-right: auto; }
+
+/* ---------------------------------------------------------------- buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 38px; padding: 0 16px; border-radius: var(--r-md);
+  border: 1px solid transparent; background: var(--card); color: var(--text);
+  font-size: var(--fs-md); font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: background .12s ease, border-color .12s ease, opacity .12s ease;
+}
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+/* A filled button paints its own dark/saturated background in both themes, so its label stays
+   white — that is what `--on-dark` is, and it is deliberately the same colour in either theme. */
+/* `--chrome` alone is *darker* than a card once the theme flips, so a plain chrome fill turned the
+   primary save button into a near-invisible hole in the panel. Lifting it toward the text colour
+   leaves it black on the light theme and a legible raised grey on the dark one. */
+.btn-dark { background: color-mix(in srgb, var(--chrome) 88%, var(--text)); color: var(--on-dark); }
+.btn-dark:hover:not(:disabled) { background: color-mix(in srgb, var(--chrome-2) 80%, var(--text)); }
+.btn-primary { background: var(--primary); color: var(--on-dark); }
+.btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+.btn-outline { background: var(--card); border-color: var(--divider); color: var(--text-2); }
+.btn-outline:hover:not(:disabled) { background: var(--surface-alt); }
+.btn-success { background: var(--success); color: var(--on-dark); }
+.btn-danger { background: var(--danger); color: var(--on-dark); }
+.btn-ghost { background: transparent; color: var(--text-2); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface-alt); }
+.btn-sm { height: 30px; padding: 0 12px; font-size: var(--fs-sm); }
+.btn-icon { width: 38px; padding: 0; }
+/* Tinted, not filled: the label has to be a *readable* amber on `--warning-soft`, which is a pale
+   cream in light mode and a deep brown in dark. Mixing the status hue with the body text colour
+   darkens it on the light theme and lightens it on the dark one, so it stays legible on both. */
+.btn-edit { height: 28px; padding: 0 11px; font-size: var(--fs-xs); font-weight: 700;
+  background: var(--warning-soft); color: color-mix(in srgb, var(--warning) 60%, var(--text));
+  border-color: color-mix(in srgb, var(--warning) 40%, transparent); }
+.btn-del  { height: 28px; padding: 0 11px; font-size: var(--fs-xs); font-weight: 700;
+  background: var(--danger); color: var(--on-dark); }
+.btn-block { width: 100%; }
+
+/* ---------------------------------------------------------------- pills */
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: var(--r-pill);
+  font-size: var(--fs-sm); font-weight: 700; line-height: 1.6;
+}
+/* Same trick as .btn-edit: the pill text is the status hue pulled toward the body text colour, so
+   it darkens on the pale soft tint and lightens on the deep one. */
+.pill-success { background: var(--success-soft); color: color-mix(in srgb, var(--success) 60%, var(--text)); }
+.pill-warning { background: var(--warning-soft); color: color-mix(in srgb, var(--warning) 60%, var(--text)); }
+.pill-danger  { background: var(--danger-soft);  color: color-mix(in srgb, var(--danger)  60%, var(--text)); }
+.pill-info    { background: var(--info-soft);    color: color-mix(in srgb, var(--info)    60%, var(--text)); }
+.pill-neutral { background: var(--surface-alt);  color: var(--text-2); }
+.pill-primary { background: var(--primary-soft); color: var(--primary-dark); }
+.pill-dark    { background: var(--divider); color: var(--text); }
+
+/* ---------------------------------------------------------------- forms */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-label { font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); }
+.field-label .req { color: var(--danger); margin-left: 3px; }
+.field-help { font-size: var(--fs-xs); color: var(--text-muted); }
+.field-error { font-size: var(--fs-xs); color: var(--danger); }
+.input, .select, .textarea {
+  height: 38px; padding: 0 12px; border: 1px solid var(--divider);
+  border-radius: var(--r-md); background: var(--card); color: var(--text); width: 100%;
+}
+.textarea { height: auto; min-height: 96px; padding: 10px 12px; resize: vertical; }
+.input:focus, .select:focus, .textarea:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: var(--primary); }
+.input:disabled, .select:disabled { background: var(--surface-alt); color: var(--text-muted); }
+.input-invalid { border-color: var(--danger); }
+.input-group { position: relative; display: flex; align-items: center; }
+.input-group .input { padding-left: 36px; }
+.input-group .input-icon { position: absolute; left: 12px; color: var(--text-muted); display: flex; pointer-events: none; }
+.input-group .input-suffix { position: absolute; right: 6px; }
+.form-grid { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.form-section { border: 1px solid var(--divider); background: var(--surface); border-radius: var(--r-md); padding: 18px; }
+.form-section + .form-section { margin-top: 18px; }
+/* The optional block is tinted with the success hue rather than a fixed mint, so it stays a tint
+   of the page rather than a bright panel once the theme goes dark. */
+.form-section-optional { background: var(--success-soft); border-color: color-mix(in srgb, var(--success) 30%, transparent); }
+.form-section-title { display: flex; align-items: center; gap: 8px; font-size: var(--fs-base); font-weight: 700; }
+.form-section-caption { margin-top: 2px; font-size: var(--fs-xs); color: var(--text-muted); }
+.form-footer { display: flex; align-items: center; gap: var(--sp-2); padding-top: 18px; border-top: 1px solid var(--divider); margin-top: 18px; }
+.form-note { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 10px; }
+
+/* ---------------------------------------------------------------- tables */
+/*
+ * The header stays put while the rows scroll under it. Sticky positioning needs a scroll
+ * container with a bounded height, hence the max-height: it caps how tall a table may get
+ * before its body starts scrolling, and short tables are unaffected because it is only a cap.
+ * The subtracted space is the surrounding chrome — top bar, card header, filter strip, pager.
+ */
+.table-wrap {
+  width: 100%; overflow: auto;
+  max-height: calc(100vh - 300px);
+}
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  text-align: left; font-size: var(--fs-sm); font-weight: 700; color: var(--text-2);
+  /* Opaque, because the rows scroll underneath it — mixed from the card so it is a shade off the
+     card in both themes rather than a fixed near-white block. */
+  padding: 12px var(--sp-4); white-space: nowrap; background: color-mix(in srgb, var(--text) 5%, var(--card));
+  position: sticky; top: 0; z-index: 2;
+  /* `border-collapse: collapse` drops a sticky cell's own border while it is stuck, so the
+     dividing line is painted as an inset shadow, which travels with the cell. */
+  box-shadow: inset 0 -1px 0 var(--divider);
+}
+.table td { padding: 12px var(--sp-4); border-bottom: 1px solid var(--divider); font-size: var(--fs-md); vertical-align: middle; }
+/* A wash of the text colour: it darkens the row on the light theme and lightens it on the dark
+   one, so the hover is the same strength either way instead of a near-white slab. */
+.table tbody tr:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.table tbody tr:last-child td { border-bottom: 0; }
+.table .num { text-align: right; }
+.table .center { text-align: center; }
+.table .idx { width: 52px; color: var(--text-muted); text-align: center; }
+.table .actions { text-align: right; white-space: nowrap; }
+.table .actions .btn + .btn { margin-left: 6px; }
+.cell-main { font-weight: 600; }
+.cell-sub { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
+.cell-icon { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); }
+.cell-icon svg { color: var(--text-muted); flex: none; }
+
+/* ---------------------------------------------------------------- misc */
+.stat-grid { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.stat-card { border-radius: var(--r-lg); padding: 18px 20px; background: var(--card);
+  border: 1px solid var(--divider); box-shadow: var(--shadow-card); display: flex; align-items: center; gap: var(--sp-4); }
+.stat-card .grow { flex: 1; min-width: 0; }
+.stat-title { font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); }
+.stat-value { font-size: 26px; font-weight: 700; margin-top: 4px; }
+.stat-caption { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 3px; }
+.stat-icon { width: 46px; height: 46px; border-radius: var(--r-md); display: grid; place-items: center; flex: none; }
+/* `.grad` tiles carry their own gradient, which is identical in both themes, so everything drawn
+   on one stays white. */
+.stat-card.grad { border: 0; color: var(--on-dark); }
+.stat-card.grad .stat-title, .stat-card.grad .stat-caption { color: #ffffffdd; }
+.stat-card.grad .stat-icon { background: #ffffff33; }
+
+.alert { border-radius: var(--r-md); padding: 12px 14px; font-size: var(--fs-md); display: flex; gap: 10px; align-items: flex-start; }
+.alert-error   { background: var(--danger-soft);  color: color-mix(in srgb, var(--danger)  60%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--danger)  35%, transparent); }
+.alert-success { background: var(--success-soft); color: color-mix(in srgb, var(--success) 60%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent); }
+.alert-warning { background: var(--warning-soft); color: color-mix(in srgb, var(--warning) 60%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent); }
+.alert-info    { background: var(--info-soft);    color: color-mix(in srgb, var(--info)    60%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--info)    35%, transparent); }
+
+/* Collapsed stack trace on the route error panel — readable, but never the loudest thing. */
+.error-details { border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--surface); }
+.error-details > summary { cursor: pointer; padding: 10px 12px; font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); }
+.error-details > pre {
+  margin: 0; padding: 0 12px 12px; max-height: 220px; overflow: auto;
+  font-size: var(--fs-xs); line-height: 1.6; color: var(--text-2); white-space: pre-wrap; word-break: break-word;
+}
+
+.empty { text-align: center; padding: 48px 24px; color: var(--text-muted); }
+.empty-title { font-size: var(--fs-lg); font-weight: 700; color: var(--text-2); margin-top: 12px; }
+.empty-msg { font-size: var(--fs-md); margin-top: 6px; }
+
+.pager { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--divider); }
+.pager .grow { flex: 1; font-size: var(--fs-sm); color: var(--text-muted); }
+.pager-btn { width: 32px; height: 32px; display: grid; place-items: center; border-radius: var(--r-sm);
+  border: 1px solid var(--divider); background: var(--card); cursor: pointer; color: var(--text-2); }
+.pager-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* The scrim darkens whatever is behind it in either theme, so it is mixed from `--chrome` — the
+   one token that is near-black in both — rather than left as a fixed navy. */
+.modal-backdrop { position: fixed; inset: 0; background: color-mix(in srgb, var(--chrome) 72%, transparent);
+  display: grid; place-items: center; z-index: 60; padding: 24px; }
+/* The drop shadow does the separating in light mode; in dark mode a shadow on a dark scrim is
+   invisible, so the panel also carries an edge. */
+.modal { background: var(--card); border: 1px solid var(--divider);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-pop);
+  width: 100%; max-width: 720px; max-height: calc(100vh - 96px); display: flex; flex-direction: column; }
+.modal-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--divider); }
+.modal-title { font-size: var(--fs-lg); font-weight: 700; flex: 1; }
+.modal-body { padding: 20px; overflow: auto; }
+.modal-footer { display: flex; justify-content: flex-end; gap: var(--sp-2); padding: 14px 20px; border-top: 1px solid var(--divider); }
+
+.spinner { width: 22px; height: 22px; border: 2px solid color-mix(in srgb, var(--text) 20%, transparent); border-top-color: var(--primary);
+  border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-block { display: grid; place-items: center; gap: 10px; padding: 56px; color: var(--text-muted); }
+
+.avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--primary-soft); color: var(--primary-dark);
+  display: grid; place-items: center; font-weight: 700; font-size: var(--fs-sm); flex: none; }
+.row { display: flex; align-items: center; gap: var(--sp-3); }
+.muted { color: var(--text-muted); }
+.grow { flex: 1; }
+.stack { display: flex; flex-direction: column; gap: var(--sp-4); }
+
+/* ------------------------------------------------------- dashboard banner */
+/* Gradient masthead shared by the admin and member dashboards, so both open the same way.
+   `--grad-hero` is the same gradient in both themes, so every colour inside the hero — the white
+   text, the white-alpha outline button, the indigo label on the solid button — is a literal on
+   purpose: it is painted on the gradient, not on the page. */
+.dash-hero {
+  border-radius: var(--r-lg);
+  background: var(--grad-hero);
+  color: var(--on-dark);
+  padding: 26px var(--sp-6);
+  display: flex; align-items: center; gap: var(--sp-5); flex-wrap: wrap;
+}
+.dash-hero-eyebrow { font-size: var(--fs-sm); font-weight: 600; color: #ffffffc4; }
+.dash-hero-title {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 30px; font-weight: 800; margin-top: 4px; line-height: 1.15;
+}
+.dash-hero-text { margin: 8px 0 0; font-size: var(--fs-md); color: #ffffffd6; }
+.dash-hero-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.dash-hero .btn-on-hero {
+  background: #ffffff; color: #3b2fb5; border-color: transparent; font-weight: 700;
+}
+.dash-hero .btn-on-hero:hover:not(:disabled) { background: #f3f2ff; }
+.dash-hero .btn-hero-outline {
+  background: #ffffff1f; color: var(--on-dark); border-color: #ffffff70; font-weight: 700;
+}
+.dash-hero .btn-hero-outline:hover:not(:disabled) { background: #ffffff33; }
+
+/* Jump-off inside a coloured KPI card. */
+.stat-card.has-action { align-items: flex-start; }
+.stat-action {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 12px; padding: 5px 12px;
+  border: 0; border-radius: var(--r-pill); cursor: pointer;
+  background: #ffffffeb; color: #1f2937;
+  font-size: var(--fs-sm); font-weight: 700;
+}
+.stat-action:hover { background: #fff; }
+/* On an untinted card the pill needs its own outline to read as a control — and its own text
+   colour, because the near-black label above is only legible on the white-on-gradient version. */
+.stat-card:not(.grad) .stat-action {
+  background: var(--surface-alt); border: 1px solid var(--divider); color: var(--text);
+}
+.stat-card:not(.grad) .stat-action:hover { background: var(--divider); }
+
+/* --------------------------------------------------------- quick access row */
+.quick-head { display: flex; align-items: baseline; gap: var(--sp-4); }
+.quick-title { display: flex; align-items: center; gap: 8px; font-size: var(--fs-xl); font-weight: 700; }
+.quick-hint { margin-left: auto; font-size: var(--fs-sm); color: var(--text-muted); }
+.quick-grid { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: var(--sp-4); }
+.quick-tile {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: 16px 18px; border-radius: var(--r-lg); cursor: pointer;
+  border: 1px solid var(--divider); background: var(--card); text-align: left;
+  transition: box-shadow .12s ease, transform .12s ease;
+}
+.quick-tile:hover { box-shadow: var(--shadow-card); transform: translateY(-1px); }
+.quick-tile-icon { width: 42px; height: 42px; border-radius: var(--r-md); display: grid; place-items: center; flex: none; }
+.quick-tile-title { display: block; font-size: var(--fs-lg); font-weight: 700; }
+.quick-tile-text { display: block; font-size: var(--fs-sm); color: var(--text-muted); margin-top: 2px; }
+.quick-tile-chevron { margin-left: auto; color: var(--text-muted); flex: none; }
+
+/* ---------------------------------------------------------------- profile page */
+/* Narrow summary beside a wide detail table, shared by the admin/staff/trainer profile and the
+   member profile so both roles see the same shape. */
+.prof-grid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
+@media (max-width: 1100px) { .prof-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.prof-summary {
+  border: 1px solid var(--divider); border-radius: var(--r-lg);
+  background: var(--card); padding: var(--sp-5);
+}
+.prof-avatar {
+  width: 62px; height: 62px; border-radius: 50%; flex: none;
+  display: grid; place-items: center;
+  background: var(--primary-soft); color: var(--primary-dark);
+}
+.prof-summary-head { display: flex; align-items: center; gap: var(--sp-4); }
+.prof-name { font-size: var(--fs-xl); font-weight: 700; line-height: 1.2; }
+.prof-user { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: var(--fs-sm); color: var(--text-muted); }
+.prof-rule { height: 1px; background: var(--divider); margin: var(--sp-5) 0 var(--sp-4); }
+.prof-quick-label {
+  display: flex; align-items: center; gap: 7px; margin-bottom: 10px;
+  font-size: var(--fs-sm); font-weight: 600; color: var(--text-2);
+}
+.prof-quick-row {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: 7px 0; font-size: var(--fs-md);
+}
+.prof-quick-row > span:first-child { display: flex; align-items: center; gap: 8px; color: var(--text-2); }
+.prof-quick-row > span:first-child svg { color: var(--text-muted); flex: none; }
+.prof-quick-row > b { margin-left: auto; font-weight: 600; }
+.prof-note {
+  display: flex; gap: 8px; margin-top: var(--sp-4);
+  font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.55;
+}
+.prof-note svg { flex: none; margin-top: 2px; }
+
+.prof-details {
+  border: 1px solid var(--divider); border-radius: var(--r-lg);
+  background: var(--card); overflow: hidden;
+}
+.prof-details-head {
+  display: flex; align-items: center; gap: 9px;
+  padding: 14px var(--sp-5);
+  background: var(--chrome); color: var(--on-dark);
+  font-size: var(--fs-lg); font-weight: 700;
+}
+.prof-row {
+  display: flex; align-items: flex-start; gap: var(--sp-4);
+  padding: 13px var(--sp-5); border-top: 1px solid var(--divider);
+  font-size: var(--fs-md);
+}
+.prof-row:first-of-type { border-top: 0; }
+.prof-row > span:first-child { flex: 0 0 190px; font-weight: 700; color: var(--text); }
+.prof-row > span:last-child { color: var(--text-2); word-break: break-word; }
+
+/* ------------------------------------------------------- dashboard mini metrics */
+/* The secondary numbers used to be ten full-size cards, which pushed the charts and the
+   activity feed below the fold. Same figures, one row, no scrolling to reach the real content. */
+.dash-metrics {
+  display: flex; flex-wrap: wrap;
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-card);
+  padding: 4px 0;
+}
+.dash-metric {
+  flex: 1 1 190px; min-width: 170px;
+  padding: 12px var(--sp-5);
+  border-left: 1px solid var(--divider);
+}
+.dash-metric:first-child { border-left: 0; }
+.dash-metric-label {
+  display: flex; align-items: center; gap: 7px;
+  font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.dash-metric-label svg { color: var(--text-muted); flex: none; }
+.dash-metric-value { font-size: 19px; font-weight: 700; margin-top: 5px; }
+.dash-metric-sub { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 1px; }
+
+/* ------------------------------------------------- dashboard attention + bars */
+/* Replaces the chart grid. A line chart of two data points and a pie with one slice told an
+   operator nothing; a sentence naming what needs doing, with the button to go do it, does. */
+.dash-attn { display: grid; gap: 10px; }
+.dash-attn-row {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: 12px 14px; border-radius: var(--r-md);
+  background: var(--surface); border: 1px solid var(--divider);
+}
+.dash-attn-icon { width: 34px; height: 34px; border-radius: var(--r-md); display: grid; place-items: center; flex: none; }
+.dash-attn-text { display: block; font-size: var(--fs-md); font-weight: 600; }
+.dash-attn-sub { display: block; font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
+.dash-attn-row .btn { margin-left: auto; flex: none; }
+.dash-attn-clear {
+  display: flex; align-items: center; gap: 9px;
+  padding: 14px; border-radius: var(--r-md);
+  background: var(--success-soft); color: color-mix(in srgb, var(--success) 60%, var(--text));
+  font-weight: 600; font-size: var(--fs-md);
+}
+
+.dash-bars { display: grid; gap: 14px; }
+.dash-bar-row { display: grid; gap: 6px; }
+.dash-bar-head { display: flex; align-items: baseline; gap: var(--sp-3); font-size: var(--fs-md); }
+.dash-bar-head b { margin-left: auto; font-weight: 700; }
+.dash-bar-head span.pct { font-size: var(--fs-xs); color: var(--text-muted); min-width: 38px; text-align: right; }
+.dash-bar { height: 9px; border-radius: var(--r-pill); background: var(--surface-alt); overflow: hidden; }
+.dash-bar-fill { height: 100%; border-radius: var(--r-pill); }
+.dash-bars-empty { font-size: var(--fs-md); color: var(--text-muted); }
+
+/* --------------------------------------------------------------- theme toggle */
+.theme-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; flex: none; padding: 0;
+  border: 1px solid var(--divider); border-radius: var(--r-md);
+  background: var(--card); color: var(--text-2); cursor: pointer;
+}
+.theme-toggle:hover { background: var(--surface-alt); color: var(--text); }
+/* On a dark band (the public nav) the default card background would be a bright block. */
+.theme-toggle.on-dark { background: #ffffff1f; border-color: #ffffff45; color: var(--on-dark); }
+.theme-toggle.on-dark:hover { background: #ffffff33; }
+
+/* Owner contact in the footer. Wraps under the name on a narrow column rather than truncating. */
+.app-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px var(--sp-5); }
+.app-footer-contact { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4); }
+.app-footer-contact a {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--text-2); font-weight: 600;
+}
+.app-footer-contact a:hover { color: var(--primary); text-decoration: none; }
+.app-footer-contact svg { color: var(--text-muted); }

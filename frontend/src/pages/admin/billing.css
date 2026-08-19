@@ -1,0 +1,162 @@
+/* Styles used only by the billing screens (plans, subscriptions, payments, attendance).
+   Everything builds on the shared tokens; nothing here overrides a base.css rule. */
+
+/* ------------------------------------------------------------- plan gallery */
+.plan-gallery {
+  display: grid;
+  gap: var(--sp-5);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  padding: var(--sp-5);
+}
+.plan-tile {
+  border: 1px solid var(--divider);
+  border-radius: var(--r-lg);
+  background: var(--card);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.plan-tile:hover { border-color: color-mix(in srgb, var(--text-muted) 40%, var(--divider)); box-shadow: var(--shadow-card); }
+.plan-tile-head { display: flex; align-items: flex-start; gap: var(--sp-3); }
+.plan-tile-name { font-size: var(--fs-lg); font-weight: 700; line-height: 1.3; }
+.plan-tile-code { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
+.plan-price { font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -.5px; }
+.plan-duration { font-size: var(--fs-sm); color: var(--text-muted); font-weight: 600; }
+.plan-desc { font-size: var(--fs-md); color: var(--text-2); }
+
+.plan-features { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.plan-features li { display: flex; align-items: flex-start; gap: 8px; font-size: var(--fs-md); color: var(--text-2); }
+.plan-features svg { color: var(--success); flex: none; margin-top: 2px; }
+
+.plan-meta {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px;
+  border-top: 1px solid var(--divider); padding-top: 12px; margin-top: auto;
+}
+.plan-meta-row { display: flex; justify-content: space-between; gap: 8px; font-size: var(--fs-xs); }
+.plan-meta-row span:first-child { color: var(--text-muted); }
+.plan-meta-row span:last-child { font-weight: 600; color: var(--text-2); }
+.plan-tile-actions { display: flex; gap: 6px; padding-top: 12px; border-top: 1px solid var(--divider); }
+
+/* -------------------------------------------------------- view toggle / tabs */
+.view-toggle { display: inline-flex; border: 1px solid var(--divider); border-radius: var(--r-md); overflow: hidden; }
+.view-toggle button {
+  height: 38px; padding: 0 14px; border: 0; background: var(--card); color: var(--text-2);
+  font-size: var(--fs-md); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+}
+.view-toggle button + button { border-left: 1px solid var(--divider); }
+.view-toggle button.on { background: var(--chrome); color: #fff; }
+
+/* Prefixed: every page stylesheet loads on every page, so a bare `.tab` here would restyle any
+   other screen that happens to use the same word. */
+.bill-tabs { display: flex; gap: 2px; padding: 0 var(--sp-5); border-bottom: 1px solid var(--divider); background: var(--surface-alt); }
+.bill-tab {
+  height: 42px; padding: 0 16px; border: 0; background: transparent; cursor: pointer;
+  font-size: var(--fs-md); font-weight: 600; color: var(--text-2);
+  border-bottom: 2px solid transparent; display: inline-flex; align-items: center; gap: 7px;
+}
+.bill-tab:hover { color: var(--text); }
+.bill-tab.on { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* --------------------------------------------------------------- quote panel */
+.quote-panel {
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--primary-soft)); background: var(--primary-soft);
+  border-radius: var(--r-md); padding: 16px;
+}
+.quote-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: var(--fs-base); margin-bottom: 4px; }
+.quote-note { font-size: var(--fs-xs); color: var(--text-2); margin-bottom: 12px; }
+.quote-table { width: 100%; border-collapse: collapse; }
+.quote-table td { padding: 6px 0; font-size: var(--fs-md); border-bottom: 1px dashed color-mix(in srgb, var(--primary) 25%, var(--primary-soft)); }
+.quote-table td:last-child { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.quote-table tr:last-child td { border-bottom: 0; }
+.quote-table .quote-label { color: var(--text-2); }
+.quote-table tr.quote-total td {
+  padding-top: 12px; border-top: 2px solid color-mix(in srgb, var(--primary) 40%, var(--primary-soft)); border-bottom: 0;
+  font-size: var(--fs-lg); font-weight: 700; color: var(--primary-dark);
+}
+.quote-placeholder { font-size: var(--fs-md); color: var(--text-muted); padding: 12px 0; }
+.quote-panel.is-stale { opacity: .55; }
+
+/* ------------------------------------------------------------ member combobox */
+.combo { position: relative; }
+.combo-list {
+  position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; right: 0;
+  max-height: 240px; overflow-y: auto;
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: var(--r-md); box-shadow: var(--shadow-pop); padding: 4px;
+}
+.combo-item {
+  display: block; width: 100%; text-align: left; border: 0; background: transparent;
+  padding: 8px 10px; border-radius: var(--r-sm); cursor: pointer; font-size: var(--fs-md);
+}
+.combo-item:hover, .combo-item.on { background: var(--primary-soft); }
+.combo-item .cell-sub { margin-top: 1px; }
+.combo-empty { padding: 10px; font-size: var(--fs-md); color: var(--text-muted); }
+.combo-chosen {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--primary-soft)); background: var(--primary-soft);
+  border-radius: var(--r-md); padding: 7px 10px; font-size: var(--fs-md);
+}
+.combo-chosen .grow { min-width: 0; }
+
+/* ----------------------------------------------------------- overflow menu */
+.bill-menu-wrap { position: relative; display: inline-flex; }
+.bill-menu {
+  position: absolute; z-index: 30; top: calc(100% + 6px); right: 0; min-width: 210px;
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: var(--r-md); box-shadow: var(--shadow-pop); padding: 4px;
+}
+.bill-menu-item {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  border: 0; background: transparent; padding: 9px 10px; border-radius: var(--r-sm);
+  cursor: pointer; font-size: var(--fs-md); font-weight: 600; color: var(--text-2);
+}
+.bill-menu-item:hover:not(:disabled) { background: var(--surface-alt); color: var(--text); }
+.bill-menu-item:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ------------------------------------------------------------------- UPI / QR */
+.upi-panel { display: flex; flex-wrap: wrap; gap: var(--sp-5); align-items: flex-start; }
+.qr-box {
+  background: #fff; border: 1px solid var(--divider); border-radius: var(--r-md);
+  padding: 12px; display: grid; place-items: center; flex: none;
+}
+.qr-box svg { display: block; width: 208px; height: 208px; image-rendering: pixelated; }
+.copy-block {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface-alt); border: 1px solid var(--divider);
+  border-radius: var(--r-md); padding: 8px 10px;
+}
+.copy-block code {
+  flex: 1; min-width: 0; font-size: var(--fs-sm); word-break: break-all;
+  font-family: Consolas, "Courier New", monospace; color: var(--text-2);
+}
+
+/* -------------------------------------------------------------- attendance */
+.checkin-panel {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-4);
+  padding: var(--sp-5); border-bottom: 1px solid var(--divider); background: var(--surface-alt);
+}
+.checkin-panel .field { min-width: 200px; }
+.checkin-panel .grow { flex: 1 1 240px; min-width: 200px; }
+.check-inline { display: flex; align-items: center; gap: 8px; font-size: var(--fs-md); font-weight: 600; color: var(--text-2); }
+.check-inline input { width: 16px; height: 16px; accent-color: var(--primary); }
+
+.in-gym-list { display: flex; flex-direction: column; }
+.in-gym-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: 12px var(--sp-5); border-bottom: 1px solid var(--divider);
+}
+.in-gym-row:last-child { border-bottom: 0; }
+.in-gym-row .grow { min-width: 0; }
+
+/* ------------------------------------------------------------------- shared */
+.money-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.section-pad { padding: var(--sp-5); }
+.kv { display: grid; grid-template-columns: minmax(120px, auto) 1fr; gap: 8px 16px; font-size: var(--fs-md); }
+.kv dt { color: var(--text-muted); }
+.kv dd { margin: 0; font-weight: 600; }
+.timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.timeline li { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--divider); font-size: var(--fs-md); }
+.timeline li:last-child { border-bottom: 0; }
+.timeline .when { flex: none; width: 130px; color: var(--text-muted); font-size: var(--fs-xs); }

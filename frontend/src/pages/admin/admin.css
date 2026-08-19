@@ -1,0 +1,162 @@
+/* Extra vocabulary for the admin dashboard, member details and the trainer editor.
+   Everything else comes from base.css; these are only the shapes that file has no class for. */
+
+/* ------------------------------------------------------------------ sortable table headers */
+.table th.sortable { cursor: pointer; user-select: none; }
+.table th.sortable:hover { color: var(--text); }
+.table th.sortable .sort-caret { margin-left: 5px; font-size: 10px; color: var(--text-muted); }
+.table th.sortable.sorted .sort-caret { color: var(--primary); }
+.table tbody tr.row-link { cursor: pointer; }
+
+/* ------------------------------------------------------------------ segmented toggle */
+.range-seg { display: inline-flex; padding: 3px; gap: 3px; background: var(--surface-alt); border-radius: var(--r-md); }
+.range-seg-btn {
+  height: 26px; padding: 0 12px; border: 0; border-radius: var(--r-sm); background: transparent;
+  color: var(--text-2); font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
+}
+.range-seg-btn.active { background: var(--card); color: var(--text); box-shadow: 0 1px 2px rgba(31,36,48,.12); }
+
+/* ------------------------------------------------------------------ dashboard */
+.dash-stack { display: flex; flex-direction: column; gap: var(--sp-5); }
+.chart-grid { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+.chart-card {
+  background: var(--card); border: 1px solid var(--divider); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card); padding: 18px 20px;
+}
+.chart-head { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.chart-title { display: flex; align-items: center; gap: 8px; font-size: var(--fs-base); font-weight: 700; flex: 1; }
+.chart-empty { display: grid; place-items: center; height: 240px; color: var(--text-muted); font-size: var(--fs-md); }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: var(--sp-3); }
+.chart-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--text-2); }
+.chart-swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+
+/* `align-items: start` left the shorter card (usually Recent Payments) floating above a tall
+   hole of page background beside the long activity feed. Stretching squares the two bottoms
+   off, so the spare room reads as card, not as a gap in the layout. */
+.dash-two { display: grid; gap: var(--sp-5); align-items: stretch; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+.dash-two > .page-card + .page-card { margin-top: 0; }
+
+.activity-list { display: flex; flex-direction: column; }
+.activity-item { display: flex; align-items: flex-start; gap: var(--sp-3); padding: 12px var(--sp-5); border-bottom: 1px solid var(--divider); }
+.activity-item:last-child { border-bottom: 0; }
+.activity-icon { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  background: var(--primary-soft); color: var(--primary-dark); }
+.activity-text { flex: 1; min-width: 0; }
+.activity-main { font-size: var(--fs-md); font-weight: 600; }
+.activity-sub { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
+.activity-time { font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap; }
+
+/* ------------------------------------------------------------------ member details */
+.mem-hero { display: flex; align-items: flex-start; gap: var(--sp-5); flex-wrap: wrap; padding: var(--sp-5); }
+.hero-avatar { width: 68px; height: 68px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  background: var(--grad-blue); color: #fff; font-size: 24px; font-weight: 700; }
+.hero-main { flex: 1; min-width: 240px; }
+.hero-name { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: var(--fs-2xl); font-weight: 700; }
+.hero-code { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 3px; }
+.hero-contact { display: flex; flex-wrap: wrap; gap: var(--sp-4); margin-top: 10px; font-size: var(--fs-md); color: var(--text-2); }
+.hero-facts { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: 14px; }
+.hero-fact { border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--surface-alt); padding: 8px 14px; min-width: 130px; }
+.hero-fact-label { font-size: var(--fs-xs); color: var(--text-muted); font-weight: 600; }
+.hero-fact-value { font-size: var(--fs-lg); font-weight: 700; margin-top: 2px; }
+.hero-actions { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+.detail-tabs { display: flex; gap: 2px; overflow-x: auto; padding: 0 var(--sp-5); border-bottom: 1px solid var(--divider); background: var(--surface-alt); }
+.detail-tab {
+  border: 0; background: transparent; cursor: pointer; white-space: nowrap;
+  padding: 12px 14px; font-size: var(--fs-md); font-weight: 600; color: var(--text-2);
+  border-bottom: 2px solid transparent;
+}
+.detail-tab:hover { color: var(--text); }
+.detail-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.detail-tab-count { margin-left: 6px; font-size: var(--fs-xs); color: var(--text-muted); }
+
+.detail-grid { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.detail-item { min-width: 0; }
+.detail-label { font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; }
+.detail-value { font-size: var(--fs-base); margin-top: 3px; word-break: break-word; }
+
+/* ------------------------------------------------------------------ forms */
+.check-row { display: flex; align-items: flex-start; gap: 10px; }
+.check-row input { margin-top: 3px; width: 16px; height: 16px; flex: none; }
+.check-row-label { font-size: var(--fs-md); font-weight: 600; }
+.check-row-help { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
+.credential-box {
+  display: flex; align-items: center; gap: var(--sp-3);
+  border: 1px dashed var(--divider); border-radius: var(--r-md); background: var(--surface-alt); padding: 12px 14px;
+}
+.credential-value { font-family: Consolas, "SF Mono", ui-monospace, monospace; font-size: var(--fs-lg); font-weight: 700; flex: 1; word-break: break-all; }
+
+/* ---------------------------------------------------------- my account page */
+.account-head {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding-bottom: var(--sp-5); margin-bottom: var(--sp-5);
+  border-bottom: 1px solid var(--divider);
+}
+.account-avatar {
+  flex: 0 0 auto; width: 62px; height: 62px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--primary); color: #fff; font-size: 22px; font-weight: 700;
+}
+.account-name { font-size: var(--fs-xl); font-weight: 700; }
+.account-sub { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 2px; }
+.account-roles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+/* --------------------------------------- settings: email & payment gateway */
+/* The point of these two tabs is that the operator can tell, at a glance, whether anything
+   automatic is actually happening. So the state banner is the loudest thing on the panel and is
+   coloured by what is true — amber for "off", green for "live", grey for "cannot tell". */
+.set-state {
+  display: flex; align-items: flex-start; gap: var(--sp-3);
+  padding: 14px 16px; border-radius: var(--r-md);
+  border: 1px solid var(--divider); background: var(--surface-alt);
+}
+.set-state-icon {
+  width: 34px; height: 34px; border-radius: 50%; flex: none;
+  display: grid; place-items: center;
+  background: var(--divider); color: var(--text-2);
+}
+.set-state-title { font-size: var(--fs-lg); font-weight: 700; }
+.set-state-detail { margin-top: 4px; font-size: var(--fs-md); color: var(--text-2); }
+.set-state-off { background: var(--warning-soft); border-color: color-mix(in srgb, var(--warning) 35%, transparent); }
+.set-state-off .set-state-icon {
+  background: color-mix(in srgb, var(--warning) 22%, transparent);
+  color: color-mix(in srgb, var(--warning) 65%, var(--text));
+}
+.set-state-live { background: var(--success-soft); border-color: color-mix(in srgb, var(--success) 35%, transparent); }
+.set-state-live .set-state-icon {
+  background: color-mix(in srgb, var(--success) 22%, transparent);
+  color: color-mix(in srgb, var(--success) 65%, var(--text));
+}
+
+.set-facts { display: grid; gap: 14px 18px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.set-fact { min-width: 0; }
+.set-fact-label { font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; }
+.set-fact-value { margin-top: 3px; font-size: var(--fs-base); font-weight: 600; word-break: break-word; }
+.set-fact-note { margin-top: 3px; font-size: var(--fs-xs); color: var(--text-muted); }
+.set-mono { font-family: Consolas, "SF Mono", ui-monospace, monospace; font-size: var(--fs-md); }
+
+/* What actually causes a message to be sent. Listed because "no email arrived" is otherwise
+   indistinguishable from "nothing asked for one". */
+.set-triggers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.set-trigger { display: flex; align-items: flex-start; gap: 10px; }
+.set-trigger-dot {
+  width: 26px; height: 26px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  background: var(--primary-soft); color: var(--primary-dark);
+}
+.set-trigger-main { font-size: var(--fs-md); font-weight: 600; }
+.set-trigger-sub { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
+
+.set-test-row { display: flex; align-items: flex-end; gap: var(--sp-3); flex-wrap: wrap; }
+.set-test-row .field { flex: 1 1 280px; min-width: 220px; }
+
+/* Webhook URL: long, copied often, and sitting next to a secret that is never rendered. */
+.set-url {
+  display: flex; align-items: center; gap: var(--sp-2);
+  border: 1px solid var(--divider); border-radius: var(--r-md);
+  background: var(--surface-alt); padding: 8px 10px;
+}
+.set-url code {
+  flex: 1; min-width: 0; word-break: break-all; color: var(--text);
+  font-family: Consolas, "SF Mono", ui-monospace, monospace; font-size: var(--fs-md);
+}
+.set-secret-note { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--text-muted); }

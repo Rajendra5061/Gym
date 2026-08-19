@@ -1,0 +1,187 @@
+[
+  {
+    "name": "admin-23-members-1-edit",
+    "route": "/admin/members/1/edit",
+    "path": "/admin/members/1/edit",
+    "heading": "Edit Member",
+    "scrollW": 1440,
+    "innerW": 1440,
+    "bodyLen": 778,
+    "text": "My Fitness Gym | Dashboard | Members | Billing | Activity | Engagement | Reports | System | System Administrator | Logout | Edit Member | Update the member profile. Membership status is managed from the member details screen. | Back to Members | Basic Information | Who the member is and how to reach them. | Full name* | Gender | Mal",
+    "overflow": [],
+    "navLinks": [
+      "Dashboard",
+      "Members",
+      "Billing",
+      "Activity",
+      "Engagement",
+      "Reports",
+      "System"
+    ],
+    "navRight": 1416,
+    "activeNav": [
+      "Members"
+    ],
+    "consoleErrors": [
+      {
+        "level": "warning",
+        "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition."
+      },
+      {
+        "level": "warning",
+        "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath."
+      }
+    ],
+    "netFails": [],
+    "file": "D:\\GYM_17-08-2026\\docs\\pages\\admin-23-members-1-edit.png",
+    "shotMode": "fullpage"
+  },
+  {
+    "name": "admin-24-trainers-new",
+    "route": "/admin/trainers/new",
+    "path": "/admin/trainers/new",
+    "heading": "Add Trainer",
+    "scrollW": 1440,
+    "innerW": 1440,
+    "bodyLen": 888,
+    "text": "My Fitness Gym | Dashboard | Members | Billing | Activity | Engagement | Reports | System | System Administrator | Logout | Add Trainer | Add a coach to the roster and optionally issue them a login account. | Back to Trainers | Login Credentials | Give the trainer access to the staff portal. | User name | Assigned automatically fr",
+    "overflow": [],
+    "navLinks": [
+      "Dashboard",
+      "Members",
+      "Billing",
+      "Activity",
+      "Engagement",
+      "Reports",
+      "System"
+    ],
+    "navRight": 1416,
+    "activeNav": [
+      "Members"
+    ],
+    "consoleErrors": [
+      {
+        "level": "warning",
+        "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition."
+      },
+      {
+        "level": "warning",
+        "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath."
+      }
+    ],
+    "netFails": [],
+    "file": "D:\\GYM_17-08-2026\\docs\\pages\\admin-24-trainers-new.png",
+    "shotMode": "fullpage"
+  },
+  {
+    "name": "admin-25-trainers-1-edit",
+    "route": "/admin/trainers/1/edit",
+    "path": "/admin/trainers/1/edit",
+    "heading": "Edit Trainer",
+    "scrollW": 1440,
+    "innerW": 1440,
+    "bodyLen": 749,
+    "text": "My Fitness Gym | Dashboard | Members | Billing | Activity | Engagement | Reports | System | System Administrator | Logout | Edit Trainer | Update the trainer profile, pay terms and employment status. | Back to Trainers | Trainer with identifier '1' was not found. | Basic Information | Who the trainer is and how to reach them. | Fu",
+    "overflow": [],
+    "navLinks": [
+      "Dashboard",
+      "Members",
+      "Billing",
+      "Activity",
+      "Engagement",
+      "Reports",
+      "System"
+    ],
+    "navRight": 1416,
+    "activeNav": [
+      "Members"
+    ],
+    "consoleErrors": [
+      {
+        "level": "warning",
+        "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition."
+      },
+      {
+        "level": "warning",
+        "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath."
+      }
+    ],
+    "netFails": [
+      {
+        "kind": "http",
+        "url": "/api/trainers/1",
+        "detail": "404"
+      }
+    ],
+    "file": "D:\\GYM_17-08-2026\\docs\\pages\\admin-25-trainers-1-edit.png",
+    "shotMode": "fullpage"
+  },
+  {
+    "name": "admin-26-workout-plans-new",
+    "route": "/admin/workout-plans/new",
+    "path": "/admin/workout-plans/new",
+    "heading": "Add Workout / Diet Plan",
+    "scrollW": 1440,
+    "innerW": 1440,
+    "bodyLen": 939,
+    "text": "My Fitness Gym | Dashboard | Members | Billing | Activity | Engagement | Reports | System | System Administrator | Logout | Add Workout / Diet Plan | Create a day-wise workout and diet plan and hand it to a member. | Back to Plans | Plan details | The member, the title they will see, and the day-wise plan itself. | Member* | Selec",
+    "overflow": [],
+    "navLinks": [
+      "Dashboard",
+      "Members",
+      "Billing",
+      "Activity",
+      "Engagement",
+      "Reports",
+      "System"
+    ],
+    "navRight": 1416,
+    "activeNav": [
+      "Activity"
+    ],
+    "consoleErrors": [
+      {
+        "level": "warning",
+        "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition."
+      },
+      {
+        "level": "warning",
+        "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath."
+      },
+      {
+        "level": "error",
+        "text": "ReferenceError: isoDate is not defined\n    at http://localhost:5173/src/pages/admin/MemberFormPage.tsx?t=1787064624277:69:16"
+      },
+      {
+        "level": "error",
+        "text": "[hmr] Failed to reload /src/pages/admin/MemberFormPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)"
+      }
+    ],
+    "netFails": [],
+    "file": "D:\\GYM_17-08-2026\\docs\\pages\\admin-26-workout-plans-new.png",
+    "shotMode": "fullpage"
+  },
+  {
+    "name": "admin-27-workout-plans-1-edit",
+    "route": "/admin/workout-plans/1/edit",
+    "path": "/admin/workout-plans/1/edit",
+    "heading": null,
+    "scrollW": 1440,
+    "innerW": 1440,
+    "bodyLen": 0,
+    "text": "",
+    "overflow": [],
+    "navLinks": [],
+    "navRight": null,
+    "activeNav": [],
+    "consoleErrors": [
+      {
+        "level": "exception",
+        "text": "ReferenceError: isoDate is not defined\n    at http://localhost:5173/src/pages/admin/MemberFormPage.tsx?t=1787064624277:69:16"
+      }
+    ],
+    "netFails": [],
+    "file": "D:\\GYM_17-08-2026\\docs\\pages\\admin-27-workout-plans-1-edit.png",
+    "shotMode": "fullpage"
+  }
+]

@@ -1,0 +1,45 @@
+# ---------------------------------------------------------------- build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+
+# ------------------------------------------------------------------ front end
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# ---------------------------------------------------------------------- logs
+# Run logs carry member email addresses, receipt numbers and payment references.
+logs/
+*.log
+
+# The local mail drop holds complete .eml messages addressed to real members.
+mail-drop/
+
+# ------------------------------------------------------------------- backups
+# Database backups are the entire member, payment and user table set in one file.
+backups/
+*.bak
+*.trn
+
+# ------------------------------------------------------------------- secrets
+# Belt and braces. Real credentials live in dotnet user-secrets, outside the
+# repository entirely, and must never arrive here by any route.
+appsettings.*.local.json
+appsettings.Production.json
+secrets.json
+.env
+.env.*
+*.pfx
+*.p12
+
+# --------------------------------------------------------------------- misc
+Thumbs.db
+.DS_Store

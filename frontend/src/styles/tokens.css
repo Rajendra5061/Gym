@@ -1,0 +1,116 @@
+/* Design tokens matching the My.Gym reference: near-black chrome, vivid gradient tiles,
+   Bootstrap-ish status colours, white cards on a light page that fades to mint. */
+:root {
+  --chrome:        #14161f;
+  --chrome-2:      #1d2130;
+  --primary:       #4f46e5;
+  --primary-dark:  #3730a3;
+  --primary-soft:  #eef2ff;
+  --accent:        #a855f7;
+  --success:       #22c55e;
+  --success-soft:  #e7f8ee;
+  --warning:       #f59e0b;
+  --warning-soft:  #fff5e6;
+  --danger:        #dc3545;
+  --danger-soft:   #fdeaec;
+  --info:          #0ea5e9;
+  --info-soft:     #e6f6fe;
+
+  --surface:       #f6f7fb;
+  --surface-alt:   #f0f2f7;
+  --card:          #ffffff;
+  --divider:       #e5e8f0;
+
+  --text:          #1f2430;
+  --text-2:        #5b6478;
+  --text-muted:    #8e97ab;
+  --on-dark:       #ffffff;
+
+  --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-pill: 999px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+
+  --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px; --fs-base: 14px;
+  --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 24px; --fs-3xl: 30px;
+
+  --shadow-card: 0 1px 2px rgba(31,36,48,.06), 0 8px 24px rgba(31,36,48,.06);
+  --shadow-pop:  0 8px 32px rgba(31,36,48,.18);
+
+  --chart-1: #4e8cf5; --chart-2: #22c55e; --chart-3: #f97316; --chart-4: #a855f7;
+  --chart-5: #0ea5e9; --chart-6: #ec4899; --chart-7: #f59e0b; --chart-8: #14b8a6;
+
+  --grad-hero:   linear-gradient(120deg, #4f46e5 0%, #7c3aed 35%, #a855f7 65%, #f43f5e 100%);
+  --grad-blue:   linear-gradient(135deg, #5b8def 0%, #2f6be0 100%);
+  --grad-green:  linear-gradient(135deg, #34d07a 0%, #16a34a 100%);
+  --grad-orange: linear-gradient(135deg, #fba94c 0%, #f97316 100%);
+  --grad-cyan:   linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+}
+
+/*
+ * Dark mode. Only the colour tokens are redefined — spacing, radii, type scale and the gradient
+ * tiles are identical in both themes, so a component never needs to know which theme is active.
+ *
+ * `[data-theme]` on <html> is the explicit user choice and always wins. The media query below it
+ * covers "follow the system", which is the default when nobody has chosen. Anything painted with
+ * a literal hex instead of a token will not follow the theme.
+ */
+:root[data-theme="dark"] {
+  --chrome:        #0f1117;
+  --chrome-2:      #171a24;
+  --primary:       #6d63f2;
+  --primary-dark:  #a5a0ff;
+  --primary-soft:  #23213f;
+  --accent:        #b57af8;
+  --success:       #2fbf6b;
+  --success-soft:  #12301f;
+  --warning:       #e0a008;
+  --warning-soft:  #3a2c0c;
+  --danger:        #e04858;
+  --danger-soft:   #3b1a1f;
+  --info:          #29a9e6;
+  --info-soft:     #102c3b;
+
+  --surface:       #0f1117;
+  --surface-alt:   #191c25;
+  --card:          #161922;
+  --divider:       #272b38;
+
+  --text:          #e8eaf0;
+  --text-2:        #b3bacb;
+  --text-muted:    #858da1;
+  --on-dark:       #ffffff;
+
+  --shadow-card: 0 1px 2px rgba(0,0,0,.36), 0 8px 24px rgba(0,0,0,.32);
+  --shadow-pop:  0 8px 32px rgba(0,0,0,.55);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --chrome:        #0f1117;
+    --chrome-2:      #171a24;
+    --primary:       #6d63f2;
+    --primary-dark:  #a5a0ff;
+    --primary-soft:  #23213f;
+    --accent:        #b57af8;
+    --success:       #2fbf6b;
+    --success-soft:  #12301f;
+    --warning:       #e0a008;
+    --warning-soft:  #3a2c0c;
+    --danger:        #e04858;
+    --danger-soft:   #3b1a1f;
+    --info:          #29a9e6;
+    --info-soft:     #102c3b;
+
+    --surface:       #0f1117;
+    --surface-alt:   #191c25;
+    --card:          #161922;
+    --divider:       #272b38;
+
+    --text:          #e8eaf0;
+    --text-2:        #b3bacb;
+    --text-muted:    #858da1;
+    --on-dark:       #ffffff;
+
+    --shadow-card: 0 1px 2px rgba(0,0,0,.36), 0 8px 24px rgba(0,0,0,.32);
+    --shadow-pop:  0 8px 32px rgba(0,0,0,.55);
+  }
+}

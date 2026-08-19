@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Served from public/, which Vite copies to the build root, so /favicon.ico resolves
+         both in dev and in production instead of 404-ing on every fresh load. -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <title>Gym Management</title>
+    <script>
+      (function () {
+        try {
+          var c = localStorage.getItem("gym.theme");
+          if (c === "light" || c === "dark") {
+            document.documentElement.setAttribute("data-theme", c);
+            document.documentElement.style.colorScheme = c;
+          }
+        } catch (e) { /* private mode: fall back to the system preference */ }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

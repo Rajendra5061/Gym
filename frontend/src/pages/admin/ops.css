@@ -1,0 +1,207 @@
+/* Layout pieces used only by the operations screens: the workout plan gallery, the reports
+   rail, and the notification feed. Everything else comes from base.css. */
+
+/* ------------------------------------------------------------------ view toggle */
+
+.ops-seg {
+  display: inline-flex;
+  border: 1px solid var(--divider);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--card);
+}
+.ops-seg button {
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ops-seg button + button { border-left: 1px solid var(--divider); }
+.ops-seg button.active { background: var(--chrome); color: #fff; }
+
+/* --------------------------------------------------------- workout plan gallery */
+
+.ops-plan-gallery {
+  display: grid;
+  gap: var(--sp-5);
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  padding: var(--sp-5);
+}
+.ops-plan-card {
+  border: 1px solid var(--divider);
+  border-radius: var(--r-lg);
+  background: var(--card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-card);
+}
+.ops-plan-card-head {
+  background: var(--chrome);
+  color: #fff;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ops-plan-card-name {
+  font-weight: 700;
+  font-size: var(--fs-base);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ops-plan-card-datepill {
+  flex: none;
+  background: #ffffff26;
+  color: #fff;
+  border-radius: var(--r-pill);
+  padding: 3px 10px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.ops-plan-card-body { padding: 14px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.ops-plan-card-preview {
+  font-size: var(--fs-md);
+  color: var(--text-2);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 66px;
+}
+.ops-plan-card-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.ops-plan-card-foot {
+  border-top: 1px solid var(--divider);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.ops-plan-detail {
+  white-space: pre-wrap;
+  font-size: var(--fs-md);
+  line-height: 1.6;
+  color: var(--text-2);
+  background: var(--surface-alt);
+  border: 1px solid var(--divider);
+  border-radius: var(--r-md);
+  padding: 14px;
+}
+
+/* --------------------------------------------------------------------- reports */
+
+.ops-quick-ranges { display: flex; flex-wrap: wrap; gap: 6px; }
+.ops-quick-range {
+  border: 1px solid var(--divider);
+  background: var(--card);
+  border-radius: var(--r-pill);
+  padding: 5px 12px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.ops-quick-range:hover { background: var(--surface-alt); }
+.ops-quick-range.active { background: var(--chrome); border-color: var(--chrome); color: #fff; }
+.ops-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--divider);
+}
+.ops-report-head {
+  padding: var(--sp-5);
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface-alt);
+}
+.ops-report-head-title { font-size: var(--fs-lg); font-weight: 700; }
+.ops-report-head-meta { margin-top: 4px; font-size: var(--fs-sm); color: var(--text-muted); }
+.ops-totals-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  border-top: 1px solid var(--divider);
+  background: var(--surface-alt);
+}
+.ops-total-chip {
+  border: 1px solid var(--divider);
+  background: var(--card);
+  border-radius: var(--r-md);
+  padding: 8px 14px;
+  min-width: 150px;
+}
+.ops-total-chip-label { font-size: var(--fs-xs); color: var(--text-muted); font-weight: 600; }
+.ops-total-chip-value { font-size: var(--fs-lg); font-weight: 700; margin-top: 2px; }
+
+/* --------------------------------------------------------------- notifications */
+
+.ops-notice-list { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-5); }
+.ops-notice-card {
+  display: flex;
+  gap: var(--sp-4);
+  align-items: flex-start;
+  border: 1px solid var(--divider);
+  border-left: 4px solid var(--info);
+  border-radius: var(--r-md);
+  background: var(--card);
+  padding: 14px 16px;
+}
+.ops-notice-card.ops-sev-info { border-left-color: var(--info); }
+.ops-notice-card.ops-sev-success { border-left-color: var(--success); }
+.ops-notice-card.ops-sev-warning { border-left-color: var(--warning); }
+.ops-notice-card.ops-sev-critical { border-left-color: var(--danger); }
+.ops-notice-card.ops-unread { background: color-mix(in srgb, var(--primary) 5%, var(--card)); box-shadow: var(--shadow-card); }
+.ops-notice-title { font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ops-notice-message {
+  margin-top: 4px;
+  font-size: var(--fs-md);
+  color: var(--text-2);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+.ops-notice-side { flex: none; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.ops-notice-time { font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap; }
+.ops-notice-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex: none; }
+
+/* ------------------------------------------------------------------ small bits */
+
+.ops-stars { color: var(--warning); letter-spacing: 1px; white-space: nowrap; }
+.ops-stars .ops-star-off { color: color-mix(in srgb, var(--text-muted) 45%, var(--divider)); }
+.ops-trunc-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 320px;
+  color: var(--text-2);
+}
+.ops-chip-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* Print trims only this screen's own chrome; global layout CSS is left alone. */
+@media print {
+  .ops-report-actions { display: none !important; }
+}
+
+/* Report chooser — replaced the fixed left rail, which cost ~260px the table wanted. */
+.ops-report-picker { display: flex; align-items: center; gap: 8px; margin-right: auto; }
+.ops-report-picker > span {
+  font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); white-space: nowrap;
+}
+.ops-report-picker .select { min-width: 260px; }

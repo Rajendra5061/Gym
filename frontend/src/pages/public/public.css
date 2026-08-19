@@ -1,0 +1,286 @@
+/* Styles for the four public (signed-out) screens: home, the two login cards and the
+   password-reset card. Everything is prefixed so nothing here can leak into the admin or
+   member areas, which own their own look. Colours come from tokens.css.
+
+   Two kinds of literal survive on purpose:
+   - the hero gradient and the dark side panel of the auth cards are meant to stay vivid in
+     both themes, so the white text and translucent-white chrome painted on top of them is
+     correct as a literal rather than a token;
+   - the status dots and the mint/indigo CTA gradients read against those vivid bands.
+   Everything that touches the page itself — surfaces, borders, body copy — is a token. */
+
+/*
+ * The mint and lavender discs behind the auth-card icons have no equivalent in tokens.css,
+ * and nothing outside these screens uses them, so they are declared here. They still need a
+ * value per theme: the pale light-mode disc would otherwise sit as a bright coin on a dark
+ * card. `[data-theme]` is the explicit choice and wins; the media query below covers the
+ * "follow the system" default, exactly as tokens.css does.
+ */
+:root {
+  --pub-mint-bg: #d1fae5;
+  --pub-mint-fg: #047857;
+  --pub-lav-bg:  #ede9fe;
+  --pub-lav-fg:  #6d28d9;
+}
+:root[data-theme="dark"] {
+  --pub-mint-bg: #123028;
+  --pub-mint-fg: #5ee9b5;
+  --pub-lav-bg:  #241f3d;
+  --pub-lav-fg:  #c4b5fd;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --pub-mint-bg: #123028;
+    --pub-mint-fg: #5ee9b5;
+    --pub-lav-bg:  #241f3d;
+    --pub-lav-fg:  #c4b5fd;
+  }
+}
+
+.pub-shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  /* Both stops are tokens: a hardcoded mint end-stop stayed bright under the dark palette. */
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-alt) 100%);
+}
+.pub-shell a.btn:hover { text-decoration: none; }
+
+/* ------------------------------------------------------------------- top bar */
+.pub-nav {
+  background: var(--chrome);
+  color: var(--on-dark);
+  /* In dark mode --chrome and --surface land on the same near-black, so the bar would bleed
+     into the page. A translucent-white hairline separates them without showing up as a
+     bright line under the bar in light mode. */
+  border-bottom: 1px solid #ffffff17;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sp-6);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.pub-nav-inner {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+.pub-brand { display: flex; align-items: center; gap: 10px; color: var(--on-dark); font-size: 18px; font-weight: 700; min-width: 0; }
+.pub-brand:hover { text-decoration: none; color: var(--on-dark); }
+.pub-brand-mark {
+  width: 34px; height: 34px; border-radius: 9px; flex: none;
+  display: grid; place-items: center; color: var(--on-dark); background: var(--grad-hero);
+}
+.pub-brand-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pub-nav-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-2); flex: none; }
+
+/* Both of these only ever sit on the near-black bar or the hero gradient, which stay dark in
+   either theme — so the white fill and the dark label on it are literals by design. */
+.btn.pub-btn-on-dark { background: #ffffff1a; border-color: #ffffff33; color: #fff; }
+.btn.pub-btn-on-dark:hover:not(:disabled) { background: #ffffff2e; color: #fff; }
+.btn.pub-btn-white { background: #fff; color: #1f2430; }
+.btn.pub-btn-white:hover:not(:disabled) { background: #eef0f6; color: #1f2430; }
+
+/* --------------------------------------------------------------- page layout */
+.pub-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+.pub-footer {
+  border-top: 1px solid var(--divider);
+  padding: 18px var(--sp-6);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------------- hero
+   The hero keeps its vivid gradient in both themes, so everything painted on top of it —
+   the translucent-white panels, chips and the white body copy — stays literal on purpose. */
+.pub-hero {
+  border-radius: var(--r-lg);
+  background: var(--grad-hero);
+  color: var(--on-dark);
+  padding: 40px;
+  display: grid;
+  grid-template-columns: 1.15fr .85fr;
+  gap: var(--sp-8);
+  align-items: center;
+  box-shadow: 0 16px 38px rgba(79, 70, 229, .26);
+}
+.pub-hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px; border-radius: var(--r-pill);
+  background: #ffffff26; border: 1px solid #ffffff33;
+  font-size: var(--fs-xs); font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+}
+.pub-hero-title { font-size: 38px; line-height: 1.15; font-weight: 800; margin: 16px 0 12px; }
+.pub-hero-text { margin: 0; font-size: 15px; line-height: 1.65; color: #ffffffdb; max-width: 54ch; }
+.pub-hero-actions { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-6); }
+.pub-hero-actions .btn { height: 42px; padding: 0 22px; }
+
+.pub-hero-panel {
+  border: 1px solid #ffffff45;
+  background: #ffffff1f;
+  border-radius: var(--r-lg);
+  padding: var(--sp-6);
+}
+.pub-hero-panel-mark {
+  width: 52px; height: 52px; border-radius: var(--r-lg);
+  display: grid; place-items: center;
+  background: #ffffff2e; border: 1px solid #ffffff40; color: var(--on-dark);
+}
+.pub-hero-panel-title { margin-top: 16px; font-size: var(--fs-lg); font-weight: 700; }
+.pub-hero-panel-text { margin: 6px 0 0; font-size: var(--fs-md); line-height: 1.6; color: #ffffffcf; }
+.pub-hero-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.pub-hero-chip {
+  padding: 4px 11px; border-radius: var(--r-pill);
+  background: #ffffff26; border: 1px solid #ffffff33;
+  font-size: var(--fs-xs); font-weight: 600;
+}
+
+.pub-status {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 22px; padding: 6px 13px; border-radius: var(--r-pill);
+  background: #0000002e; border: 1px solid #ffffff33;
+  font-size: var(--fs-xs); font-weight: 600; color: #ffffffdb;
+}
+/* Tuned to read against the hero gradient rather than against the page, so they are literal
+   in both themes for the same reason the white hero copy is. */
+.pub-dot { width: 8px; height: 8px; border-radius: 50%; background: #facc15; flex: none; }
+.pub-dot-ok { background: #4ade80; }
+.pub-dot-bad { background: #fb7185; }
+
+/* ------------------------------------------------------------ feature cards */
+.pub-feature-grid { display: grid; gap: var(--sp-5); grid-template-columns: repeat(4, 1fr); }
+.pub-feature-card {
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-card); padding: 20px;
+}
+.pub-feature-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: grid; place-items: center; color: var(--on-dark); margin-bottom: 14px;
+}
+.pub-feature-title { font-size: 15px; font-weight: 700; }
+.pub-feature-text { margin: 6px 0 0; font-size: var(--fs-md); line-height: 1.55; color: var(--text-2); }
+
+/* --------------------------------------------------------------- lower band */
+
+/* ------------------------------------------------------------- auth screens */
+.pub-auth-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px var(--sp-6); }
+.pub-auth-card {
+  width: 100%; max-width: 980px;
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: 14px; box-shadow: var(--shadow-pop); overflow: hidden;
+  display: grid; grid-template-columns: 1fr 1fr;
+}
+.pub-auth-form { padding: 34px 38px; display: flex; flex-direction: column; }
+.pub-auth-head { display: flex; align-items: flex-start; gap: 14px; }
+.pub-auth-badge { width: 52px; height: 52px; border-radius: 50%; flex: none; display: grid; place-items: center; }
+.pub-badge-mint { background: var(--pub-mint-bg); color: var(--pub-mint-fg); }
+.pub-badge-lavender { background: var(--pub-lav-bg); color: var(--pub-lav-fg); }
+.pub-auth-title { font-size: 22px; font-weight: 700; }
+.pub-auth-sub { margin-top: 3px; font-size: var(--fs-md); color: var(--text-muted); }
+.pub-auth-fields { display: grid; gap: var(--sp-4); margin-top: var(--sp-6); }
+.pub-auth-link { display: block; text-align: center; margin-top: 14px; font-size: var(--fs-sm); font-weight: 600; }
+.pub-auth-foot {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--divider);
+  font-size: var(--fs-sm); color: var(--text-muted); text-align: center;
+}
+
+.pub-input-has-suffix { padding-right: 44px; }
+
+/* The two sign-in CTAs carry the brand gradient and are meant to be the brightest thing on
+   the card in either theme, so the gradients and their white labels stay literal. */
+.btn.pub-btn-mint { background: linear-gradient(135deg, #34d399 0%, #10b981 100%); color: var(--on-dark); height: 42px; }
+.btn.pub-btn-mint:hover:not(:disabled) { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.btn.pub-btn-indigo { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: var(--on-dark); height: 42px; }
+.btn.pub-btn-indigo:hover:not(:disabled) { background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%); }
+
+/* The half of the auth card that carries the brand: a deep gradient band that is dark in
+   both themes, so the white copy and translucent-white rules on it are literal by design. */
+.pub-auth-side {
+  padding: 34px; color: var(--on-dark); display: flex; flex-direction: column;
+  background: linear-gradient(160deg, #14161f 0%, #232046 55%, #3a2b63 100%);
+}
+.pub-auth-side-member { background: linear-gradient(160deg, #14161f 0%, #241d4d 50%, #4c1d95 100%); }
+.pub-auth-side-brand { display: flex; align-items: center; gap: 10px; font-size: var(--fs-lg); font-weight: 700; }
+.pub-auth-side-list { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 13px; }
+.pub-auth-side-list li { display: flex; gap: 10px; align-items: flex-start; font-size: var(--fs-md); color: #ffffffcc; line-height: 1.5; }
+.pub-auth-side-list svg { color: #ffffff8f; flex: none; margin-top: 2px; }
+.pub-auth-side-caption {
+  margin-top: auto; padding-top: 24px;
+  font-size: var(--fs-sm); line-height: 1.65; color: #ffffffa8;
+}
+.pub-auth-side-caption strong { display: block; color: var(--on-dark); font-size: var(--fs-base); margin-bottom: 4px; }
+
+/* ------------------------------------------------------ forgot / reset card */
+.pub-auth-single {
+  width: 100%; max-width: 540px;
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: 14px; box-shadow: var(--shadow-pop); padding: 32px;
+}
+.pub-steps { display: flex; align-items: center; gap: 10px; margin: 20px 0 4px; }
+.pub-step { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); }
+.pub-step-num {
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface-alt); color: var(--text-muted); font-size: var(--fs-sm); font-weight: 700;
+  /* In dark mode --surface-alt sits a hair off --card, so the pending disc read as a bare
+     numeral. The outline keeps it a disc in both themes; the filled states below carry their
+     own contrast and drop it. */
+  border: 1px solid var(--divider);
+}
+.pub-step-active { color: var(--text); }
+.pub-step-active .pub-step-num { background: var(--primary); color: var(--on-dark); border-color: transparent; }
+.pub-step-done .pub-step-num { background: var(--success-soft); color: var(--pub-mint-fg); border-color: transparent; }
+.pub-step-line { flex: 1; height: 2px; background: var(--divider); border-radius: 2px; }
+
+.pub-token-row { display: flex; gap: 8px; align-items: stretch; }
+.pub-token-row .input {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: var(--fs-sm); background: var(--surface-alt);
+}
+.pub-token-row .btn { flex: none; }
+
+/* --------------------------------------------------------------- responsive */
+@media (max-width: 1120px) {
+  .pub-feature-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 960px) {
+  .pub-hero { grid-template-columns: 1fr; padding: 30px; }
+  .pub-hero-title { font-size: 32px; }
+}
+@media (max-width: 880px) {
+  .pub-auth-card { grid-template-columns: 1fr; }
+  .pub-auth-card-reverse .pub-auth-form { order: 1; }
+  .pub-auth-card-reverse .pub-auth-side { order: 2; }
+  .pub-auth-form { padding: 28px 22px; }
+  .pub-auth-side { padding: 26px 22px; }
+  .pub-auth-side-caption { padding-top: 20px; }
+}
+@media (max-width: 620px) {
+  .pub-feature-grid { grid-template-columns: 1fr; }
+  .pub-hero-title { font-size: 27px; }
+  .pub-nav { padding: 0 var(--sp-4); }
+  .pub-main { padding: var(--sp-4); }
+  .pub-auth-single { padding: 24px 20px; }
+  .pub-auth-wrap { padding: 24px 16px; }
+}
+
+/* Owner contact beside the footer line. Hidden entirely when the gym has none on file. */
+.pub-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px var(--sp-5); }
+.pub-footer-contact { display: inline-flex; flex-wrap: wrap; gap: var(--sp-4); }
+.pub-footer-contact a { color: var(--text-2); font-weight: 600; }
+.pub-footer-contact a:hover { color: var(--primary); text-decoration: none; }
