@@ -103,6 +103,12 @@ public sealed class MemberService : IMemberService
     {
         ArgumentNullException.ThrowIfNull(query);
 
+        // A trainer-linked caller without the trainers.view permission only ever sees their own
+        // assigned members, whatever filter the client sent. The claim comes from the validated JWT.
+        var ownTrainerId = _currentUser.TrainerId;
+        if (ownTrainerId is > 0 && !_currentUser.HasPermission(Permissions.TrainersView))
+            query.TrainerId = ownTrainerId;
+
         var today = _clock.Today.Date;
         var expiringWithin = query.ExpiringWithinDays < 0 ? 0 : query.ExpiringWithinDays;
         var soonLimit = today.AddDays(expiringWithin);
@@ -920,6 +926,11 @@ public sealed class MemberService : IMemberService
         var memberExists = await _db.Members.AsNoTracking()
             .AnyAsync(m => m.Id == dto.MemberId, ct).ConfigureAwait(false);
         if (!memberExists) throw new NotFoundAppException("Member", dto.MemberId);
+
+        // A trainer-linked caller always records under their own trainer id, whatever the client
+        // sent: the recorder comes from the validated JWT, never from the request body.
+        if (_currentUser.TrainerId is > 0)
+            dto.RecordedByTrainerId = _currentUser.TrainerId;
 
         if (dto.RecordedByTrainerId.HasValue)
         {

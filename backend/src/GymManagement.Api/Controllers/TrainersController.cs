@@ -16,8 +16,28 @@ public sealed record CreateTrainerResultDto(TrainerDetailDto Trainer, TemporaryP
 public sealed class TrainersController : ApiControllerBase
 {
     private readonly ITrainerService _trainerService;
+    private readonly ICurrentUserService _currentUser;
 
-    public TrainersController(ITrainerService trainerService) => _trainerService = trainerService;
+    public TrainersController(ITrainerService trainerService, ICurrentUserService currentUser)
+    {
+        _trainerService = trainerService;
+        _currentUser = currentUser;
+    }
+
+    /// <summary>
+    /// Returns the trainer profile linked to the signed-in account. The trainer is resolved from
+    /// the validated JWT's trainer claim, never from a route or query value.
+    /// </summary>
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(ApiResponse<TrainerDetailDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<TrainerDetailDto>>> GetMe(CancellationToken ct)
+    {
+        var trainerId = _currentUser.TrainerId
+            ?? throw new NotFoundAppException("Your account is not linked to a trainer profile.");
+
+        return Success(await _trainerService.GetByIdAsync(trainerId, ct));
+    }
 
     /// <summary>Returns a paged, filterable list of trainers.</summary>
     [HttpGet]

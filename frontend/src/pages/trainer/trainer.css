@@ -1,0 +1,86 @@
+/* Trainer portal screens. Mirrors the member hero/tile idiom so the two personal
+   dashboards read as siblings, but stays its own file so the areas can drift apart. */
+
+.trainer-hero {
+  display: flex; align-items: center; gap: var(--sp-5); flex-wrap: wrap;
+  padding: 26px 28px; border-radius: var(--r-lg);
+  background: var(--grad-hero); color: #fff;
+}
+.trainer-hero .grow { flex: 1; min-width: 220px; }
+.trainer-hero-title { font-size: var(--fs-2xl); font-weight: 700; }
+.trainer-hero-sub { margin-top: 6px; font-size: var(--fs-md); color: #ffffffdd; }
+.trainer-hero-badges { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: 14px; }
+.trainer-hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px; background: #ffffff26;
+  font-size: var(--fs-sm); font-weight: 600;
+}
+.trainer-hero-avatar {
+  width: 64px; height: 64px; border-radius: 50%; flex: none;
+  display: grid; place-items: center;
+  background: #ffffff26; font-size: 22px; font-weight: 700; letter-spacing: 1px;
+}
+/* The admin hero's button styles are scoped to `.dash-hero`, so the trainer hero carries its
+   own copy rather than widening that selector and changing the admin screen too. */
+.trainer-hero-actions { margin-left: auto; display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.trainer-hero .btn-hero-outline {
+  background: #ffffff1f; border: 1px solid #ffffff5c; color: #fff;
+}
+.trainer-hero .btn-hero-outline:hover:not(:disabled) { background: #ffffff33; }
+
+.trainer-tiles {
+  margin-top: var(--sp-5);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--sp-4);
+}
+/* Every tile is a link into the screen its number came from, so a count is a way in rather
+   than a dead statistic. */
+.t-tile {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: 18px 20px; border-radius: var(--r-lg); color: #fff;
+  box-shadow: var(--shadow-card);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+a.t-tile, a.t-tile:hover { text-decoration: none; color: #fff; }
+a.t-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); }
+/* The tiles are painted on saturated gradients, so the focus ring is white rather than the
+   brand colour it would otherwise disappear into. */
+a.t-tile:focus-visible { outline: 3px solid #ffffff8f; outline-offset: 2px; }
+.t-tile .grow { flex: 1; min-width: 0; }
+/* Spans, not divs: the tile is an anchor now, and an anchor may not contain block elements. */
+.t-tile-title { display: block; font-size: var(--fs-sm); font-weight: 600; color: #ffffffdd; }
+.t-tile-value { display: block; font-size: 27px; font-weight: 700; margin-top: 4px; }
+.t-tile-caption { display: block; font-size: var(--fs-xs); color: #ffffffcc; margin-top: 3px; }
+.t-tile-action {
+  display: inline-flex; align-items: center; gap: 5px; margin-top: 10px;
+  font-size: var(--fs-xs); font-weight: 700; opacity: .82;
+  transition: gap .16s ease, opacity .16s ease;
+}
+a.t-tile:hover .t-tile-action { opacity: 1; gap: 9px; }
+.t-tile-icon {
+  width: 46px; height: 46px; border-radius: 14px; flex: none;
+  display: grid; place-items: center; background: #ffffff2e;
+  box-shadow: inset 0 1px 0 #ffffff59, 0 6px 14px #00000024;
+  backdrop-filter: blur(3px);
+  transition: transform .18s ease;
+}
+.t-tile:hover .t-tile-icon { transform: scale(1.08) rotate(-5deg); }
+
+.t-tile-blue   { background: var(--grad-blue); }
+.t-tile-green  { background: var(--grad-green); }
+.t-tile-orange { background: var(--grad-orange); }
+.t-tile-cyan   { background: var(--grad-cyan); }
+
+.trainer-hero + .page-card,
+.trainer-tiles + .page-card { margin-top: var(--sp-5); }
+.trainer-two-col + .page-card { margin-top: var(--sp-5); }
+
+/* Row of quick per-member actions in the roster table. Never wraps: the actions column is
+   sized to its content, and a wrapping row would stack the buttons into a tall column. */
+.trainer-row-actions { display: flex; gap: 6px; flex-wrap: nowrap; justify-content: flex-end; }
+
+@media (prefers-reduced-motion: reduce) {
+  .t-tile, .t-tile-icon, .t-tile-action { transition: none; }
+  a.t-tile:hover { transform: none; }
+  .t-tile:hover .t-tile-icon { transform: none; }
+  a.t-tile:hover .t-tile-action { gap: 5px; }
+}

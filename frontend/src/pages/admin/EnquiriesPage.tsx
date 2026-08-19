@@ -1,22 +1,21 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import {
   Alert, ConfirmModal, EmptyState, ErrorAlert, Field, FilterField, FilterMenu, FilterStrip, Loading,
-  Modal, PageCard, PageCardHeader, Pager, Pill,
+  Modal, PageCard, PageCardHeader, Pager, Pill, SearchField,
 } from '@/components/ui';
 import {
-  IconCalendar, IconMail, IconPhone, IconPlus, IconSearch, IconUser,
-  IconUsers,
+  IconCalendar, IconPhone, IconPlus, IconSearch, IconUsers,
 } from '@/components/icons';
 import {
   ENQUIRY_SOURCES, ENQUIRY_STATUSES, EnquirySource, EnquiryStatus, convertEnquiry, deleteEnquiry,
-  enquiryStatusLabel, isModuleMissing, listEnquiries, membershipPlanLookup, saveEnquiry,
-  sourceLabel, userLookup, type EnquiryDto,
+  enquiryStatusLabel, isModuleMissing, listEnquiries, sourceLabel, type EnquiryDto,
 } from '@/api/endpoints/operations';
 import { memberLookup } from '@/api/endpoints/workouts';
 import type { PillTone } from '@/components/ui';
 import type { Lookup, PagedResult } from '@/api/types';
-import { date as fmtDate, isoDate } from '@/lib/format';
+import { date as fmtDate } from '@/lib/format';
 import './ops.css';
 
 interface Filters {
@@ -38,23 +37,8 @@ function statusTone(status: EnquiryStatus): PillTone {
   }
 }
 
-function blankEnquiry(): Partial<EnquiryDto> {
-  return {
-    id: 0,
-    fullName: '',
-    phone: '',
-    email: '',
-    source: EnquirySource.WalkIn,
-    interestedPlanId: null,
-    message: '',
-    status: EnquiryStatus.New,
-    followUpDate: '',
-    assignedToUserId: null,
-    notes: '',
-  };
-}
-
 export default function EnquiriesPage() {
+  const navigate = useNavigate();
   const { can } = useAuth();
   const manage = can('enquiries.manage');
 
@@ -70,12 +54,6 @@ export default function EnquiriesPage() {
   const [missing, setMissing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const [plans, setPlans] = useState<Lookup[]>([]);
-  const [users, setUsers] = useState<Lookup[]>([]);
-
-  const [editing, setEditing] = useState<Partial<EnquiryDto> | null>(null);
-  const [formError, setFormError] = useState<unknown>(null);
-  const [saving, setSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<EnquiryDto | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -117,25 +95,6 @@ export default function EnquiriesPage() {
   }, [applied, pageNumber, pageSize, reloadKey]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    (async () => {
-      try {
-        const rows = await membershipPlanLookup(controller.signal);
-        if (!controller.signal.aborted) setPlans(rows);
-      } catch {
-        if (!controller.signal.aborted) setPlans([]);
-      }
-      try {
-        const rows = await userLookup(controller.signal);
-        if (!controller.signal.aborted) setUsers(rows);
-      } catch {
-        if (!controller.signal.aborted) setUsers([]);
-      }
-    })();
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
     if (!converting) return;
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
@@ -150,21 +109,6 @@ export default function EnquiriesPage() {
     }, memberTerm ? 300 : 0);
     return () => { window.clearTimeout(timer); controller.abort(); };
   }, [converting, memberTerm]);
-
-  const submit = async () => {
-    if (!editing) return;
-    setSaving(true);
-    setFormError(null);
-    try {
-      await saveEnquiry({ ...editing, followUpDate: editing.followUpDate || null });
-      setEditing(null);
-      setReloadKey((k) => k + 1);
-    } catch (err) {
-      setFormError(err);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const submitConvert = async () => {
     if (!converting || !convertMemberId) return;
@@ -254,7 +198,7 @@ export default function EnquiriesPage() {
               </FilterMenu>
 
               {manage ? (
-                <button className="btn btn-dark" onClick={() => { setEditing(blankEnquiry()); setFormError(null); }}>
+                <button className="btn btn-dark" onClick={() => navigate('/admin/enquiries/new')}>
                   <IconPlus size={15} /> Add Enquiry
                 </button>
               ) : null}
@@ -264,15 +208,12 @@ export default function EnquiriesPage() {
 
         {/* Search and Reset stay in the open, since they are the two controls reached most often. */}
         <FilterStrip>
-          <FilterField label="Search">
-            <input
-              className="input"
-              placeholder="Name, phone or email"
-              value={draft.search}
-              onChange={(e) => setDraft({ ...draft, search: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
-            />
-          </FilterField>
+          <SearchField
+            placeholder="Name, phone or email"
+            value={draft.search}
+            onChange={(value) => setDraft({ ...draft, search: value })}
+            onSearch={applyFilters}
+          />
         </FilterStrip>
 
         {notice ? <div className="page-card-body" style={{ paddingBottom: 0 }}><Alert tone="success">{notice}</Alert></div> : null}
@@ -294,7 +235,7 @@ export default function EnquiriesPage() {
             title="No enquiries yet"
             message="Log walk-ins and calls here so nobody slips through the follow-up net."
             action={manage
-              ? <button className="btn btn-dark" onClick={() => setEditing(blankEnquiry())}><IconPlus size={15} /> Add Enquiry</button>
+              ? <button className="btn btn-dark" onClick={() => navigate('/admin/enquiries/new')}><IconPlus size={15} /> Add Enquiry</button>
               : undefined}
           />
         )}
@@ -305,11 +246,11 @@ export default function EnquiriesPage() {
               <thead>
                 <tr>
                   <th className="idx">#</th>
-                  <th>Name</th>
-                  <th>Source</th>
+                  <th className="wide">Name</th>
+                  <th className="fit">Source</th>
                   <th>Interested plan</th>
-                  <th>Status</th>
-                  <th className="center">Follow-up</th>
+                  <th className="fit">Status</th>
+                  <th className="center fit">Follow-up</th>
                   <th>Assigned to</th>
                   <th className="actions">Actions</th>
                 </tr>
@@ -324,14 +265,14 @@ export default function EnquiriesPage() {
                         <span className="cell-icon"><IconPhone size={12} />{row.phone || '—'}</span>
                       </div>
                     </td>
-                    <td><Pill tone="neutral">{sourceLabel(row.source, row.sourceText)}</Pill></td>
+                    <td className="fit"><Pill tone="neutral">{sourceLabel(row.source, row.sourceText)}</Pill></td>
                     <td>{row.interestedPlanName || <span className="muted">—</span>}</td>
-                    <td>
+                    <td className="fit">
                       <Pill tone={statusTone(row.status)}>
                         {enquiryStatusLabel(row.status, row.statusText)}
                       </Pill>
                     </td>
-                    <td className="center">
+                    <td className="center fit">
                       <span className="cell-icon"><IconCalendar size={13} />{fmtDate(row.followUpDate)}</span>
                     </td>
                     <td>{row.assignedToName || <span className="muted">Unassigned</span>}</td>
@@ -353,10 +294,7 @@ export default function EnquiriesPage() {
                           )}
                           <button
                             className="btn btn-edit"
-                            onClick={() => {
-                              setEditing({ ...row, followUpDate: isoDate(row.followUpDate) });
-                              setFormError(null);
-                            }}
+                            onClick={() => navigate(`/admin/enquiries/${row.id}/edit`)}
                           >
                             Edit
                           </button>
@@ -382,124 +320,6 @@ export default function EnquiriesPage() {
           />
         )}
       </PageCard>
-
-      {editing && (
-        <Modal
-          title={editing.id ? 'Edit enquiry' : 'Add enquiry'}
-          icon={<IconUser size={18} />}
-          onClose={() => setEditing(null)}
-          width={780}
-          footer={
-            <>
-              <button className="btn btn-outline" onClick={() => setEditing(null)} disabled={saving}>Cancel</button>
-              <button className="btn btn-dark" onClick={() => void submit()} disabled={saving}>
-                {saving ? 'Saving…' : 'Save enquiry'}
-              </button>
-            </>
-          }
-        >
-          <div className="stack">
-            {formError ? <ErrorAlert error={formError} /> : null}
-            <div className="form-grid">
-              <Field label="Full name" required>
-                <input
-                  className="input"
-                  value={editing.fullName ?? ''}
-                  onChange={(e) => setEditing({ ...editing, fullName: e.target.value })}
-                />
-              </Field>
-              <Field label="Phone" required help="The number your team will call back on.">
-                <div className="input-group">
-                  <span className="input-icon"><IconPhone size={14} /></span>
-                  <input
-                    className="input"
-                    value={editing.phone ?? ''}
-                    onChange={(e) => setEditing({ ...editing, phone: e.target.value })}
-                  />
-                </div>
-              </Field>
-              <Field label="Email">
-                <div className="input-group">
-                  <span className="input-icon"><IconMail size={14} /></span>
-                  <input
-                    className="input"
-                    type="email"
-                    value={editing.email ?? ''}
-                    onChange={(e) => setEditing({ ...editing, email: e.target.value })}
-                  />
-                </div>
-              </Field>
-              <Field label="Source" required>
-                <select
-                  className="select"
-                  value={editing.source ?? EnquirySource.WalkIn}
-                  onChange={(e) => setEditing({ ...editing, source: Number(e.target.value) as EnquirySource })}
-                >
-                  {ENQUIRY_SOURCES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
-              </Field>
-              <Field label="Interested plan">
-                <select
-                  className="select"
-                  value={editing.interestedPlanId ?? ''}
-                  onChange={(e) => setEditing({
-                    ...editing,
-                    interestedPlanId: e.target.value ? Number(e.target.value) : null,
-                  })}
-                >
-                  <option value="">Not decided</option>
-                  {plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              </Field>
-              <Field label="Status" required>
-                <select
-                  className="select"
-                  value={editing.status ?? EnquiryStatus.New}
-                  onChange={(e) => setEditing({ ...editing, status: Number(e.target.value) as EnquiryStatus })}
-                >
-                  {ENQUIRY_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
-              </Field>
-              <Field label="Follow-up date" help="When to call this lead back.">
-                <input
-                  className="input"
-                  type="date"
-                  value={editing.followUpDate ?? ''}
-                  onChange={(e) => setEditing({ ...editing, followUpDate: e.target.value })}
-                />
-              </Field>
-              <Field label="Assigned to">
-                <select
-                  className="select"
-                  value={editing.assignedToUserId ?? ''}
-                  onChange={(e) => setEditing({
-                    ...editing,
-                    assignedToUserId: e.target.value ? Number(e.target.value) : null,
-                  })}
-                >
-                  <option value="">Unassigned</option>
-                  {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
-              </Field>
-            </div>
-            <Field label="Message" help="What the lead asked about.">
-              <textarea
-                className="textarea"
-                value={editing.message ?? ''}
-                onChange={(e) => setEditing({ ...editing, message: e.target.value })}
-              />
-            </Field>
-            <Field label="Notes">
-              <textarea
-                className="textarea"
-                value={editing.notes ?? ''}
-                onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
-              />
-            </Field>
-            <div className="form-note">Fields marked with * are mandatory.</div>
-          </div>
-        </Modal>
-      )}
 
       {converting && (
         <Modal

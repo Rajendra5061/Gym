@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import {
   Alert, ConfirmModal, EmptyState, ErrorAlert, Field, FilterField, FilterMenu, FilterStrip,
-  Loading, Modal, PageCard, PageCardHeader, Pager, Pill,
+  Loading, Modal, PageCard, PageCardHeader, Pager, Pill, SearchField,
 } from '@/components/ui';
 import {
   IconBox, IconCalendar, IconCard, IconMoney, IconPlus, IconSettings,
 } from '@/components/icons';
 import {
-  deleteExpense, listExpenseCategories, listExpenses, listPaymentMethods, saveExpense,
-  saveExpenseCategory, type ExpenseCategoryDto, type ExpenseDto, type PaymentMethodDto,
-  type SaveExpenseDto,
+  deleteExpense, listExpenseCategories, listExpenses,
+  saveExpenseCategory, type ExpenseCategoryDto, type ExpenseDto,
 } from '@/api/endpoints/expenses';
 import type { PagedResult } from '@/api/types';
-import { date as fmtDate, isoDate, money } from '@/lib/format';
+import { date as fmtDate, money } from '@/lib/format';
 import './ops.css';
 
 interface Filters {
@@ -27,21 +27,8 @@ interface Filters {
 
 const EMPTY_FILTERS: Filters = { search: '', categoryId: '', from: '', to: '', minAmount: '', maxAmount: '' };
 
-function blankExpense(): SaveExpenseDto {
-  return {
-    id: 0,
-    expenseCategoryId: 0,
-    title: '',
-    description: '',
-    amount: 0,
-    expenseDate: isoDate(new Date()),
-    paymentMethodId: null,
-    vendorName: '',
-    referenceNumber: '',
-  };
-}
-
 export default function ExpensesPage() {
+  const navigate = useNavigate();
   const { can, currency } = useAuth();
   const manage = can('expenses.manage');
 
@@ -56,11 +43,7 @@ export default function ExpensesPage() {
   const [error, setError] = useState<unknown>(null);
 
   const [categories, setCategories] = useState<ExpenseCategoryDto[]>([]);
-  const [methods, setMethods] = useState<PaymentMethodDto[]>([]);
 
-  const [editing, setEditing] = useState<SaveExpenseDto | null>(null);
-  const [formError, setFormError] = useState<unknown>(null);
-  const [saving, setSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<ExpenseDto | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -110,12 +93,6 @@ export default function ExpensesPage() {
       } catch {
         if (!controller.signal.aborted) setCategories([]);
       }
-      try {
-        const rows = await listPaymentMethods(controller.signal);
-        if (!controller.signal.aborted) setMethods(rows);
-      } catch {
-        if (!controller.signal.aborted) setMethods([]);
-      }
     })();
     return () => controller.abort();
   }, [reloadKey]);
@@ -127,42 +104,6 @@ export default function ExpensesPage() {
 
   const applyFilters = () => { setApplied(draft); setPageNumber(1); };
   const resetFilters = () => { setDraft(EMPTY_FILTERS); setApplied(EMPTY_FILTERS); setPageNumber(1); };
-
-  const openNew = () => {
-    const seed = blankExpense();
-    setEditing({ ...seed, expenseCategoryId: categories[0]?.id ?? 0 });
-    setFormError(null);
-  };
-
-  const openEdit = (expense: ExpenseDto) => {
-    setEditing({
-      id: expense.id,
-      expenseCategoryId: expense.expenseCategoryId,
-      title: expense.title,
-      description: expense.description ?? '',
-      amount: expense.amount,
-      expenseDate: isoDate(expense.expenseDate),
-      paymentMethodId: expense.paymentMethodId ?? null,
-      vendorName: expense.vendorName ?? '',
-      referenceNumber: expense.referenceNumber ?? '',
-    });
-    setFormError(null);
-  };
-
-  const submit = async () => {
-    if (!editing) return;
-    setSaving(true);
-    setFormError(null);
-    try {
-      await saveExpense(editing);
-      setEditing(null);
-      setReloadKey((k) => k + 1);
-    } catch (err) {
-      setFormError(err);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const confirmDelete = async () => {
     if (!pendingDelete) return;
@@ -241,7 +182,7 @@ export default function ExpensesPage() {
                 <IconSettings size={15} /> Categories
               </button>
               {manage && (
-                <button className="btn btn-dark" onClick={openNew}>
+                <button className="btn btn-dark" onClick={() => navigate('/admin/expenses/new')}>
                   <IconPlus size={15} /> Record Expense
                 </button>
               )}
@@ -251,15 +192,12 @@ export default function ExpensesPage() {
 
         {/* Search and Reset stay in the open, since they are the two controls reached most often. */}
         <FilterStrip>
-          <FilterField label="Search">
-            <input
-              className="input"
-              placeholder="Title, vendor or number"
-              value={draft.search}
-              onChange={(e) => setDraft({ ...draft, search: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
-            />
-          </FilterField>
+          <SearchField
+            placeholder="Title, vendor or number"
+            value={draft.search}
+            onChange={(value) => setDraft({ ...draft, search: value })}
+            onSearch={applyFilters}
+          />
         </FilterStrip>
 
         {loading && <Loading message="Loading expenses…" />}
@@ -270,7 +208,7 @@ export default function ExpensesPage() {
             icon={<IconMoney size={34} />}
             title="No expenses recorded"
             message="Record rent, salaries, utilities and equipment costs to see them here."
-            action={manage ? <button className="btn btn-dark" onClick={openNew}><IconPlus size={15} /> Record Expense</button> : undefined}
+            action={manage ? <button className="btn btn-dark" onClick={() => navigate('/admin/expenses/new')}><IconPlus size={15} /> Record Expense</button> : undefined}
           />
         )}
 
@@ -280,13 +218,13 @@ export default function ExpensesPage() {
               <thead>
                 <tr>
                   <th className="idx">#</th>
-                  <th>Number</th>
-                  <th className="center">Date</th>
-                  <th>Category</th>
-                  <th>Title</th>
+                  <th className="fit">Number</th>
+                  <th className="center fit">Date</th>
+                  <th className="fit">Category</th>
+                  <th className="wide">Title</th>
                   <th>Vendor</th>
                   <th className="num">Amount</th>
-                  <th>Method</th>
+                  <th className="fit">Method</th>
                   <th className="actions">Actions</th>
                 </tr>
               </thead>
@@ -294,24 +232,24 @@ export default function ExpensesPage() {
                 {items.map((expense, index) => (
                   <tr key={expense.id}>
                     <td className="idx">{firstIndex + index + 1}</td>
-                    <td className="cell-main">{expense.expenseNumber}</td>
-                    <td className="center">
+                    <td className="cell-main fit">{expense.expenseNumber}</td>
+                    <td className="center fit">
                       <span className="cell-icon"><IconCalendar size={13} />{fmtDate(expense.expenseDate)}</span>
                     </td>
-                    <td><Pill tone="primary">{expense.categoryName}</Pill></td>
+                    <td className="fit"><Pill tone="primary">{expense.categoryName}</Pill></td>
                     <td>
                       <div className="cell-main">{expense.title}</div>
                       <div className="cell-sub">{expense.recordedByName ? `by ${expense.recordedByName}` : '—'}</div>
                     </td>
                     <td>{expense.vendorName || '—'}</td>
                     <td className="num">{money(expense.amount, currency)}</td>
-                    <td>
+                    <td className="fit">
                       <span className="cell-icon"><IconCard size={13} />{expense.paymentMethodName || '—'}</span>
                     </td>
                     <td className="actions">
                       {manage && (
                         <>
-                          <button className="btn btn-edit" onClick={() => openEdit(expense)}>Edit</button>
+                          <button className="btn btn-edit" onClick={() => navigate(`/admin/expenses/${expense.id}/edit`)}>Edit</button>
                           <button className="btn btn-del" onClick={() => setPendingDelete(expense)}>Delete</button>
                         </>
                       )}
@@ -334,97 +272,6 @@ export default function ExpensesPage() {
           />
         )}
       </PageCard>
-
-      {editing && (
-        <Modal
-          title={editing.id ? 'Edit expense' : 'Record expense'}
-          icon={<IconMoney size={18} />}
-          onClose={() => setEditing(null)}
-          footer={
-            <>
-              <button className="btn btn-outline" onClick={() => setEditing(null)} disabled={saving}>Cancel</button>
-              <button className="btn btn-dark" onClick={() => void submit()} disabled={saving}>
-                {saving ? 'Saving…' : 'Save expense'}
-              </button>
-            </>
-          }
-        >
-          <div className="stack">
-            {formError ? <ErrorAlert error={formError} /> : null}
-            <div className="form-grid">
-              <Field label="Category" required help="Group the cost so reports can total it.">
-                <select
-                  className="select"
-                  value={editing.expenseCategoryId}
-                  onChange={(e) => setEditing({ ...editing, expenseCategoryId: Number(e.target.value) })}
-                >
-                  <option value={0}>Select a category…</option>
-                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </Field>
-              <Field label="Date" required>
-                <input
-                  className="input"
-                  type="date"
-                  value={editing.expenseDate}
-                  onChange={(e) => setEditing({ ...editing, expenseDate: e.target.value })}
-                />
-              </Field>
-              <Field label="Title" required help="3 to 200 characters.">
-                <input
-                  className="input"
-                  placeholder="e.g. October electricity bill"
-                  value={editing.title}
-                  onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-                />
-              </Field>
-              <Field label="Amount" required>
-                <input
-                  className="input"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={editing.amount}
-                  onChange={(e) => setEditing({ ...editing, amount: Number(e.target.value) })}
-                />
-              </Field>
-              <Field label="Vendor">
-                <input
-                  className="input"
-                  placeholder="Who was paid"
-                  value={editing.vendorName ?? ''}
-                  onChange={(e) => setEditing({ ...editing, vendorName: e.target.value })}
-                />
-              </Field>
-              <Field label="Payment method">
-                <select
-                  className="select"
-                  value={editing.paymentMethodId ?? ''}
-                  onChange={(e) => setEditing({ ...editing, paymentMethodId: e.target.value ? Number(e.target.value) : null })}
-                >
-                  <option value="">Not recorded</option>
-                  {methods.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
-              </Field>
-              <Field label="Reference number" help="Invoice or transaction reference.">
-                <input
-                  className="input"
-                  value={editing.referenceNumber ?? ''}
-                  onChange={(e) => setEditing({ ...editing, referenceNumber: e.target.value })}
-                />
-              </Field>
-            </div>
-            <Field label="Description">
-              <textarea
-                className="textarea"
-                value={editing.description ?? ''}
-                onChange={(e) => setEditing({ ...editing, description: e.target.value })}
-              />
-            </Field>
-            <div className="form-note">Fields marked with * are mandatory.</div>
-          </div>
-        </Modal>
-      )}
 
       {categoryManager && (
         <Modal

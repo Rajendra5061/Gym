@@ -1,33 +1,26 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/api/client';
 import { PublicNav, useGymSettings } from '@/components/PublicNav';
-import {
-  IconBox, IconCalendar, IconCard, IconDumbbell, IconUsers,
-} from '@/components/icons';
+import { IconDumbbell, IconMail, IconMapPin, IconPhone } from '@/components/icons';
 import './public.css';
 
 type ServerState = 'checking' | 'online' | 'offline';
 
-const FEATURES: { icon: ReactNode; title: string; text: string; background: string }[] = [
-  {
-    icon: <IconUsers size={21} />, title: 'Member Management', background: 'var(--grad-blue)',
-    text: 'Profiles, plans, trainers and dues for every member in one register.',
-  },
-  {
-    icon: <IconCalendar size={21} />, title: 'Attendance Tracking', background: 'var(--grad-green)',
-    text: 'Check members in and out and see who is in the gym right now.',
-  },
-  {
-    icon: <IconCard size={21} />, title: 'Payments & Plans', background: 'var(--grad-orange)',
-    text: 'Subscriptions, receipts, part-payments and refunds, all reconciled.',
-  },
-  {
-    icon: <IconBox size={21} />, title: 'Equipment', background: 'var(--grad-cyan)',
-    text: 'Inventory, servicing dates and condition for every machine on the floor.',
-  },
+/**
+ * The training-floor gallery. Every photograph ships with the app (frontend/public/images) and
+ * is licensed for this use, so the tiles never depend on a network beyond the app's own origin.
+ */
+const GALLERY: { src: string; label: string; className: string }[] = [
+  { src: '/images/gal-latbar.jpg', label: 'Pull day', className: 'pub-gal-a' },
+  { src: '/images/gal-machine.jpg', label: 'Machines', className: 'pub-gal-b' },
+  { src: '/images/gal-rack.jpg', label: 'Free weights', className: 'pub-gal-c' },
+  { src: '/images/gal-stretch.jpg', label: 'Mobility', className: 'pub-gal-d' },
+  { src: '/images/gal-bench.jpg', label: 'Strength', className: 'pub-gal-e' },
 ];
 
+/** One line, repeated to fill the marquee. Words, not claims — this strip is pure energy. */
+const MARQUEE_WORDS = ['Strength', 'Cardio', 'Mobility', 'Discipline', 'Consistency', 'Recovery'];
 
 export default function HomePage() {
   const { settings, gymName } = useGymSettings();
@@ -52,19 +45,30 @@ export default function HomePage() {
     : server === 'online' ? 'Connected to the gym server'
     : 'Server not reachable — please try again shortly';
 
+  /* The address renders only when the gym has one on file; the two lines collapse into
+     whatever exists. An anonymous visitor before sign-in may get neither — the column then
+     leans on the standing invitation line, which is always true. */
+  const addressLine = [settings?.address, settings?.city].filter(Boolean).join(', ');
+
   return (
     <div className="pub-shell">
       <PublicNav gymName={gymName} />
 
       <main className="pub-main">
-        <section className="pub-hero">
-          <div>
-            <span className="pub-hero-eyebrow"><IconDumbbell size={13} /> Gym Management System</span>
-            <h1 className="pub-hero-title">Welcome to {gymName}</h1>
-            <p className="pub-hero-text">
-              Memberships, attendance, payments and equipment handled from a single console.
-              Members sign in to follow their plan and dues; the front desk runs the day from
-              the admin side.
+        {/* ---------------------------------------------------- photo hero */}
+        <section
+          className="pub-xhero"
+          style={{ '--pub-photo': "url('/images/hero-dark.jpg')" } as CSSProperties}
+        >
+          <div className="pub-xhero-inner">
+            <span className="pub-hero-eyebrow"><IconDumbbell size={13} /> {gymName}</span>
+            <h1 className="pub-xhero-title">
+              Train hard.
+              <span className="pub-xhero-accent">Track everything.</span>
+            </h1>
+            <p className="pub-xhero-text">
+              Every rep is yours. Every membership, payment, check-in and plan is ours to keep
+              straight — one console for the front desk, one portal for every member.
             </p>
             <div className="pub-hero-actions">
               <Link to="/login" className="btn pub-btn-white">Member Login</Link>
@@ -77,43 +81,116 @@ export default function HomePage() {
               {serverText}
             </div>
           </div>
+        </section>
 
-          <div className="pub-hero-panel">
-            <div className="pub-hero-panel-mark"><IconDumbbell size={26} /></div>
-            <div className="pub-hero-panel-title">{gymName}</div>
-            <p className="pub-hero-panel-text">
-              One record per member, from the day they join to today's check-in.
+        {/* -------------------------------------------------------- marquee */}
+        <div className="pub-marquee" aria-hidden="true">
+          <div className="pub-marquee-track">
+            {[0, 1].map((copy) => (
+              <span className="pub-marquee-run" key={copy}>
+                {MARQUEE_WORDS.map((word) => (
+                  <span className="pub-marquee-word" key={word}>{word}<i>·</i></span>
+                ))}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* -------------------------------------------------------- gallery */}
+        <section>
+          <div className="pub-section-head">
+            <span className="pub-eyebrow">The floor</span>
+            <h2 className="pub-section-title">Made of work, not promises</h2>
+            <p className="pub-section-text">
+              Pull days, press days, mobility and everything between — the register keeps up
+              with all of it.
             </p>
-            <div className="pub-hero-chips">
-              <span className="pub-hero-chip">Members</span>
-              <span className="pub-hero-chip">Plans</span>
-              <span className="pub-hero-chip">Attendance</span>
-              <span className="pub-hero-chip">Payments</span>
-              <span className="pub-hero-chip">Reports</span>
-            </div>
+          </div>
+          <div className="pub-gallery">
+            {GALLERY.map((tile) => (
+              <figure className={`pub-gal-tile ${tile.className}`} key={tile.src}>
+                <img src={tile.src} alt="" loading="lazy" />
+                <figcaption>{tile.label}</figcaption>
+              </figure>
+            ))}
           </div>
         </section>
 
-        <section className="pub-feature-grid">
-          {FEATURES.map((feature) => (
-            <article className="pub-feature-card" key={feature.title}>
-              <div className="pub-feature-icon" style={{ background: feature.background }}>{feature.icon}</div>
-              <div className="pub-feature-title">{feature.title}</div>
-              <p className="pub-feature-text">{feature.text}</p>
-            </article>
-          ))}
+        {/* ----------------------------------------------------- motivation */}
+        <section
+          className="pub-moto"
+          style={{ '--pub-photo': "url('/images/moto-curls.jpg')" } as CSSProperties}
+        >
+          <div className="pub-moto-photo" />
+          <div className="pub-moto-body">
+            <span className="pub-eyebrow pub-eyebrow-on-dark">No shortcuts</span>
+            <h2 className="pub-moto-title">
+              The only bad workout is the one that didn&apos;t happen.
+            </h2>
+            <p className="pub-moto-text">
+              Show up, do the work, and let the numbers take care of themselves — this system
+              keeps every one of them, from today&apos;s check-in to the receipt for the month.
+            </p>
+            <div className="pub-moto-stats">
+              <div><strong>6</strong><span>modules on one register</span></div>
+              <div><strong>14</strong><span>report types, Excel &amp; PDF</span></div>
+              <div><strong>1</strong><span>record per member</span></div>
+            </div>
+            <div className="pub-hero-actions">
+              <Link to="/login" className="btn pub-btn-white">Start your session</Link>
+            </div>
+          </div>
         </section>
-
       </main>
 
-      <footer className="pub-footer">
-        <span>{gymName} · Gym Management System</span>
-        {(settings?.phone || settings?.email) && (
-          <span className="pub-footer-contact">
-            {settings?.phone && <a href={`tel:${settings.phone.replace(/\s+/g, '')}`}>{settings.phone}</a>}
-            {settings?.email && <a href={`mailto:${settings.email}`}>{settings.email}</a>}
-          </span>
-        )}
+      {/* Near-black footer matching the nav bar, so the page opens and closes on the same
+          chrome. Contact details render only when the gym has them on file. */}
+      <footer className="pub-footer3">
+        <div className="pub-footer3-grid">
+          <div className="pub-footer3-about">
+            <div className="pub-footer3-brand"><IconDumbbell size={19} /> {gymName}</div>
+            <p className="pub-footer3-text">
+              Every member, plan, payment and check-in in one register — run from the front
+              desk, visible to every member.
+            </p>
+          </div>
+
+          <div>
+            <div className="pub-footer3-head">Visit us</div>
+            {addressLine ? (
+              <span className="pub-footer3-line"><IconMapPin size={15} /> {addressLine}</span>
+            ) : null}
+            <span className="pub-footer3-note">
+              Walk in any time the floor is open — the front desk can sign you up in minutes.
+            </span>
+          </div>
+
+          <div>
+            <div className="pub-footer3-head">Contact</div>
+            {settings?.phone && (
+              <a className="pub-footer3-line" href={`tel:${settings.phone.replace(/\s+/g, '')}`}>
+                <IconPhone size={15} /> {settings.phone}
+              </a>
+            )}
+            {settings?.email && (
+              <a className="pub-footer3-line" href={`mailto:${settings.email}`}>
+                <IconMail size={15} /> {settings.email}
+              </a>
+            )}
+          </div>
+
+          <div>
+            <div className="pub-footer3-head">Sign in</div>
+            <Link to="/login" className="pub-footer3-link">Member Login</Link>
+            <Link to="/admin-login" className="pub-footer3-link">Staff Login</Link>
+            <Link to="/forgot-password" className="pub-footer3-link">Forgot password</Link>
+          </div>
+        </div>
+
+        <div className="pub-footer3-base">
+          <span>© {new Date().getFullYear()} {gymName}. All rights reserved.</span>
+          <span>Gym Management System</span>
+        </div>
       </footer>
     </div>
   );

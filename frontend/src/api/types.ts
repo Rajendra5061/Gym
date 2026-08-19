@@ -137,11 +137,12 @@ export interface GymBranding {
   gymName: string; logoPath?: string | null;
   currencyCode: string; currencySymbol: string;
   phone?: string | null; email?: string | null;
+  address?: string | null; city?: string | null;
 }
 
 /** `GET /api/settings/gym` — the whole profile, readable only with `settings.view`. */
 export interface GymSettings extends GymBranding {
-  id: number; address?: string | null; city?: string | null; state?: string | null;
+  id: number; state?: string | null;
   website?: string | null; taxNumber?: string | null;
   upiId?: string | null; upiPayeeName?: string | null;
   receiptPrefix?: string | null; memberCodePrefix?: string | null; receiptFooterText?: string | null;

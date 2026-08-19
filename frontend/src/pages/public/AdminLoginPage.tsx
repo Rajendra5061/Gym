@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type CSSProperties, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/AuthContext';
@@ -9,6 +9,13 @@ import {
 } from '@/components/icons';
 import { PublicNav, dashboardPathFor, useGymSettings } from '@/components/PublicNav';
 import './public.css';
+
+/** The day's work, in the order the desk does it. Nothing aspirational — these are the modules. */
+const PITCH_POINTS = [
+  'Enrol and manage members',
+  'Collect and reconcile payments',
+  'Reports, audit trail and backups',
+];
 
 export default function AdminLoginPage() {
   const { user, signIn } = useAuth();
@@ -50,86 +57,107 @@ export default function AdminLoginPage() {
     <div className="pub-shell">
       <PublicNav gymName={gymName} />
 
-      <main className="pub-auth-wrap">
-        <div className="pub-auth-card">
-          <section className="pub-auth-form">
-            <div className="pub-auth-head">
-              <span className="pub-auth-badge pub-badge-mint"><IconShield size={24} /></span>
-              <div className="grow">
-                <div className="pub-auth-title">Admin Login</div>
-                <div className="pub-auth-sub">Sign in to manage the gym.</div>
-              </div>
+      {/* Same split as the member page: staff photograph and pitch on the left, and a form
+          column that says "Admin Login" in so many words on the right. */}
+      <main className="pub-auth-wrap2">
+        <div className="pub-auth-splitcard">
+        <aside
+          className="pub-auth-photoside"
+          style={{ '--pub-photo': "url('/images/gal-machine.jpg')" } as CSSProperties}
+        >
+          <div className="pub-auth-photocopy">
+            <span className="pub-hero-eyebrow"><IconDumbbell size={13} /> {gymName}</span>
+            <h1 className="pub-auth-pitch-title">
+              Run the floor.
+              <span>Own the numbers.</span>
+            </h1>
+            <ul className="pub-auth-pitch-list">
+              {PITCH_POINTS.map((point) => (
+                <li key={point}><IconCheck size={15} /> {point}</li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+
+        <section className="pub-auth-formside">
+          <div className="pub-auth-formwrap">
+            <div className="pub-auth-topbar">
+              <nav className="pub-auth-switch pub-auth-switch-green" aria-label="Sign-in type">
+                <Link to="/login"><IconUser size={14} /> Member</Link>
+                <Link to="/admin-login" className="active" aria-current="page"><IconShield size={14} /> Staff</Link>
+              </nav>
               <Link to="/" className="btn btn-outline btn-sm"><IconArrowLeft size={13} /> Home</Link>
             </div>
 
-            <form onSubmit={onSubmit} noValidate>
-              <div className="pub-auth-fields">
-                {error ? <Alert tone="error">{error}</Alert> : null}
-
-                <Field label="Username" required error={userError ?? undefined}>
-                  <div className="input-group">
-                    <span className="input-icon"><IconUser size={15} /></span>
-                    <input
-                      className={`input ${userError ? 'input-invalid' : ''}`}
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                      placeholder="Username or email"
-                      autoComplete="username"
-                      autoFocus
-                    />
-                  </div>
-                </Field>
-
-                <Field label="Password" required error={passwordError ?? undefined}>
-                  <div className="input-group">
-                    <span className="input-icon"><IconLock size={15} /></span>
-                    <input
-                      className={`input pub-input-has-suffix ${passwordError ? 'input-invalid' : ''}`}
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Password"
-                      autoComplete="current-password"
-                    />
-                    <span className="input-suffix">
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-icon btn-sm"
-                        onClick={() => setShowPassword((visible) => !visible)}
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      >
-                        {showPassword ? <IconEyeOff size={15} /> : <IconEye size={15} />}
-                      </button>
-                    </span>
-                  </div>
-                </Field>
-
-                <button type="submit" className="btn pub-btn-mint btn-block" disabled={busy}>
-                  {busy ? 'Logging in…' : 'Login'}
-                </button>
+            <div className="pub-auth-formmain">
+              <div className="pub-auth-titlerow">
+                <span className="pub-auth-mark pub-auth-mark-staff"><IconShield size={24} /></span>
+                <h2 className="pub-auth-bigtitle">Admin Login</h2>
               </div>
-            </form>
+              <span className="pub-auth-title-accent pub-auth-title-accent-green" aria-hidden="true" />
+              <p className="pub-auth-bigsub">
+                Enter your staff credentials to open the management console.
+              </p>
 
-            <Link to="/forgot-password" className="pub-auth-link">Forgot password?</Link>
+              <form onSubmit={onSubmit} noValidate>
+                <div className="pub-auth-fields">
+                  {error ? <Alert tone="error">{error}</Alert> : null}
+
+                  <Field label="Username" required error={userError ?? undefined}>
+                    <div className="input-group">
+                      <span className="input-icon"><IconUser size={16} /></span>
+                      <input
+                        className={`input ${userError ? 'input-invalid' : ''}`}
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        placeholder="Username or email"
+                        autoComplete="username"
+                        autoFocus
+                      />
+                    </div>
+                  </Field>
+
+                  <Field label="Password" required error={passwordError ?? undefined}>
+                    <div className="input-group">
+                      <span className="input-icon"><IconLock size={16} /></span>
+                      <input
+                        className={`input pub-input-has-suffix ${passwordError ? 'input-invalid' : ''}`}
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Password"
+                        autoComplete="current-password"
+                      />
+                      <span className="input-suffix">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-icon btn-sm"
+                          onClick={() => setShowPassword((visible) => !visible)}
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <IconEyeOff size={15} /> : <IconEye size={15} />}
+                        </button>
+                      </span>
+                    </div>
+                  </Field>
+
+                  <button type="submit" className="btn pub-btn-glow-green btn-block" disabled={busy}>
+                    {busy ? 'Logging in…' : 'Login to the console'}
+                  </button>
+                </div>
+              </form>
+
+              <div className="pub-auth-underform">
+                <Link to="/forgot-password" className="pub-auth-link">Forgot password?</Link>
+                <span className="pub-auth-underform-alt">
+                  A member? <Link to="/login">Sign in here</Link>
+                </span>
+              </div>
+            </div>
 
             <div className="pub-auth-foot"><IconShield size={14} /> Admin access only</div>
-          </section>
-
-          <aside className="pub-auth-side">
-            <div className="pub-auth-side-brand">
-              <IconDumbbell size={20} /> {gymName}
-            </div>
-            <ul className="pub-auth-side-list">
-              <li><IconCheck size={15} /> Members, plans and subscriptions</li>
-              <li><IconCheck size={15} /> Payments, dues and refunds</li>
-              <li><IconCheck size={15} /> Daily attendance and equipment</li>
-              <li><IconCheck size={15} /> Reports and audit history</li>
-            </ul>
-            <div className="pub-auth-side-caption">
-              <strong>Gym Management Admin</strong>
-              Manage members, plans, payments, attendance and more.
-            </div>
-          </aside>
+          </div>
+        </section>
         </div>
       </main>
     </div>

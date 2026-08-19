@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import {
-  Alert, ConfirmModal, EmptyState, ErrorAlert, Field, FilterField, FilterMenu, FilterStrip, Loading,
-  Modal, PageCard, PageCardHeader, Pager, Pill,
+  ConfirmModal, EmptyState, ErrorAlert, FilterField, FilterMenu, FilterStrip, Loading,
+  PageCard, PageCardHeader, Pager, Pill, SearchField,
 } from '@/components/ui';
 import { IconCalendar, IconMessage, IconRefresh } from '@/components/icons';
 import {
-  FEEDBACK_STATUSES, FeedbackStatus, deleteFeedback, feedbackStatusLabel, getFeedback,
-  isModuleMissing, listFeedback, respondToFeedback, type FeedbackDto,
+  FEEDBACK_STATUSES, FeedbackStatus, deleteFeedback, feedbackStatusLabel,
+  isModuleMissing, listFeedback, type FeedbackDto,
 } from '@/api/endpoints/operations';
 import type { PillTone } from '@/components/ui';
 import type { PagedResult } from '@/api/types';
@@ -49,6 +50,7 @@ function receivedOn(row: FeedbackDto): string | null | undefined {
 }
 
 export default function FeedbackPage() {
+  const navigate = useNavigate();
   const { can } = useAuth();
   const manage = can('feedback.manage');
 
@@ -63,14 +65,8 @@ export default function FeedbackPage() {
   const [error, setError] = useState<unknown>(null);
   const [missing, setMissing] = useState(false);
 
-  const [responding, setResponding] = useState<FeedbackDto | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [responseText, setResponseText] = useState('');
-  const [formError, setFormError] = useState<unknown>(null);
-  const [saving, setSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<FeedbackDto | null>(null);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -103,40 +99,6 @@ export default function FeedbackPage() {
     })();
     return () => controller.abort();
   }, [applied, pageNumber, pageSize, reloadKey]);
-
-  /** The list row carries no message body, so open the dialog on the full record. */
-  const openResponder = async (row: FeedbackDto) => {
-    setResponding(row);
-    setResponseText(row.adminResponse ?? '');
-    setFormError(null);
-    setDetailLoading(true);
-    try {
-      const full = await getFeedback(row.id);
-      setResponding(full);
-      setResponseText(full.adminResponse ?? '');
-    } catch {
-      /* the row we already have is enough to reply against */
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  const submitResponse = async () => {
-    if (!responding) return;
-    setSaving(true);
-    setFormError(null);
-    try {
-      await respondToFeedback(responding.id, responseText.trim());
-      setResponding(null);
-      setResponseText('');
-      setNotice('Response sent to the member.');
-      setReloadKey((k) => k + 1);
-    } catch (err) {
-      setFormError(err);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const confirmDelete = async () => {
     if (!pendingDelete) return;
@@ -213,18 +175,13 @@ export default function FeedbackPage() {
 
         {/* Search and Reset stay in the open, since they are the two controls reached most often. */}
         <FilterStrip>
-          <FilterField label="Search">
-            <input
-              className="input"
-              placeholder="Member, subject or message"
-              value={draft.search}
-              onChange={(e) => setDraft({ ...draft, search: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
-            />
-          </FilterField>
+          <SearchField
+            placeholder="Member, subject or message"
+            value={draft.search}
+            onChange={(value) => setDraft({ ...draft, search: value })}
+            onSearch={applyFilters}
+          />
         </FilterStrip>
-
-        {notice ? <div className="page-card-body" style={{ paddingBottom: 0 }}><Alert tone="success">{notice}</Alert></div> : null}
 
         {loading && <Loading message="Loading feedback…" />}
         {!loading && Boolean(error) && <div className="page-card-body"><ErrorAlert error={error} /></div>}
@@ -253,10 +210,10 @@ export default function FeedbackPage() {
                   <th className="idx">#</th>
                   <th>Member</th>
                   <th>Subject</th>
-                  <th>Message</th>
-                  <th className="center">Rating</th>
-                  <th>Status</th>
-                  <th className="center">Received</th>
+                  <th className="wide">Message</th>
+                  <th className="center fit">Rating</th>
+                  <th className="fit">Status</th>
+                  <th className="center fit">Received</th>
                   <th className="actions">Actions</th>
                 </tr>
               </thead>
@@ -279,13 +236,16 @@ export default function FeedbackPage() {
                         {row.hasResponse ? <Pill tone="success">Replied</Pill> : null}
                       </div>
                     </td>
-                    <td className="center">
+                    <td className="center fit">
                       <span className="cell-icon"><IconCalendar size={13} />{fmtDate(receivedOn(row))}</span>
                     </td>
                     <td className="actions">
                       {manage && (
                         <>
-                          <button className="btn btn-edit" onClick={() => void openResponder(row)}>
+                          <button
+                            className="btn btn-edit"
+                            onClick={() => navigate(`/admin/feedback/${row.id}/respond`)}
+                          >
                             Respond
                           </button>
                           <button className="btn btn-del" onClick={() => setPendingDelete(row)}>Delete</button>
@@ -310,56 +270,6 @@ export default function FeedbackPage() {
           />
         )}
       </PageCard>
-
-      {responding && (
-        <Modal
-          title="Respond to feedback"
-          icon={<IconMessage size={18} />}
-          onClose={() => setResponding(null)}
-          footer={
-            <>
-              <button className="btn btn-outline" onClick={() => setResponding(null)} disabled={saving}>Cancel</button>
-              <button
-                className="btn btn-dark"
-                onClick={() => void submitResponse()}
-                disabled={saving || !responseText.trim()}
-              >
-                {saving ? 'Sending…' : 'Send response'}
-              </button>
-            </>
-          }
-        >
-          <div className="stack">
-            {formError ? <ErrorAlert error={formError} /> : null}
-            <div className="form-section">
-              <div className="form-section-title">{responding.subject || 'Feedback'}</div>
-              <div className="form-section-caption">
-                {responding.memberName || 'Anonymous'} · {fmtDate(receivedOn(responding))}
-              </div>
-              <div className="ops-plan-detail" style={{ marginTop: 12 }}>
-                {detailLoading ? 'Loading the member’s message…' : (responding.message || 'No message was submitted.')}
-              </div>
-              <div className="ops-chip-row" style={{ marginTop: 12 }}>
-                <Stars rating={responding.rating} />
-                <Pill tone={statusTone(responding.status)}>
-                  {feedbackStatusLabel(responding.status, responding.statusText)}
-                </Pill>
-                {responding.isPrivate ? <Pill tone="dark">Private</Pill> : null}
-              </div>
-            </div>
-            <Field label="Response" required help="The member sees this reply on their feedback page.">
-              <textarea
-                className="textarea"
-                style={{ minHeight: 140 }}
-                value={responseText}
-                onChange={(e) => setResponseText(e.target.value)}
-                autoFocus
-              />
-            </Field>
-            <div className="form-note">Fields marked with * are mandatory.</div>
-          </div>
-        </Modal>
-      )}
 
       {pendingDelete && (
         <ConfirmModal

@@ -400,12 +400,23 @@ public sealed class WorkoutService : IWorkoutService
         var q = _db.MemberWorkoutPlans.AsNoTracking().Where(a => a.MemberId == memberId);
         if (onlyActive) q = q.Where(a => a.IsActive);
 
-        return await q
+        var assignments = await q
             .OrderByDescending(a => a.StartDate)
             .ThenByDescending(a => a.Id)
             .Select(AssignmentToDto)
             .ToListAsync(ct)
             .ConfigureAwait(false);
+
+        // The exercise lines belong to the plan template, so each distinct plan is loaded once and
+        // shared across the assignments that reference it.
+        foreach (var planId in assignments.Select(a => a.WorkoutPlanId).Distinct())
+        {
+            var exercises = await LoadPlanExercisesAsync(planId, ct).ConfigureAwait(false);
+            foreach (var assignment in assignments.Where(a => a.WorkoutPlanId == planId))
+                assignment.Exercises = exercises;
+        }
+
+        return assignments;
     }
 
     public async Task DeactivateMemberPlanAsync(int memberWorkoutPlanId, CancellationToken ct = default)

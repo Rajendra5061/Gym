@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/auth/AuthContext';
 import {
   Alert, ConfirmModal, EmptyState, ErrorAlert, FilterField, FilterMenu, FilterStrip, Loading,
-  PageCard, PageCardHeader, Pager, Pill,
+  PageCard, PageCardHeader, Pager, Pill, SearchField,
 } from '@/components/ui';
 import {
   IconBell, IconCheck, IconRefresh,
@@ -222,16 +222,22 @@ export default function NotificationsPage() {
 
         {/* Search and Reset stay in the open, since they are the two controls reached most often. */}
         <FilterStrip>
-          <FilterField label="Search">
-            <input
-              className="input"
-              placeholder="Title or message"
-              value={draft.search}
-              onChange={(e) => setDraft({ ...draft, search: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
-            />
-          </FilterField>
+          <SearchField
+            placeholder="Title or message"
+            value={draft.search}
+            onChange={(value) => setDraft({ ...draft, search: value })}
+            onSearch={applyFilters}
+          />
         </FilterStrip>
+
+        {manage && (
+          <div className="page-card-body" style={{ paddingTop: 10, paddingBottom: 0 }}>
+            <div className="form-note">
+              Expiry and payment reminders are also generated automatically every day — the hour is
+              configurable in the server settings.
+            </div>
+          </div>
+        )}
 
         {notice ? <div className="page-card-body" style={{ paddingBottom: 0 }}><Alert tone="success">{notice}</Alert></div> : null}
 

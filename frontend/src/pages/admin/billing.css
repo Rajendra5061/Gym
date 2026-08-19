@@ -134,10 +134,16 @@
 
 /* -------------------------------------------------------------- attendance */
 .checkin-panel {
-  display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-4);
+  /* Top-aligned, so every label sits on one line however tall a field grows: the Member field
+     carries help text under its input, and bottom-alignment staggered the whole row. */
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--sp-4);
   padding: var(--sp-5); border-bottom: 1px solid var(--divider); background: var(--surface-alt);
 }
-.checkin-panel .field { min-width: 200px; }
+.checkin-panel .field { min-width: 180px; }
+/* The checkbox and the button have no label above them; this offset stands in for one so their
+   controls line up with the inputs beside them. */
+.checkin-panel .check-inline,
+.checkin-panel > .btn { margin-top: 26px; }
 .checkin-panel .grow { flex: 1 1 240px; min-width: 200px; }
 .check-inline { display: flex; align-items: center; gap: 8px; font-size: var(--fs-md); font-weight: 600; color: var(--text-2); }
 .check-inline input { width: 16px; height: 16px; accent-color: var(--primary); }

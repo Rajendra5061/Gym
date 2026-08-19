@@ -56,7 +56,9 @@ public sealed class SettingsService : ISettingsService
                 CurrencyCode = g.CurrencyCode,
                 CurrencySymbol = g.CurrencySymbol,
                 Phone = g.Phone,
-                Email = g.Email
+                Email = g.Email,
+                Address = g.Address,
+                City = g.City
             })
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);

@@ -292,7 +292,7 @@ export default function MemberFormPage() {
                       autoFocus
                     />
                   </Field>
-                  <Field label="Gender">
+                  <Field label="Gender" required>
                     <select className="select" value={form.gender} onChange={(e) => set('gender', e.target.value)}>
                       {GENDER_OPTIONS.map((g) => <option key={g} value={g}>{genderLabel(g)}</option>)}
                     </select>
@@ -390,7 +390,7 @@ export default function MemberFormPage() {
                 icon={<IconCrown size={15} />}
               >
                 <div className="form-grid">
-                  <Field label="Joining date" error={fieldError(errors, 'JoiningDate')}>
+                  <Field label="Joining date" required error={fieldError(errors, 'JoiningDate')}>
                     <input
                       className={`input ${fieldError(errors, 'JoiningDate') ? 'input-invalid' : ''}`}
                       type="date"

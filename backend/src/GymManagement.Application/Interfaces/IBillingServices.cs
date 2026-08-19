@@ -126,3 +126,14 @@ public interface IExpenseService
     Task<List<ExpenseCategoryDto>> GetCategoriesAsync(CancellationToken ct = default);
     Task<ExpenseCategoryDto> SaveCategoryAsync(ExpenseCategoryDto dto, CancellationToken ct = default);
 }
+
+public interface ISalaryPaymentService
+{
+    Task<PagedResult<SalaryPaymentDto>> GetPagedAsync(SalaryQueryDto query, CancellationToken ct = default);
+    Task<SalarySummaryDto> GetSummaryAsync(int? year, CancellationToken ct = default);
+
+    /// <summary>Records the payment and writes the matching operating expense in one transaction.</summary>
+    Task<SalaryPaymentDto> CreateAsync(SaveSalaryPaymentDto dto, CancellationToken ct = default);
+
+    Task SoftDeleteAsync(int id, CancellationToken ct = default);
+}

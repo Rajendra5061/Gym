@@ -148,12 +148,12 @@ export default function AttendancePage() {
               <thead>
                 <tr>
                   <th className="idx">#</th>
-                  <th>Member</th>
-                  <th>Date</th>
-                  <th>Time In</th>
-                  <th>Time Out</th>
-                  <th>Duration</th>
-                  <th>Method</th>
+                  <th className="wide">Member</th>
+                  <th className="fit">Date</th>
+                  <th className="fit">Time In</th>
+                  <th className="fit">Time Out</th>
+                  <th className="fit">Duration</th>
+                  <th className="fit">Method</th>
                 </tr>
               </thead>
               <tbody>
@@ -164,14 +164,14 @@ export default function AttendancePage() {
                       <div className="cell-main">{row.memberName}</div>
                       <div className="cell-sub">{row.memberCode}{row.planName ? ` · ${row.planName}` : ''}</div>
                     </td>
-                    <td><span className="cell-icon"><IconCalendar size={14} />{fmtDate(row.attendanceDate)}</span></td>
+                    <td className="fit"><span className="cell-icon"><IconCalendar size={14} />{fmtDate(row.attendanceDate)}</span></td>
                     <td><Pill tone="success">{fmtTime(row.checkInTime)}</Pill></td>
-                    <td>
+                    <td className="fit">
                       {row.checkOutTime
                         ? <Pill tone="info">{fmtTime(row.checkOutTime)}</Pill>
                         : <span className="muted">Still in</span>}
                     </td>
-                    <td>{durationText(row.durationMinutes)}</td>
+                    <td className="fit">{durationText(row.durationMinutes)}</td>
                     <td><Pill tone="dark">{row.checkInMethod}</Pill></td>
                   </tr>
                 ))}
@@ -249,7 +249,7 @@ function CheckInPanel({ onDone }: { onDone: () => void }) {
 
       <div className="checkin-panel">
         <div className="grow">
-          <Field label="Member" help="Search the register, or scan / type a member code below.">
+          <Field label="Member" required help="Search the register, or scan / type a member code below.">
             <MemberPicker value={member} onChange={setMember} placeholder="Search by name, code or phone" />
           </Field>
         </div>
@@ -266,7 +266,7 @@ function CheckInPanel({ onDone }: { onDone: () => void }) {
           />
         </Field>
 
-        <Field label="Method">
+        <Field label="Method" required>
           <select className="select" value={method} onChange={(e) => setMethod(e.target.value as CheckInMethod)}>
             {CHECK_IN_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>

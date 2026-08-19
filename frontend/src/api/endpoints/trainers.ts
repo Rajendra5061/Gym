@@ -55,6 +55,13 @@ export const trainersApi = {
   list: (query: TrainerQuery, signal?: AbortSignal) =>
     api.get<PagedResult<TrainerListDto>>('/api/trainers', { ...query }, signal),
 
+  /**
+   * The trainer profile linked to the signed-in account. The server resolves it from the
+   * token's trainerId claim and answers 404 when the login has no trainer record attached.
+   */
+  me: (signal?: AbortSignal) =>
+    api.get<TrainerDetailDto>('/api/trainers/me', undefined, signal),
+
   get: (id: number, signal?: AbortSignal) =>
     api.get<TrainerDetailDto>(`/api/trainers/${id}`, undefined, signal),
 

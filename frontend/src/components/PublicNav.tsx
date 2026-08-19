@@ -7,17 +7,15 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import type { CurrentUser, GymBranding } from '@/api/types';
 import '@/pages/public/public.css';
 
-/** Roles the admin area accepts; everything else belongs in the member portal. */
-const ADMIN_AREA_ROLES = ['Admin', 'Staff', 'Trainer'];
-
 /**
  * Where a freshly signed-in account belongs. Driven purely by the roles the server put on
- * the token, never by which login card the visitor happened to click.
+ * the token, never by which login card the visitor happened to click. Trainers get their
+ * own portal; office roles get the admin area; everyone else is a member.
  */
 export function dashboardPathFor(user: CurrentUser): string {
-  return user.roles.some((role) => ADMIN_AREA_ROLES.includes(role))
-    ? '/admin/dashboard'
-    : '/member/dashboard';
+  if (user.roles.includes('Trainer')) return '/trainer/dashboard';
+  if (user.roles.includes('Admin') || user.roles.includes('Staff')) return '/admin/dashboard';
+  return '/member/dashboard';
 }
 
 export const DEFAULT_GYM_NAME = 'Gym Management';

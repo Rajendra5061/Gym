@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import {
   ConfirmModal, EmptyState, ErrorAlert, FilterField, FilterMenu, FilterStrip, Loading, Modal,
-  PageCard, PageCardHeader, Pager, Pill, StatusPill,
+  PageCard, PageCardHeader, Pager, Pill, SearchField, StatusPill,
 } from '@/components/ui';
 import {
   IconCalendar, IconCheckSquare, IconDashboard, IconDumbbell, IconPlus,
@@ -194,15 +194,12 @@ export default function WorkoutPlansPage() {
 
         {/* Search and Reset stay in the open, since they are the two controls reached most often. */}
         <FilterStrip>
-          <FilterField label="Search">
-            <input
-              className="input"
-              placeholder="Plan name or goal"
-              value={draft.search}
-              onChange={(e) => setDraft({ ...draft, search: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
-            />
-          </FilterField>
+          <SearchField
+            placeholder="Plan name or goal"
+            value={draft.search}
+            onChange={(value) => setDraft({ ...draft, search: value })}
+            onSearch={applyFilters}
+          />
         </FilterStrip>
 
         {loading && <Loading message="Loading workout plans…" />}
@@ -271,13 +268,13 @@ export default function WorkoutPlansPage() {
               <thead>
                 <tr>
                   <th className="idx">#</th>
-                  <th>Plan</th>
-                  <th>Difficulty</th>
-                  <th className="center">Duration</th>
-                  <th className="num">Sessions / week</th>
-                  <th className="num">Exercises</th>
-                  <th className="num">Assigned</th>
-                  <th>Status</th>
+                  <th className="wide">Plan</th>
+                  <th className="fit">Difficulty</th>
+                  <th className="center fit">Duration</th>
+                  <th className="num fit">Sessions / week</th>
+                  <th className="num fit">Exercises</th>
+                  <th className="num fit">Assigned</th>
+                  <th className="fit">Status</th>
                   <th className="actions">Actions</th>
                 </tr>
               </thead>
@@ -290,7 +287,7 @@ export default function WorkoutPlansPage() {
                       <div className="cell-sub">{plan.goal || 'No goal set'}</div>
                     </td>
                     <td><Pill tone={difficultyTone(plan.difficulty)}>{difficultyLabel(plan.difficulty)}</Pill></td>
-                    <td className="center">
+                    <td className="center fit">
                       <span className="cell-icon">
                         <IconCalendar size={13} />
                         {plan.durationWeeks} {plan.durationWeeks === 1 ? 'week' : 'weeks'}

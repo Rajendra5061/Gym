@@ -11,8 +11,8 @@ import {
   Alert, EmptyState, ErrorAlert, Field, Loading, Modal, PageCard, PageCardHeader, StatusPill,
 } from '@/components/ui';
 import {
-  IconCalendar, IconCheck, IconCrown, IconEye, IconEyeOff, IconLock, IconMail, IconPhone,
-  IconUser,
+  IconCalendar, IconCheck, IconCrown, IconEye, IconEyeOff, IconLock, IconMail, IconMapPin,
+  IconPhone, IconUser,
 } from '@/components/icons';
 import { memberApi, optional } from '@/api/endpoints/member';
 import type { MemberDetailDto } from '@/api/endpoints/member';
@@ -220,10 +220,30 @@ export default function MyProfilePage() {
               the front desk and they will update it while you wait.
             </Alert>
             <div className="form-grid">
-              <Field label="Full name"><input className="input" value={member?.fullName ?? ''} disabled /></Field>
-              <Field label="Phone"><input className="input" value={member?.phone ?? ''} disabled /></Field>
-              <Field label="E-mail"><input className="input" value={member?.email ?? ''} disabled /></Field>
-              <Field label="Address"><input className="input" value={member?.address ?? ''} disabled /></Field>
+              <Field label="Full name">
+                <div className="input-group">
+                  <span className="input-icon"><IconUser size={16} /></span>
+                  <input className="input" value={member?.fullName ?? ''} disabled />
+                </div>
+              </Field>
+              <Field label="Phone">
+                <div className="input-group">
+                  <span className="input-icon"><IconPhone size={16} /></span>
+                  <input className="input" value={member?.phone ?? ''} disabled />
+                </div>
+              </Field>
+              <Field label="E-mail">
+                <div className="input-group">
+                  <span className="input-icon"><IconMail size={16} /></span>
+                  <input className="input" value={member?.email ?? ''} disabled />
+                </div>
+              </Field>
+              <Field label="Address">
+                <div className="input-group">
+                  <span className="input-icon"><IconMapPin size={16} /></span>
+                  <input className="input" value={member?.address ?? ''} disabled />
+                </div>
+              </Field>
             </div>
             <div className="form-note">
               You can change your own password at any time with the Change Password button.
@@ -256,9 +276,9 @@ export default function MyProfilePage() {
             <ErrorAlert error={passwordError} />
             <Field label="Current password" required>
               <div className="input-group">
+                <span className="input-icon"><IconLock size={16} /></span>
                 <input
                   className="input"
-                  style={{ paddingLeft: 12 }}
                   type={reveal ? 'text' : 'password'}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
@@ -274,24 +294,30 @@ export default function MyProfilePage() {
               </div>
             </Field>
             <Field label="New password" required help="Use at least eight characters with a mix of letters and digits.">
-              <input
-                className="input"
-                type={reveal ? 'text' : 'password'}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
+              <div className="input-group">
+                <span className="input-icon"><IconLock size={16} /></span>
+                <input
+                  className="input"
+                  type={reveal ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
             </Field>
             <Field
               label="Confirm new password"
               required
               error={confirmPassword && newPassword !== confirmPassword ? 'The two passwords do not match.' : undefined}
             >
-              <input
-                className="input"
-                type={reveal ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
+              <div className="input-group">
+                <span className="input-icon"><IconLock size={16} /></span>
+                <input
+                  className="input"
+                  type={reveal ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
             </Field>
           </div>
         </Modal>

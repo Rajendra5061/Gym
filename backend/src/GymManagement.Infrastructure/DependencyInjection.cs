@@ -92,6 +92,7 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddScoped<IExerciseService, ExerciseService>();
         services.AddScoped<IWorkoutService, WorkoutService>();
+        services.AddScoped<IDietPlanService, DietPlanService>();
         services.AddScoped<IAttendanceService, AttendanceService>();
 
         services.AddScoped<IMembershipPlanService, MembershipPlanService>();
@@ -107,6 +108,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IPaymentGatewayConfiguration, PaymentGatewayConfiguration>();
         services.AddScoped<IPaymentWebhookService, PaymentWebhookService>();
         services.AddScoped<IExpenseService, ExpenseService>();
+        services.AddScoped<ISalaryPaymentService, SalaryPaymentService>();
 
         services.AddScoped<IEquipmentService, EquipmentService>();
         services.AddScoped<IEnquiryService, EnquiryService>();
@@ -125,6 +127,10 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IRecycleBinService, RecycleBinService>();
 
         services.AddScoped<IDbSeeder, DbSeeder>();
+
+        // Raises expiry / pending-payment reminders once a day at the configured local hour.
+        // Controlled by Notifications:DailyAlerts:Enabled / :Hour; never fires on start-up.
+        services.AddHostedService<DailyAlertsHostedService>();
 
         return services;
     }

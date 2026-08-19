@@ -10,7 +10,7 @@ import { lookupMembers } from '@/api/endpoints/subscriptions';
 import { useAuth } from '@/auth/AuthContext';
 import {
   Alert, EmptyState, ErrorAlert, Field, FilterField, FilterMenu, FilterStrip, Loading, Modal,
-  PageCard, PageCardHeader, Pager, Pill, StatusPill,
+  PageCard, PageCardHeader, Pager, Pill, SearchField, StatusPill,
 } from '@/components/ui';
 import {
   IconCalendar, IconCard, IconCheck, IconCrown, IconDownload, IconMessage,
@@ -228,12 +228,12 @@ function PaymentsTab(
             <thead>
               <tr>
                 <th className="idx">#</th>
-                <th>Member</th>
-                <th>Plan</th>
+                <th className="wide">Member</th>
+                <th className="fit">Plan</th>
                 <th className="num">Amount</th>
-                <th>Date</th>
-                <th>Mode</th>
-                <th>Status</th>
+                <th className="fit">Date</th>
+                <th className="fit">Mode</th>
+                <th className="fit">Status</th>
                 <th>Notes</th>
                 <th className="actions">Actions</th>
               </tr>
@@ -246,15 +246,15 @@ function PaymentsTab(
                     <div className="cell-icon"><IconUser size={14} /><span className="cell-main">{row.memberName}</span></div>
                     <div className="cell-sub">{row.memberCode}</div>
                   </td>
-                  <td>
+                  <td className="fit">
                     {row.planName
                       ? <span className="cell-icon"><IconCrown size={14} /><Pill tone="primary">{row.planName}</Pill></span>
                       : <span className="muted">—</span>}
                   </td>
                   <td className="money-cell">{money(row.finalAmount, currency)}</td>
-                  <td><span className="cell-icon"><IconCalendar size={14} />{fmtDate(row.paymentDate)}</span></td>
-                  <td><Pill tone="dark">{row.paymentMethodName}</Pill></td>
-                  <td><StatusPill status={row.statusText} /></td>
+                  <td className="fit"><span className="cell-icon"><IconCalendar size={14} />{fmtDate(row.paymentDate)}</span></td>
+                  <td className="fit"><Pill tone="dark">{row.paymentMethodName}</Pill></td>
+                  <td className="fit"><StatusPill status={row.statusText} /></td>
                   <td>
                     {row.notes
                       ? <span className="cell-icon"><IconMessage size={14} />{row.notes}</span>
@@ -340,13 +340,12 @@ function OutstandingTab({ currency }: { currency: string }) {
       {/* Search only, applied with Enter. This tab has a single filter, so it never grew a
           Filters menu — clearing the box and pressing Enter is its reset. */}
       <FilterStrip>
-        <FilterField label="Search">
-          <input
-            className="input" placeholder="Member name or code" value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') setQuery((q) => ({ ...q, pageNumber: 1, search: search.trim() })); }}
-          />
-        </FilterField>
+        <SearchField
+          placeholder="Member name or code"
+          value={search}
+          onChange={setSearch}
+          onSearch={() => setQuery((q) => ({ ...q, pageNumber: 1, search: search.trim() }))}
+        />
       </FilterStrip>
 
       {error ? <div className="section-pad"><ErrorAlert error={error} /></div> : null}
@@ -361,13 +360,13 @@ function OutstandingTab({ currency }: { currency: string }) {
             <thead>
               <tr>
                 <th className="idx">#</th>
-                <th>Member</th>
-                <th>Plan</th>
-                <th>Term</th>
+                <th className="wide">Member</th>
+                <th className="fit">Plan</th>
+                <th className="fit">Term</th>
                 <th className="num">Final</th>
                 <th className="num">Paid</th>
                 <th className="num">Outstanding</th>
-                <th className="center">Overdue</th>
+                <th className="center fit">Overdue</th>
               </tr>
             </thead>
             <tbody>
@@ -378,15 +377,15 @@ function OutstandingTab({ currency }: { currency: string }) {
                     <div className="cell-icon"><IconUser size={14} /><span className="cell-main">{row.memberName}</span></div>
                     <div className="cell-sub">{row.memberCode}{row.phone ? ` · ${row.phone}` : ''}</div>
                   </td>
-                  <td><span className="cell-icon"><IconCrown size={14} /><Pill tone="primary">{row.planName}</Pill></span></td>
-                  <td>
+                  <td className="fit"><span className="cell-icon"><IconCrown size={14} /><Pill tone="primary">{row.planName}</Pill></span></td>
+                  <td className="fit">
                     <div>{fmtDate(row.startDate)} → {fmtDate(row.endDate)}</div>
                     <div className="cell-sub">{row.subscriptionCode}</div>
                   </td>
                   <td className="money-cell">{money(row.finalAmount, currency)}</td>
                   <td className="money-cell">{money(row.paidAmount, currency)}</td>
                   <td className="money-cell"><strong>{money(row.outstandingAmount, currency)}</strong></td>
-                  <td className="center">
+                  <td className="center fit">
                     <Pill tone={row.daysOverdue > 0 ? 'danger' : 'neutral'}>{row.daysOverdue} d</Pill>
                   </td>
                 </tr>
@@ -470,12 +469,12 @@ function RefundsTab(
             <thead>
               <tr>
                 <th className="idx">#</th>
-                <th>Refund</th>
-                <th>Member</th>
+                <th className="fit">Refund</th>
+                <th className="wide">Member</th>
                 <th className="num">Amount</th>
                 <th>Reason</th>
-                <th>Requested</th>
-                <th>Status</th>
+                <th className="fit">Requested</th>
+                <th className="fit">Status</th>
                 <th className="actions">Actions</th>
               </tr>
             </thead>
@@ -483,14 +482,14 @@ function RefundsTab(
               {items.map((row, i) => (
                 <tr key={row.id}>
                   <td className="idx">{firstIndex + i + 1}</td>
-                  <td>
+                  <td className="fit">
                     <div className="cell-main">{row.refundNumber}</div>
                     <div className="cell-sub">against {row.receiptNumber}</div>
                   </td>
                   <td><span className="cell-icon"><IconUser size={14} />{row.memberName}</span></td>
                   <td className="money-cell">{money(row.amount, currency)}</td>
                   <td>{row.reason}</td>
-                  <td>
+                  <td className="fit">
                     <div>{fmtDate(row.requestedAt)}</div>
                     {row.requestedByName ? <div className="cell-sub">by {row.requestedByName}</div> : null}
                   </td>
@@ -636,12 +635,12 @@ function MethodsTab() {
           <thead>
             <tr>
               <th className="idx">#</th>
-              <th>Code</th>
-              <th>Name</th>
-              <th className="center">Reference required</th>
-              <th className="center">Supports QR</th>
-              <th className="center">Order</th>
-              <th>Status</th>
+              <th className="fit">Code</th>
+              <th className="wide">Name</th>
+              <th className="center fit">Reference required</th>
+              <th className="center fit">Supports QR</th>
+              <th className="center fit">Order</th>
+              <th className="fit">Status</th>
               {mayManage && <th className="actions">Actions</th>}
             </tr>
           </thead>

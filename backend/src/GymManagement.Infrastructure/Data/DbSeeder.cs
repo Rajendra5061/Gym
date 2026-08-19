@@ -38,6 +38,7 @@ public sealed class DbSeeder : IDbSeeder
     {
         await SeedPermissionsAsync(ct);
         await SeedRolesAsync(ct);
+        await SyncNewRolePermissionsAsync(ct);
         await SeedGymSettingsAsync(ct);
         await SeedSystemSettingsAsync(ct);
         await SeedPaymentMethodsAsync(ct);
@@ -111,6 +112,58 @@ public sealed class DbSeeder : IDbSeeder
             await _db.SaveChangesAsync(ct);
             _logger.LogInformation("Granted {Count} permissions to the {Role} role.", grants.Count, roleName);
         }
+    }
+
+    /// <summary>
+    /// Ensures permissions added after an installation went live are granted to the built-in roles
+    /// that need them. <see cref="SeedRolesAsync"/> only grants defaults to a role with zero rows,
+    /// so an existing database would never pick the new codes up without this step. Add-only and
+    /// idempotent: it never removes a grant an administrator made, and it is a no-op once the rows
+    /// exist. Runs on every boot.
+    /// </summary>
+    private async Task SyncNewRolePermissionsAsync(CancellationToken ct)
+    {
+        var required = new (string RoleName, string[] Codes)[]
+        {
+            (RoleNames.Trainer, new[]
+            {
+                Permissions.DietView, Permissions.DietManage,
+                Permissions.MeasurementsManage, Permissions.AttendanceManage
+            }),
+            (RoleNames.Staff, new[] { Permissions.MeasurementsManage })
+        };
+
+        var permissionIds = await _db.Permissions
+            .ToDictionaryAsync(p => p.Code, p => p.Id, StringComparer.OrdinalIgnoreCase, ct);
+
+        var added = 0;
+
+        foreach (var (roleName, codes) in required)
+        {
+            var role = await _db.Roles
+                .FirstOrDefaultAsync(r => r.Name == roleName && r.IsSystemRole, ct);
+            if (role is null) continue;
+
+            var held = await _db.RolePermissions
+                .Where(rp => rp.RoleId == role.Id)
+                .Select(rp => rp.PermissionId)
+                .ToListAsync(ct);
+            var heldSet = new HashSet<int>(held);
+
+            foreach (var code in codes)
+            {
+                if (!permissionIds.TryGetValue(code, out var permissionId)) continue;
+                if (heldSet.Contains(permissionId)) continue;
+
+                _db.RolePermissions.Add(new RolePermission { RoleId = role.Id, PermissionId = permissionId });
+                added++;
+            }
+        }
+
+        if (added == 0) return;
+
+        await _db.SaveChangesAsync(ct);
+        _logger.LogInformation("Granted {Count} newly introduced permission(s) to existing system roles.", added);
     }
 
     private async Task SeedGymSettingsAsync(CancellationToken ct)

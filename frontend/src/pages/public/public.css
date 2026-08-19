@@ -38,12 +38,19 @@
 }
 
 .pub-shell {
-  min-height: 100%;
+  /* The shell is its own scroll container with the scrollbar hidden: the public screens keep
+     wheel and touch scrolling, but no bar ever appears at the edge. Scoped here so the admin
+     and member consoles keep their ordinary visible scrollbars. */
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
   display: flex;
   flex-direction: column;
   /* Both stops are tokens: a hardcoded mint end-stop stayed bright under the dark palette. */
   background: linear-gradient(180deg, var(--surface) 0%, var(--surface-alt) 100%);
 }
+.pub-shell::-webkit-scrollbar { width: 0; height: 0; }
 .pub-shell a.btn:hover { text-decoration: none; }
 
 /* ------------------------------------------------------------------- top bar */
@@ -54,7 +61,7 @@
      into the page. A translucent-white hairline separates them without showing up as a
      bright line under the bar in light mode. */
   border-bottom: 1px solid #ffffff17;
-  height: 62px;
+  height: 78px;
   display: flex;
   align-items: center;
   padding: 0 var(--sp-6);
@@ -70,10 +77,10 @@
   align-items: center;
   gap: var(--sp-4);
 }
-.pub-brand { display: flex; align-items: center; gap: 10px; color: var(--on-dark); font-size: 18px; font-weight: 700; min-width: 0; }
+.pub-brand { display: flex; align-items: center; gap: 11px; color: var(--on-dark); font-size: 20px; font-weight: 700; min-width: 0; }
 .pub-brand:hover { text-decoration: none; color: var(--on-dark); }
 .pub-brand-mark {
-  width: 34px; height: 34px; border-radius: 9px; flex: none;
+  width: 40px; height: 40px; border-radius: 11px; flex: none;
   display: grid; place-items: center; color: var(--on-dark); background: var(--grad-hero);
 }
 .pub-brand-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -163,11 +170,13 @@
 .pub-dot-bad { background: #fb7185; }
 
 /* ------------------------------------------------------------ feature cards */
-.pub-feature-grid { display: grid; gap: var(--sp-5); grid-template-columns: repeat(4, 1fr); }
+.pub-feature-grid { display: grid; gap: var(--sp-5); grid-template-columns: repeat(3, 1fr); }
 .pub-feature-card {
   background: var(--card); border: 1px solid var(--divider);
-  border-radius: var(--r-lg); box-shadow: var(--shadow-card); padding: 20px;
+  border-radius: var(--r-lg); box-shadow: var(--shadow-card); padding: 22px;
+  transition: transform .18s ease, box-shadow .18s ease;
 }
+.pub-feature-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-pop); }
 .pub-feature-icon {
   width: 44px; height: 44px; border-radius: 10px;
   display: grid; place-items: center; color: var(--on-dark); margin-bottom: 14px;
@@ -284,3 +293,1054 @@
 .pub-footer-contact { display: inline-flex; flex-wrap: wrap; gap: var(--sp-4); }
 .pub-footer-contact a { color: var(--text-2); font-weight: 600; }
 .pub-footer-contact a:hover { color: var(--primary); text-decoration: none; }
+
+/* ==========================================================================
+   Artwork and the lower landing sections
+   ==========================================================================
+   The pieces below either sit on the hero / auth gradients — which stay vivid in both themes, so
+   the white line work on them is literal and deliberate — or on a card, where they inherit
+   currentColor and follow the theme with everything else. */
+
+/* ------------------------------------------------------------------ hero art */
+.pub-hero-art-wrap { display: flex; align-items: center; justify-content: center; }
+.pub-hero-art {
+  width: 100%; max-width: 420px; height: auto;
+  /* Lifts the flat translucent shapes off the gradient so the stack reads as layered. */
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, .22));
+}
+
+/* The chips moved under the status line when the art took the right-hand column. */
+.pub-hero-chips { margin-top: 18px; }
+
+/* -------------------------------------------------------------- section head */
+.pub-section-head { text-align: center; max-width: 60ch; margin: 0 auto var(--sp-6); }
+.pub-section-title { font-size: 25px; font-weight: 800; line-height: 1.25; margin: 0; }
+.pub-section-text { margin: 8px 0 0; font-size: var(--fs-base); line-height: 1.6; color: var(--text-2); }
+
+/* --------------------------------------------------------------- flow cards
+   Deliberately not named .pub-step-*: that belongs to the numbered stepper on the password-reset
+   screen, and reusing it here would restyle a control on an unrelated page. */
+.pub-flow-grid { display: grid; gap: var(--sp-5); grid-template-columns: repeat(3, 1fr); }
+.pub-flow-card {
+  position: relative;
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-card);
+  padding: var(--sp-6);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.pub-flow-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-pop); }
+
+.pub-flow-art-wrap {
+  display: flex; align-items: center; justify-content: center;
+  height: 124px; margin-bottom: var(--sp-5);
+  border-radius: var(--r-md);
+  background: var(--surface-alt);
+  color: var(--primary);
+}
+.pub-flow-art { width: 168px; height: auto; }
+
+.pub-flow-badge {
+  display: inline-block; margin-bottom: 8px;
+  font-size: var(--fs-xs); font-weight: 800; letter-spacing: .12em;
+  color: var(--primary);
+}
+.pub-flow-title { font-size: var(--fs-lg); font-weight: 700; }
+.pub-flow-text { margin: 6px 0 0; font-size: var(--fs-md); line-height: 1.6; color: var(--text-2); }
+
+/* ---------------------------------------------------------------- closing cta */
+.pub-cta {
+  border-radius: var(--r-lg);
+  background: var(--grad-hero);
+  color: var(--on-dark);
+  box-shadow: 0 16px 38px rgba(79, 70, 229, .26);
+  padding: 32px 40px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: var(--sp-5);
+}
+.pub-cta-title { font-size: 21px; font-weight: 800; }
+.pub-cta-text { margin: 6px 0 0; font-size: var(--fs-base); line-height: 1.6; color: #ffffffd6; max-width: 56ch; }
+.pub-cta-actions { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+.pub-cta-actions .btn { height: 42px; padding: 0 22px; }
+
+/* ------------------------------------------------------------- auth side art
+   Sits between the brand line and the tick list. `min-height: 0` matters: the panel is a flex
+   column and an SVG left to its intrinsic size refuses to shrink, which would push the caption
+   past the bottom of a short card. */
+.pub-auth-side-art {
+  width: 100%; max-width: 260px; height: auto; min-height: 0;
+  margin: var(--sp-6) auto 0;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, .28));
+}
+
+/* --------------------------------------------------------------- responsive */
+@media (max-width: 960px) {
+  /* The art has already given the hero its impression by this width, and below it the copy and
+     the two sign-in buttons are what the visitor actually needs above the fold. */
+  .pub-hero-art { max-width: 320px; }
+  .pub-flow-grid { grid-template-columns: 1fr; }
+  .pub-cta { padding: 26px; }
+}
+@media (max-width: 880px) {
+  /* Stacked auth card: the side panel is a banner above the form, and a large illustration there
+     is pure delay before the username field. */
+  .pub-auth-side-art { display: none; }
+}
+@media (max-width: 620px) {
+  .pub-hero-art-wrap { display: none; }
+  .pub-section-title { font-size: 21px; }
+}
+
+/* Respect a reduced-motion preference: the lift on hover is decoration, not feedback. */
+@media (prefers-reduced-motion: reduce) {
+  .pub-flow-card { transition: none; }
+  .pub-flow-card:hover { transform: none; }
+}
+
+/* ------------------------------------------------------------- athlete band
+   Each figure sits white on its own vivid disc. The colour lives on the disc so the silhouette
+   stays one flat ink — a silhouette shaded in two tones stops reading as a body. */
+.pub-pose-grid { display: grid; gap: var(--sp-5); grid-template-columns: repeat(6, 1fr); }
+.pub-pose {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  transition: transform .2s ease;
+}
+.pub-pose:hover { transform: translateY(-4px); }
+
+.pub-pose-disc {
+  position: relative;
+  width: 100%; aspect-ratio: 1; max-width: 132px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  /* The discs stay vivid in both themes, so the white figure on them is literal by design. */
+  color: #fff;
+  box-shadow: 0 12px 26px rgba(31, 36, 48, .22);
+  overflow: hidden;
+}
+/* A soft highlight across the top so the disc reads as lit rather than as flat colour. */
+.pub-pose-disc::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: linear-gradient(160deg, #ffffff3d 0%, #ffffff00 55%);
+}
+.pub-pose-art { position: relative; z-index: 1; width: 62%; height: auto; }
+
+.pub-pose-label {
+  font-size: var(--fs-sm); font-weight: 700; letter-spacing: .03em;
+  color: var(--text); text-align: center;
+}
+
+@media (max-width: 1120px) { .pub-pose-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 620px)  { .pub-pose-grid { grid-template-columns: repeat(2, 1fr); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pub-pose { transition: none; }
+  .pub-pose:hover { transform: none; }
+}
+
+/* ------------------------------------------------- athlete figure placements
+   The band on the landing page sizes its own figures; these are the one-off placements. */
+
+/* Login side panels. Sized well under .pub-auth-side-art because a 120×140 figure scaled to that
+   width would stand taller than the tick list it sits above. */
+.pub-auth-side-figure {
+  width: 100%; max-width: 132px; height: auto; min-height: 0;
+  margin: var(--sp-6) auto 0;
+  color: #ffffffe0;
+}
+
+/* Decorative row beneath the password-reset card. */
+.pub-auth-wrap-stack { flex-direction: column; }
+.pub-figure-strip {
+  display: flex; align-items: flex-end; justify-content: center; gap: var(--sp-6);
+  margin-top: 28px;
+  color: var(--text-muted);
+  opacity: .5;
+}
+.pub-strip-figure { width: 54px; height: auto; }
+
+@media (max-width: 880px) {
+  /* Same reasoning as the abstract art it replaced: on a stacked card the panel is a banner and
+     the figure is only delay before the username field. */
+  .pub-auth-side-figure { display: none; }
+}
+@media (max-width: 620px) {
+  .pub-figure-strip { gap: var(--sp-5); }
+  .pub-strip-figure { width: 44px; }
+}
+
+/* ==========================================================================
+   Photographic panels
+   ==========================================================================
+   A photograph is layered *over* a gradient rather than replacing it. If the file is missing —
+   a fresh checkout, a gym that has not supplied its own pictures yet — the browser drops that
+   background layer and the gradient underneath simply shows through. No broken-image icon, no
+   collapsed panel, no empty white box. The page is never worse than it was before the photo. */
+.pub-auth-photo {
+  position: relative;
+  padding: 0;
+  min-height: 440px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background-image: var(--pub-photo, none),
+    linear-gradient(160deg, #14161f 0%, #232046 55%, #3a2b63 100%);
+  /* Single values on purpose: they repeat across however many layers --pub-photo carries.
+     The pages stack a real photograph over the drawn scene, so the layer count is three. */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+/* The scrim. Without it the caption is white text on whatever the photograph happens to be
+   doing at the bottom, which is unreadable on a pale floor and fine on a dark one. */
+.pub-auth-photo::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, #0b0d1400 38%, #0b0d14b8 72%, #0b0d14f2 100%);
+}
+.pub-auth-photo-caption { position: relative; z-index: 1; padding: 28px; }
+.pub-auth-photo-text {
+  margin: 8px 0 0; font-size: var(--fs-md); line-height: 1.6; color: #ffffffd6;
+}
+
+/* Dark strip across the head of the sign-in form, so the card reads as one object with the
+   photograph beside it rather than as a white box bolted to a picture. */
+.pub-auth-formhead {
+  display: flex; align-items: center; gap: 14px;
+  margin: -34px -38px 26px; padding: 20px 26px;
+  background: var(--chrome); color: var(--on-dark);
+}
+.pub-auth-formhead .pub-auth-title,
+.pub-auth-formhead .pub-auth-sub { color: var(--on-dark); }
+.pub-auth-formhead .pub-auth-sub { color: #ffffffb0; }
+.pub-auth-formhead-mark {
+  width: 42px; height: 42px; border-radius: 11px; flex: none;
+  display: grid; place-items: center;
+  background: #ffffff1f; border: 1px solid #ffffff30;
+}
+
+/* ---------------------------------------------------------------- hero photo
+   Same layering rule as the panels: photograph over gradient, gradient alone if it is absent. */
+.pub-hero-photo {
+  width: 100%; aspect-ratio: 4 / 3; border-radius: var(--r-lg);
+  background-image: var(--pub-photo, none), var(--grad-blue);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 5px solid #ffffff2e;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, .3);
+}
+
+@media (max-width: 880px) {
+  /* Stacked card: the panel becomes a banner above the form, so it stops being a tall column. */
+  .pub-auth-photo { min-height: 190px; }
+  .pub-auth-formhead { margin: -28px -22px 22px; padding: 18px 20px; }
+}
+
+/* ==========================================================================
+   Home page sections added with the redesign
+   ========================================================================== */
+
+/* Eyebrow pill above a section title. Reuses the lavender pair, which already carries a value
+   per theme, so the pill cannot end up pale-on-pale in dark mode. */
+.pub-eyebrow {
+  display: inline-block;
+  padding: 4px 12px; border-radius: var(--r-pill);
+  background: var(--pub-lav-bg); color: var(--pub-lav-fg);
+  font-size: var(--fs-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
+.pub-section-head .pub-eyebrow { margin-bottom: 12px; }
+
+/* Floating claim chips on the hero photo's corners. Literal white-on-dark: they sit on the
+   photo, which is dark in both themes. Hidden once the hero narrows — at that point they
+   crowd the frame instead of decorating it. */
+.pub-hero-art-wrap { position: relative; }
+.pub-hero-float {
+  position: absolute; z-index: 1;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 15px; border-radius: var(--r-pill);
+  background: #171a26e6; border: 1px solid #ffffff2e; color: #fff;
+  font-size: var(--fs-sm); font-weight: 600; white-space: nowrap;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .35);
+}
+.pub-hero-float-a { top: -13px; right: -8px; }
+.pub-hero-float-b { bottom: -13px; left: -8px; }
+@media (max-width: 1120px) { .pub-hero-float { display: none; } }
+
+/* ------------------------------------------------------- member portal split
+   Photo half, promise half. The photo side follows the same layering rule as the auth panels:
+   real photograph over drawn scene over gradient, each layer covering for the one above it. */
+.pub-portal {
+  display: grid; grid-template-columns: 1fr 1.1fr;
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.pub-portal-photo {
+  position: relative; min-height: 400px;
+  display: flex; align-items: flex-end;
+  background-image: var(--pub-photo, none),
+    linear-gradient(160deg, #14161f 0%, #232046 55%, #3a2b63 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.pub-portal-photo::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, #0b0d1400 45%, #0b0d14cc 100%);
+}
+.pub-portal-caption {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 9px;
+  padding: 22px 26px;
+  color: #fff; font-size: var(--fs-base); font-weight: 700;
+}
+.pub-portal-body {
+  padding: 42px 46px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 14px;
+}
+.pub-portal-title { margin: 0; font-size: 26px; line-height: 1.25; font-weight: 800; }
+.pub-portal-text { margin: 0; font-size: var(--fs-base); line-height: 1.65; color: var(--text-2); }
+.pub-portal-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 11px; }
+.pub-portal-list li {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: var(--fs-md); line-height: 1.5; color: var(--text-2);
+}
+.pub-portal-list svg { color: var(--pub-mint-fg); flex: none; margin-top: 2px; }
+.pub-portal-actions { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: 8px; }
+
+/* -------------------------------------------------------------- footer, v2 */
+.pub-footer2 {
+  border-top: 1px solid var(--divider);
+  background: var(--surface-alt);
+  padding: 40px var(--sp-6) 18px;
+}
+.pub-footer2-grid {
+  max-width: 1360px; margin: 0 auto;
+  display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: var(--sp-6);
+}
+.pub-footer2-brand {
+  display: flex; align-items: center; gap: 9px;
+  font-size: var(--fs-lg); font-weight: 700; color: var(--text);
+}
+.pub-footer2-text {
+  margin: 10px 0 0; max-width: 44ch;
+  font-size: var(--fs-md); line-height: 1.65; color: var(--text-2);
+}
+.pub-footer2-head {
+  font-size: var(--fs-sm); font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 12px;
+}
+.pub-footer2-link {
+  display: block; margin-bottom: 9px;
+  font-size: var(--fs-md); font-weight: 600; color: var(--text-2);
+}
+.pub-footer2-link:hover { color: var(--primary); text-decoration: none; }
+.pub-footer2-note {
+  display: block; margin-top: 4px; max-width: 30ch;
+  font-size: var(--fs-sm); line-height: 1.6; color: var(--text-muted);
+}
+.pub-footer2-base {
+  max-width: 1360px; margin: 28px auto 0; padding-top: 16px;
+  border-top: 1px solid var(--divider);
+  text-align: center; font-size: var(--fs-sm); color: var(--text-muted);
+}
+
+@media (max-width: 960px) {
+  .pub-portal { grid-template-columns: 1fr; }
+  .pub-portal-photo { min-height: 230px; }
+  .pub-portal-body { padding: 30px 26px; }
+}
+@media (max-width: 880px) {
+  .pub-footer2-grid { grid-template-columns: 1fr; gap: var(--sp-5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pub-feature-card { transition: none; }
+  .pub-feature-card:hover { transform: none; }
+}
+
+/* ==========================================================================
+   Editorial home: photo hero, marquee, gallery, motivation split
+   ==========================================================================
+   These four sections are photograph-dark in both themes, exactly like the auth photo panels,
+   so their white type and translucent chrome are literals by design. Everything around them
+   stays tokened. */
+
+/* ------------------------------------------------------------- photo hero */
+.pub-xhero {
+  position: relative;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  min-height: 560px;
+  display: flex;
+  align-items: center;
+  color: #fff;
+  /* Photo over its own fallback gradient; the scrim below carries legibility. */
+  background-image: var(--pub-photo, none),
+    linear-gradient(120deg, #17151f 0%, #262033 60%, #3a2b48 100%);
+  background-size: cover;
+  background-position: center 30%;
+  background-repeat: no-repeat;
+  box-shadow: 0 24px 54px rgba(0, 0, 0, .35);
+}
+.pub-xhero::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(100deg, #0b0a12f2 0%, #0b0a12b8 42%, #0b0a1226 75%, #0b0a1200 100%);
+}
+.pub-xhero-inner {
+  position: relative; z-index: 1;
+  /* Pixels, not ch: ch here would measure against the inherited body size and squeeze the
+     column to ~540px, clipping the uppercase headline against the section's overflow:hidden. */
+  max-width: 700px;
+  padding: 72px 56px;
+}
+.pub-xhero-title {
+  margin: 18px 0 14px;
+  font-size: clamp(34px, 4.4vw, 56px);
+  line-height: 1.02;
+  font-weight: 900;
+  letter-spacing: -.015em;
+  text-transform: uppercase;
+}
+.pub-xhero-accent {
+  display: block;
+  background: linear-gradient(92deg, #a5b4fc 0%, #c084fc 55%, #fb7185 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.pub-xhero-text {
+  margin: 0;
+  font-size: 16px; line-height: 1.7; color: #ffffffd9; max-width: 52ch;
+}
+
+/* --------------------------------------------------------------- marquee */
+.pub-marquee {
+  overflow: hidden;
+  border-block: 1px solid var(--divider);
+  padding: 13px 0;
+  /* Fades the run out at both edges instead of hard-clipping it. */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.pub-marquee-track { display: flex; width: max-content; animation: pub-marquee-roll 30s linear infinite; }
+.pub-marquee-run { display: flex; flex: none; }
+.pub-marquee-word {
+  display: inline-flex; align-items: center;
+  font-size: var(--fs-sm); font-weight: 800; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--text-muted); white-space: nowrap;
+}
+.pub-marquee-word i { font-style: normal; margin: 0 22px; color: var(--primary); }
+@keyframes pub-marquee-roll { to { transform: translateX(-50%); } }
+
+/* --------------------------------------------------------------- gallery */
+.pub-gallery {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 205px;
+  gap: var(--sp-4);
+}
+.pub-gal-tile {
+  position: relative; margin: 0; overflow: hidden;
+  border-radius: var(--r-lg);
+  background: var(--surface-alt);
+  box-shadow: var(--shadow-card);
+}
+.pub-gal-tile img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform .35s ease;
+}
+.pub-gal-tile:hover img { transform: scale(1.05); }
+.pub-gal-tile figcaption {
+  position: absolute; left: 14px; bottom: 12px;
+  padding: 5px 13px; border-radius: var(--r-pill);
+  background: #0b0d14cc; color: #fff;
+  font-size: var(--fs-xs); font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+}
+.pub-gal-a { grid-column: 1 / 3; grid-row: 1 / 3; }
+.pub-gal-b { grid-column: 3; grid-row: 1; }
+.pub-gal-c { grid-column: 4; grid-row: 1; }
+.pub-gal-d { grid-column: 3; grid-row: 2; }
+.pub-gal-e { grid-column: 4; grid-row: 2; }
+
+/* ------------------------------------------------------- motivation split */
+.pub-moto {
+  display: grid; grid-template-columns: .9fr 1.1fr;
+  border-radius: var(--r-lg); overflow: hidden;
+  background: #14121d;
+  color: #fff;
+  box-shadow: 0 20px 46px rgba(0, 0, 0, .32);
+}
+.pub-moto-photo {
+  min-height: 420px;
+  background-image: var(--pub-photo, none),
+    linear-gradient(160deg, #1c1928 0%, #322947 100%);
+  background-size: cover;
+  background-position: center 22%;
+  background-repeat: no-repeat;
+}
+.pub-moto-body {
+  padding: 48px 52px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 16px;
+  justify-content: center;
+}
+.pub-eyebrow-on-dark { background: #ffffff1f; color: #e6dcff; }
+.pub-moto-title {
+  margin: 0;
+  font-size: clamp(26px, 3vw, 36px); line-height: 1.12; font-weight: 900;
+  letter-spacing: -.01em; text-transform: uppercase;
+}
+.pub-moto-text { margin: 0; font-size: var(--fs-base); line-height: 1.7; color: #ffffffc9; max-width: 52ch; }
+.pub-moto-stats { display: flex; gap: 38px; margin-top: 6px; flex-wrap: wrap; }
+.pub-moto-stats strong {
+  display: block; font-size: 34px; font-weight: 900; line-height: 1;
+  background: linear-gradient(92deg, #a5b4fc, #f0abfc);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.pub-moto-stats span {
+  display: block; margin-top: 5px;
+  font-size: var(--fs-sm); color: #ffffff9e; max-width: 15ch; line-height: 1.45;
+}
+
+/* --------------------------------------------------------------- responsive */
+@media (max-width: 1120px) {
+  .pub-gallery { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 200px; }
+  .pub-gal-a { grid-column: 1 / 3; grid-row: 1; }
+  .pub-gal-b, .pub-gal-c, .pub-gal-d, .pub-gal-e { grid-column: auto; grid-row: auto; }
+}
+@media (max-width: 960px) {
+  .pub-xhero { min-height: 480px; }
+  .pub-xhero-inner { padding: 48px 30px; }
+  .pub-moto { grid-template-columns: 1fr; }
+  .pub-moto-photo { min-height: 260px; }
+  .pub-moto-body { padding: 32px 26px; }
+}
+@media (max-width: 620px) {
+  .pub-gallery { grid-auto-rows: 160px; }
+  .pub-moto-stats { gap: 24px; }
+}
+
+/* A strip that scrolls forever is exactly what a reduced-motion setting is asking to stop. */
+@media (prefers-reduced-motion: reduce) {
+  .pub-marquee-track { animation: none; }
+  .pub-gal-tile img { transition: none; }
+  .pub-gal-tile:hover img { transform: none; }
+}
+
+/* ==========================================================================
+   Auth scenes — the editorial login pages
+   ==========================================================================
+   A full-bleed photograph behind an on-photo pitch and a solid form card. The scene is
+   photograph-dark in both themes like the home hero, so its white type is literal; the card is
+   tokened, so the fields read identically to every other form in the product. */
+.pub-auth-scene {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 56px var(--sp-6);
+  background-image: var(--pub-photo, none),
+    linear-gradient(120deg, #17151f 0%, #262033 60%, #3a2b48 100%);
+  background-size: cover;
+  background-position: center 25%;
+  background-repeat: no-repeat;
+}
+.pub-auth-scene::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(100deg, #0b0a12f0 0%, #0b0a12b5 45%, #0b0a1240 100%);
+}
+.pub-auth-scene-inner {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 1160px; margin: 0 auto;
+  display: grid; grid-template-columns: 1.05fr .95fr;
+  gap: var(--sp-8);
+  align-items: center;
+}
+
+.pub-auth-pitch { color: #fff; }
+.pub-auth-pitch-title {
+  margin: 18px 0 12px;
+  font-size: clamp(30px, 3.6vw, 46px);
+  line-height: 1.04;
+  font-weight: 900;
+  letter-spacing: -.01em;
+  text-transform: uppercase;
+}
+.pub-auth-pitch-title span {
+  display: block;
+  background: linear-gradient(92deg, #a5b4fc 0%, #c084fc 55%, #fb7185 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.pub-auth-pitch-text { margin: 0 0 18px; font-size: 15px; line-height: 1.7; color: #ffffffd0; max-width: 46ch; }
+.pub-auth-pitch-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.pub-auth-pitch-list li {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: var(--fs-md); line-height: 1.5; color: #ffffffd9; font-weight: 600;
+}
+.pub-auth-pitch-list svg { color: #7ee8b2; flex: none; margin-top: 2px; }
+
+.pub-auth-panel {
+  width: 100%; max-width: 470px; justify-self: end;
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: 14px; box-shadow: var(--shadow-pop);
+  padding: 32px 36px;
+  display: flex; flex-direction: column;
+}
+
+@media (max-width: 960px) {
+  .pub-auth-scene { padding: 34px var(--sp-4); }
+  .pub-auth-scene-inner { grid-template-columns: 1fr; gap: var(--sp-6); }
+  /* The pitch shrinks to headline and one line; the form is what a phone came here for. */
+  .pub-auth-pitch-list { display: none; }
+  .pub-auth-pitch-text { margin-bottom: 0; }
+  .pub-auth-panel { justify-self: stretch; max-width: none; padding: 26px 22px; }
+}
+
+/* ==========================================================================
+   Glass auth panels
+   ==========================================================================
+   The scene's form card becomes near-black glass: the photograph blurs through it, a gradient
+   hairline crowns it, and everything inside is restyled white. All of it is scoped under
+   .pub-auth-glass so no form anywhere else in the product inherits a single rule of it. The
+   glass tint is dark enough (~86% black) that white-on-glass contrast never depends on the
+   photograph behind the card. */
+
+/* Richer scrim: a directional wash for the pitch text plus a bottom vignette, and a faint
+   indigo grade so both photographs sit in the same palette. */
+.pub-auth-scene::after {
+  background:
+    linear-gradient(97deg, #0b0a12f5 0%, #0b0a12aa 42%, #0b0a1236 70%, #0b0a1200 100%),
+    radial-gradient(120% 90% at 70% 115%, #0b0a1200 40%, #0b0a12b8 100%),
+    linear-gradient(0deg, #35318220, #35318220);
+}
+
+/* Giant outlined role name behind everything — pure texture, hence aria-hidden. */
+.pub-auth-watermark {
+  position: absolute;
+  right: -12px; bottom: -28px;
+  z-index: 0;
+  font-size: clamp(90px, 16vw, 210px);
+  font-weight: 900;
+  letter-spacing: .04em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1.5px #ffffff14;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Pitch list as glass chips instead of plain tick lines. */
+.pub-auth-pitch-list { display: flex; flex-wrap: wrap; gap: 10px; max-width: 46ch; }
+.pub-auth-pitch-list li {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 15px;
+  border-radius: var(--r-pill);
+  background: #ffffff12;
+  border: 1px solid #ffffff24;
+  font-size: var(--fs-sm); font-weight: 600; color: #ffffffe0;
+  backdrop-filter: blur(6px);
+}
+.pub-auth-pitch-list svg { margin-top: 0; }
+
+/* ------------------------------------------------------------- the glass */
+.pub-auth-glass {
+  position: relative;
+  background: #100e18db;
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  border: 1px solid #ffffff21;
+  border-radius: 18px;
+  box-shadow: 0 32px 70px rgba(0, 0, 0, .55);
+  color: #fff;
+  overflow: hidden;
+  animation: pub-glass-rise .45s ease both;
+}
+/* Gradient hairline across the top, the one loud line on the card. */
+.pub-auth-glass::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(92deg, #6366f1 0%, #a855f7 55%, #fb7185 100%);
+}
+/* A soft interior glow in the corner so the glass reads lit, not flat. */
+.pub-auth-glass::after {
+  content: '';
+  position: absolute; top: -70px; right: -70px;
+  width: 240px; height: 240px; border-radius: 50%;
+  background: radial-gradient(circle, #8b5cf62e 0%, transparent 70%);
+  pointer-events: none;
+}
+@keyframes pub-glass-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Everything inside the glass goes white-on-dark, whatever the app theme is. */
+.pub-auth-glass .pub-auth-title { color: #fff; }
+.pub-auth-glass .pub-auth-sub { color: #ffffff96; }
+.pub-auth-glass .field-label { color: #ffffffd6; }
+.pub-auth-glass .field-help { color: #ffffff70; }
+.pub-auth-glass .input {
+  background: #ffffff0f;
+  border-color: #ffffff2b;
+  color: #fff;
+}
+.pub-auth-glass .input::placeholder { color: #ffffff5c; }
+.pub-auth-glass .input:focus {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px #a78bfa30;
+  background: #ffffff17;
+}
+.pub-auth-glass .input-icon { color: #ffffff6e; }
+.pub-auth-glass .btn-outline {
+  background: #ffffff10; border-color: #ffffff30; color: #fff;
+}
+.pub-auth-glass .btn-outline:hover:not(:disabled) { background: #ffffff21; color: #fff; }
+.pub-auth-glass .btn-ghost { color: #ffffffa8; }
+.pub-auth-glass .btn-ghost:hover:not(:disabled) { background: #ffffff1a; color: #fff; }
+.pub-auth-glass .pub-auth-link { color: #c4b5fd; }
+.pub-auth-glass .pub-auth-foot { color: #ffffff7d; border-color: #ffffff1c; }
+
+/* Vivid gradient badges — the pale theme discs washed out on the dark glass. */
+.pub-badge-heat { background: var(--grad-hero); color: #fff; }
+.pub-badge-heat-green { background: var(--grad-green); color: #fff; }
+
+@media (max-width: 960px) {
+  .pub-auth-watermark { font-size: 96px; bottom: -14px; }
+  /* Chips come back on phones in place of the old hidden tick list — they wrap tightly and
+     carry the pitch without pushing the form below the fold. */
+  .pub-auth-pitch-list { display: flex; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pub-auth-glass { animation: none; }
+}
+
+/* ---------------------------------------------------------------- footer v3
+   Near-black in both themes, matching .pub-nav, so the page opens and closes on the same
+   chrome — which also makes every literal white here correct by the same rule as the nav. */
+.pub-footer3 {
+  background: var(--chrome);
+  color: #fff;
+  border-top: 1px solid #ffffff17;
+  padding: 46px var(--sp-6) 0;
+}
+.pub-footer3-grid {
+  max-width: 1360px; margin: 0 auto;
+  display: grid; grid-template-columns: 1.5fr 1.1fr 1fr 1fr; gap: var(--sp-6);
+}
+.pub-footer3-brand {
+  display: flex; align-items: center; gap: 9px;
+  font-size: var(--fs-lg); font-weight: 800;
+}
+.pub-footer3-text {
+  margin: 12px 0 0; max-width: 40ch;
+  font-size: var(--fs-md); line-height: 1.7; color: #ffffff96;
+}
+.pub-footer3-head {
+  font-size: var(--fs-xs); font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+  color: #ffffff6b; margin-bottom: 14px;
+}
+.pub-footer3-line {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin-bottom: 11px;
+  font-size: var(--fs-md); line-height: 1.55; color: #ffffffd0; font-weight: 600;
+}
+.pub-footer3-line svg { flex: none; margin-top: 2px; color: #a5b4fc; }
+a.pub-footer3-line:hover { color: #fff; text-decoration: none; }
+.pub-footer3-note {
+  display: block; max-width: 30ch;
+  font-size: var(--fs-sm); line-height: 1.65; color: #ffffff7a;
+}
+.pub-footer3-link {
+  display: block; margin-bottom: 11px;
+  font-size: var(--fs-md); font-weight: 600; color: #ffffffd0;
+}
+.pub-footer3-link:hover { color: #fff; text-decoration: none; }
+.pub-footer3-base {
+  max-width: 1360px; margin: 34px auto 0; padding: 16px 0 20px;
+  border-top: 1px solid #ffffff17;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  font-size: var(--fs-sm); color: #ffffff80;
+}
+
+@media (max-width: 960px) {
+  .pub-footer3-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 620px) {
+  .pub-footer3-grid { grid-template-columns: 1fr; gap: var(--sp-5); }
+  .pub-footer3-base { justify-content: center; text-align: center; }
+}
+
+/* ==========================================================================
+   Auth scene, third pass: ambient light, film grain, the role switch
+   ========================================================================== */
+
+/* Film grain over the photograph — kills gradient banding and gives the scene texture. The
+   noise is a tiny inline SVG so nothing is fetched. Painted below the content layer. */
+.pub-auth-scene::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: .045;
+  pointer-events: none;
+}
+
+/* Two drifting light orbs behind the content. Absolutely positioned, so as grid pseudo-items
+   they create no tracks; the pitch and panel carry z-index 1 and always paint above them. */
+.pub-auth-scene-inner::before,
+.pub-auth-scene-inner::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+  z-index: 0;
+}
+.pub-auth-scene-inner::before {
+  width: 380px; height: 380px; top: -70px; left: -50px;
+  background: radial-gradient(circle, #6366f180 0%, transparent 65%);
+  animation: pub-orb-a 16s ease-in-out infinite alternate;
+}
+.pub-auth-scene-inner::after {
+  width: 320px; height: 320px; bottom: -90px; right: 26%;
+  background: radial-gradient(circle, #ec489966 0%, transparent 65%);
+  animation: pub-orb-b 20s ease-in-out infinite alternate;
+}
+@keyframes pub-orb-a { to { transform: translate(60px, 40px) scale(1.15); } }
+@keyframes pub-orb-b { to { transform: translate(-50px, -30px) scale(.9); } }
+
+.pub-auth-pitch { position: relative; z-index: 1; animation: pub-glass-rise .5s ease both; }
+.pub-auth-glass { z-index: 1; animation-delay: .12s; }
+
+/* -------------------------------------------------------------- role switch */
+.pub-auth-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 22px;
+}
+.pub-auth-switch {
+  display: flex; gap: 4px; padding: 4px;
+  background: #ffffff0f; border: 1px solid #ffffff1f;
+  border-radius: var(--r-pill);
+}
+.pub-auth-switch a {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 16px; border-radius: var(--r-pill);
+  font-size: var(--fs-sm); font-weight: 700; color: #ffffff85;
+}
+.pub-auth-switch a:hover { color: #fff; text-decoration: none; }
+.pub-auth-switch a.active {
+  background: linear-gradient(92deg, #6366f1 0%, #a855f7 60%, #ec4899 115%);
+  color: #fff;
+  box-shadow: 0 6px 18px #a855f74d;
+}
+.pub-auth-switch-green a.active {
+  background: linear-gradient(92deg, #0ea87a 0%, #22d3ee 115%);
+  box-shadow: 0 6px 18px #10b98155;
+}
+
+.pub-auth-head-plain { margin-bottom: 2px; }
+.pub-auth-head-plain .pub-auth-title { font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
+
+/* ------------------------------------------------------------- glow buttons */
+.btn.pub-btn-glow,
+.btn.pub-btn-glow-green {
+  border: none; color: #fff; font-weight: 700;
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.btn.pub-btn-glow {
+  background: linear-gradient(92deg, #6366f1 0%, #a855f7 55%, #ec4899 115%);
+  box-shadow: 0 10px 26px #a855f74a;
+}
+.btn.pub-btn-glow-green {
+  background: linear-gradient(92deg, #0ea87a 0%, #22d3ee 115%);
+  box-shadow: 0 10px 26px #10b98150;
+}
+.btn.pub-btn-glow:hover:not(:disabled),
+.btn.pub-btn-glow-green:hover:not(:disabled) {
+  transform: translateY(-1px); filter: brightness(1.08); color: #fff;
+}
+
+/* The field icon warms up with focus, so the active field reads at a glance. */
+.pub-auth-glass .input-group:focus-within .input-icon { color: #c4b5fd; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pub-auth-scene-inner::before,
+  .pub-auth-scene-inner::after { animation: none; }
+  .pub-auth-pitch { animation: none; }
+  .btn.pub-btn-glow, .btn.pub-btn-glow-green { transition: none; }
+}
+
+/* ==========================================================================
+   Auth split — the light panel layout
+   ==========================================================================
+   No black scrim behind the form any more: the page is two panels edge to edge. The form side
+   is an ordinary tokened surface — white in light mode, dark in dark mode — and only the photo
+   panel keeps white-on-dark copy, over a scrim confined to its own bottom edge. */
+.pub-auth-split {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(440px, 44%) 1fr;
+}
+.pub-auth-formside {
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 48px clamp(24px, 5vw, 76px);
+  background: var(--surface);
+}
+.pub-auth-formwrap {
+  width: 100%; max-width: 430px; margin: 0 auto;
+  animation: pub-glass-rise .4s ease both;
+}
+
+/* The switch was born on dark glass; on a tokened surface it swaps to tokened neutrals. The
+   active pill keeps its gradient — that part reads on anything. */
+.pub-auth-formside .pub-auth-switch { background: var(--surface-alt); border-color: var(--divider); }
+.pub-auth-formside .pub-auth-switch a { color: var(--text-2); }
+.pub-auth-formside .pub-auth-switch a:hover { color: var(--text); }
+.pub-auth-formside .pub-auth-switch a.active { color: #fff; }
+
+/* ------------------------------------------------------------- photo panel */
+.pub-auth-photoside {
+  position: relative;
+  display: flex; align-items: flex-end;
+  background-image: var(--pub-photo, none),
+    linear-gradient(160deg, #1c1928 0%, #322947 100%);
+  background-size: cover;
+  background-position: center 22%;
+  background-repeat: no-repeat;
+}
+.pub-auth-photoside::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, #0b0a1200 42%, #0b0a12e0 100%);
+}
+.pub-auth-photocopy {
+  position: relative; z-index: 1;
+  color: #fff;
+  padding: 44px 52px;
+}
+.pub-auth-photocopy .pub-auth-pitch-title { font-size: clamp(24px, 2.6vw, 38px); }
+
+@media (max-width: 960px) {
+  /* One column: the form first — it is what the visit is for — the photograph beneath it as a
+     banner that still carries the pitch. */
+  .pub-auth-split { grid-template-columns: 1fr; }
+  .pub-auth-formside { padding: 34px var(--sp-5); }
+  .pub-auth-photoside { min-height: 300px; }
+  .pub-auth-photocopy { padding: 26px; }
+}
+
+/* ==========================================================================
+   Auth split, refined: photo left, an unmistakable login column right
+   ========================================================================== */
+/* The photo panel now leads, so the columns swap weight: picture wide, form comfortable. */
+.pub-auth-split { grid-template-columns: 1.15fr minmax(440px, 45%); }
+
+/* The form column is a full-height flex: switch row at the top, the login block centred, the
+   help line pinned at the bottom. No element floats in a void. A faint brand tint keeps the
+   surface from reading sterile, and it is quiet enough to work over light and dark tokens. */
+.pub-auth-formside {
+  background:
+    radial-gradient(640px 320px at 100% -60px, #a855f712, transparent 70%),
+    radial-gradient(520px 300px at -80px 110%, #10b98110, transparent 70%),
+    var(--surface);
+}
+.pub-auth-formwrap {
+  flex: 1;
+  display: flex; flex-direction: column;
+  max-width: 460px;
+}
+.pub-auth-formmain { margin: auto 0; padding: 30px 0; }
+.pub-auth-formside .pub-auth-foot { margin-top: 0; }
+
+/* The identity block: role badge, the page's name in so many words, an accent bar under it. */
+.pub-auth-mark {
+  width: 54px; height: 54px; border-radius: 15px;
+  display: grid; place-items: center; color: #fff;
+  margin-bottom: 18px;
+  box-shadow: 0 10px 24px rgba(31, 36, 48, .25);
+}
+.pub-auth-mark-member { background: linear-gradient(135deg, #6366f1 0%, #a855f7 60%, #ec4899 130%); }
+.pub-auth-mark-staff { background: linear-gradient(135deg, #0ea87a 0%, #22d3ee 120%); }
+.pub-auth-bigtitle {
+  margin: 0; font-size: 32px; line-height: 1.1; font-weight: 800; letter-spacing: -.015em;
+  color: var(--text);
+}
+.pub-auth-title-accent {
+  display: block; width: 56px; height: 4px; border-radius: 2px;
+  margin: 14px 0 0;
+  background: linear-gradient(92deg, #6366f1, #a855f7 60%, #ec4899);
+}
+.pub-auth-title-accent-green { background: linear-gradient(92deg, #0ea87a, #22d3ee); }
+.pub-auth-bigsub {
+  margin: 14px 0 24px;
+  font-size: var(--fs-base); line-height: 1.6; color: var(--text-2); max-width: 40ch;
+}
+
+/* Fields sized for the page's one job. Scoped: forms elsewhere keep their compact height. */
+.pub-auth-formside .input { height: 47px; font-size: 15px; }
+.pub-auth-formside .field-label { font-size: var(--fs-md); }
+.pub-auth-formside .pub-btn-glow,
+.pub-auth-formside .pub-btn-glow-green { height: 47px; font-size: 15px; }
+
+/* Forgot-password and the cross-link to the other role, on one line under the form. */
+.pub-auth-underform {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 18px;
+}
+.pub-auth-underform .pub-auth-link { display: inline; margin: 0; text-align: left; }
+.pub-auth-underform-alt { font-size: var(--fs-sm); color: var(--text-muted); }
+.pub-auth-underform-alt a { font-weight: 700; }
+
+@media (max-width: 960px) {
+  /* Stacked: the form first — it is what the visit is for — the photo pitch beneath it. */
+  .pub-auth-formside { order: -1; }
+  .pub-auth-formmain { padding: 24px 0; }
+}
+
+/* ---------------------------------------------------------- auth as a panel
+   The same photo-left / form-right split, contained in one floating rounded panel instead of
+   running edge to edge. The page shows around it, the panel carries the shadow. */
+.pub-auth-wrap2 {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px var(--sp-6);
+}
+.pub-auth-splitcard {
+  width: 100%; max-width: 1180px;
+  /* Fits the viewport under the nav so the page never grows a scrollbar; on a generous screen
+     it stops at its natural 620px. */
+  min-height: min(620px, calc(100dvh - 138px));
+  display: grid; grid-template-columns: 1.1fr minmax(400px, 46%);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--divider);
+  box-shadow: var(--shadow-pop);
+}
+/* Inside the panel the form half sits on the card surface, and breathes a little less than the
+   full-page version did. The split-page rules above still target these classes, so the paddings
+   are re-scoped here. */
+.pub-auth-splitcard .pub-auth-formside {
+  padding: 34px clamp(24px, 3.2vw, 48px);
+  background:
+    radial-gradient(520px 280px at 100% -60px, #a855f712, transparent 70%),
+    radial-gradient(420px 260px at -80px 110%, #10b98110, transparent 70%),
+    var(--card);
+}
+.pub-auth-splitcard .pub-auth-formmain { padding: 24px 0; }
+.pub-auth-splitcard .pub-auth-bigtitle { font-size: 29px; }
+.pub-auth-splitcard .pub-auth-photocopy { padding: 34px 38px; }
+
+@media (max-width: 960px) {
+  .pub-auth-wrap2 { padding: 20px var(--sp-4); }
+  .pub-auth-splitcard { grid-template-columns: 1fr; min-height: 0; }
+  .pub-auth-splitcard .pub-auth-photoside { min-height: 240px; }
+}
+
+/* Badge beside the heading rather than above it — one row announcing the page. */
+.pub-auth-titlerow { display: flex; align-items: center; gap: 14px; }
+.pub-auth-titlerow .pub-auth-mark { width: 46px; height: 46px; border-radius: 13px; margin-bottom: 0; }

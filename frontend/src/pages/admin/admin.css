@@ -25,7 +25,73 @@
 }
 .chart-head { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-4); }
 .chart-title { display: flex; align-items: center; gap: 8px; font-size: var(--fs-base); font-weight: 700; flex: 1; }
+/* Match the page-card header chips so every card opens with the same coloured accent. */
+.chart-title > svg, .quick-title > svg {
+  box-sizing: content-box; padding: 5px; border-radius: 8px; flex: none;
+  color: var(--primary-dark);
+  background: linear-gradient(135deg, var(--primary-soft), color-mix(in srgb, var(--accent) 16%, var(--card)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 18%, transparent);
+}
 .chart-empty { display: grid; place-items: center; height: 240px; color: var(--text-muted); font-size: var(--fs-md); }
+
+/* ------------------------------------------------------------------ chart chrome */
+/* Painted here rather than passed to Recharts as props: an SVG presentation attribute cannot
+   resolve a CSS variable, so as literals these stayed light-grey and disappeared on a dark card.
+   Solid hairlines, one step off the surface — dashes read as a threshold that isn't there. */
+.dash-grid line { stroke: var(--divider); stroke-dasharray: none; }
+.recharts-cartesian-axis-tick text { fill: var(--text-muted); }
+/* Axis ticks are a column of numbers, so they line up on equal-width digits. */
+.recharts-cartesian-axis-tick text { font-variant-numeric: tabular-nums; }
+
+.chart-tip {
+  background: var(--card); border: 1px solid var(--divider); border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop); padding: 8px 11px; pointer-events: none;
+}
+.chart-tip-label { font-size: var(--fs-xs); color: var(--text-muted); }
+.chart-tip-value { font-size: var(--fs-base); font-weight: 700; margin-top: 2px; }
+
+/* ------------------------------------------------------- part-to-whole (stacked) */
+.share + .share { margin-top: var(--sp-5); }
+.share-head { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: 9px; }
+.share-title { font-size: var(--fs-md); font-weight: 700; }
+.share-total { margin-left: auto; font-size: var(--fs-xs); color: var(--text-muted); }
+/* The gaps between segments are the track showing through, which is why no segment carries a
+   border: white space separates them, not ink. */
+.share-bar {
+  display: flex; gap: 2px; height: 14px; border-radius: 7px;
+  overflow: hidden; background: var(--surface-alt);
+}
+.share-seg { display: block; height: 100%; min-width: 2px; }
+.share-legend { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 7px; }
+.share-legend li { display: flex; align-items: center; gap: 8px; font-size: var(--fs-md); }
+.share-dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.share-label { color: var(--text-2); }
+/* Values sit hard right in a column, so they get equal-width digits to line up. */
+.share-value { margin-left: auto; font-variant-numeric: tabular-nums; }
+.share-pct { width: 42px; text-align: right; font-size: var(--fs-xs); color: var(--text-muted);
+  font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------------------ meter */
+/* One ratio against its total. The track is a wash of the fill's own hue rather than plain grey,
+   so the state reads across the whole bar instead of only the filled part. */
+.meter { margin-bottom: var(--sp-5); }
+.meter-head { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: 7px; }
+.meter-label { font-size: var(--fs-md); font-weight: 600; color: var(--text-2); }
+.meter-value { margin-left: auto; font-size: var(--fs-lg); font-weight: 700; }
+.meter-track { height: 10px; border-radius: 5px; overflow: hidden; }
+.meter-fill { height: 100%; border-radius: 5px; transition: width .3s ease; }
+.meter-foot {
+  display: flex; justify-content: space-between; gap: var(--sp-3);
+  margin-top: 6px; font-size: var(--fs-xs); color: var(--text-muted);
+}
+.meter-good .meter-track { background: var(--success-soft); }
+.meter-good .meter-fill  { background: var(--success); }
+.meter-warn .meter-track { background: var(--warning-soft); }
+.meter-warn .meter-fill  { background: var(--warning); }
+.meter-bad  .meter-track { background: var(--danger-soft); }
+.meter-bad  .meter-fill  { background: var(--danger); }
+
+@media (prefers-reduced-motion: reduce) { .meter-fill { transition: none; } }
 .chart-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: var(--sp-3); }
 .chart-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--text-2); }
 .chart-swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
@@ -40,7 +106,8 @@
 .activity-item { display: flex; align-items: flex-start; gap: var(--sp-3); padding: 12px var(--sp-5); border-bottom: 1px solid var(--divider); }
 .activity-item:last-child { border-bottom: 0; }
 .activity-icon { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; flex: none;
-  background: var(--primary-soft); color: var(--primary-dark); }
+  background: var(--primary-soft); color: var(--primary-dark);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 16%, transparent); }
 .activity-text { flex: 1; min-width: 0; }
 .activity-main { font-size: var(--fs-md); font-weight: 600; }
 .activity-sub { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }

@@ -64,6 +64,32 @@ export interface MemberHistoryDto {
   documents: MemberDocumentDto[];
 }
 
+/** One dated point in a progress series (weight, BMI, …). */
+export interface ProgressPointDto { date: string; value: number; label?: string | null; }
+
+/** The member's charted history, mirroring MemberProgressDto on the API. */
+export interface MemberProgressDto {
+  memberId: number;
+  memberName: string;
+  weight: ProgressPointDto[];
+  bodyFat: ProgressPointDto[];
+  bmi: ProgressPointDto[];
+  sessionVolume: ProgressPointDto[];
+  caloriesBurned: ProgressPointDto[];
+}
+
+/**
+ * Body for POST /api/members/{id}/measurements. The route id wins over any memberId in the
+ * body, BMI is recomputed server-side, and the recording trainer comes from the token.
+ */
+export interface SaveMeasurementDto {
+  measuredOn?: string;
+  weightKg?: number | null; heightCm?: number | null; bodyFatPercent?: number | null;
+  muscleMassKg?: number | null; chestCm?: number | null; waistCm?: number | null;
+  hipCm?: number | null; armCm?: number | null; thighCm?: number | null;
+  notes?: string | null;
+}
+
 export interface TemporaryPasswordDto { userId: number; userName: string; temporaryPassword: string; }
 
 export interface CreateMemberResult { member: MemberDetailDto; account?: TemporaryPasswordDto | null; }
@@ -131,6 +157,22 @@ export const membersApi = {
 
   assignTrainer: (id: number, trainerId?: number) =>
     api.post<void>(`/api/members/${id}/assign-trainer`, undefined, { trainerId }),
+
+  /** The member's recorded body measurements, newest first. */
+  measurements: (id: number, signal?: AbortSignal) =>
+    api.get<MemberMeasurementDto[]>(`/api/members/${id}/measurements`, undefined, signal),
+
+  /** Records a body-measurement entry for the member. */
+  addMeasurement: (id: number, dto: SaveMeasurementDto) =>
+    api.post<MemberMeasurementDto>(`/api/members/${id}/measurements`, dto),
+
+  /** Deletes one measurement entry (the measurement's own id, not the member's). */
+  deleteMeasurement: (measurementId: number) =>
+    api.del<void>(`/api/members/measurements/${measurementId}`),
+
+  /** The member's progress series — weight, body fat, BMI, session volume, calories. */
+  progress: (id: number, signal?: AbortSignal) =>
+    api.get<MemberProgressDto>(`/api/members/${id}/progress`, undefined, signal),
 };
 
 /** Plan lookup, used by the member filter strip. */

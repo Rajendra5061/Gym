@@ -545,8 +545,8 @@ export default function SettingsPage() {
 
               <FormSection title="Currency" icon={<IconMoney size={15} />} caption="Every amount in the app is rendered with this symbol.">
                 <div className="form-grid">
-                  <Field label="Currency code" help="ISO code, for example INR."><input className="input" value={gym.currencyCode} disabled={!mayManage} onChange={(e) => patchGym({ currencyCode: e.target.value })} /></Field>
-                  <Field label="Currency symbol"><input className="input" value={gym.currencySymbol} disabled={!mayManage} onChange={(e) => patchGym({ currencySymbol: e.target.value })} /></Field>
+                  <Field label="Currency code" required help="ISO code, for example INR."><input className="input" value={gym.currencyCode} disabled={!mayManage} onChange={(e) => patchGym({ currencyCode: e.target.value })} /></Field>
+                  <Field label="Currency symbol" required><input className="input" value={gym.currencySymbol} disabled={!mayManage} onChange={(e) => patchGym({ currencySymbol: e.target.value })} /></Field>
                 </div>
               </FormSection>
 
@@ -922,9 +922,9 @@ export default function SettingsPage() {
                       <thead>
                         <tr>
                           <th className="idx">#</th>
-                          <th>Key</th>
+                          <th className="fit">Key</th>
                           <th>Value</th>
-                          <th>Description</th>
+                          <th className="wide">Description</th>
                           <th className="actions">Actions</th>
                         </tr>
                       </thead>

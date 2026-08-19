@@ -12,7 +12,7 @@ import { trainersApi } from '@/api/endpoints/trainers';
 import { useAuth } from '@/auth/AuthContext';
 import {
   Alert, EmptyState, ErrorAlert, Field, FilterField, FilterMenu, FilterStrip, Loading, Modal,
-  PageCard, PageCardHeader, Pager, Pill, StatusPill, type PillTone,
+  PageCard, PageCardHeader, Pager, Pill, SearchField, StatusPill, type PillTone,
 } from '@/components/ui';
 import {
   IconCheck, IconCheckSquare, IconClock, IconCrown, IconFile, IconMoney, IconQr,
@@ -700,14 +700,12 @@ export default function SubscriptionsPage() {
         {/* Only the search box stays in the open. Enter applies it; every other filter, and the
             Apply / Clear all pair, live in the header's Filters menu. */}
         <FilterStrip>
-          <FilterField label="Search">
-            <input
-              className="input" placeholder="Code, member name or phone"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
-            />
-          </FilterField>
+          <SearchField
+            placeholder="Code, member name or phone"
+            value={search}
+            onChange={setSearch}
+            onSearch={applyFilters}
+          />
         </FilterStrip>
 
         {(notice || expiryResult) && (
@@ -731,17 +729,17 @@ export default function SubscriptionsPage() {
               <thead>
                 <tr>
                   <th className="idx">#</th>
-                  <th>Code</th>
-                  <th>Member</th>
-                  <th>Plan</th>
-                  <th>Start</th>
-                  <th>End</th>
-                  <th className="center">Days left</th>
+                  <th className="fit">Code</th>
+                  <th className="wide">Member</th>
+                  <th className="fit">Plan</th>
+                  <th className="fit">Start</th>
+                  <th className="fit">End</th>
+                  <th className="center fit">Days left</th>
                   <th className="num">Final</th>
                   <th className="num">Paid</th>
                   <th className="num">Outstanding</th>
-                  <th>Payment</th>
-                  <th>Status</th>
+                  <th className="fit">Payment</th>
+                  <th className="fit">Status</th>
                   <th className="actions">Actions</th>
                 </tr>
               </thead>
@@ -754,17 +752,17 @@ export default function SubscriptionsPage() {
                       <div className="cell-main">{row.memberName}</div>
                       <div className="cell-sub">{row.memberCode}{row.memberPhone ? ` · ${row.memberPhone}` : ''}</div>
                     </td>
-                    <td><Pill tone="primary">{row.planName}</Pill></td>
-                    <td>{fmtDate(row.startDate)}</td>
-                    <td>{fmtDate(row.endDate)}</td>
+                    <td className="fit"><Pill tone="primary">{row.planName}</Pill></td>
+                    <td className="fit">{fmtDate(row.startDate)}</td>
+                    <td className="fit">{fmtDate(row.endDate)}</td>
                     <td className="center">
                       <Pill tone={daysLeftTone(row.daysRemaining, row.status)}>{row.daysRemaining}</Pill>
                     </td>
                     <td className="money-cell">{money(row.finalAmount, currency)}</td>
                     <td className="money-cell">{money(row.paidAmount, currency)}</td>
                     <td className="money-cell">{money(row.outstandingAmount, currency)}</td>
-                    <td><StatusPill status={row.paymentStatusText} /></td>
-                    <td><StatusPill status={row.statusText} /></td>
+                    <td className="fit"><StatusPill status={row.paymentStatusText} /></td>
+                    <td className="fit"><StatusPill status={row.statusText} /></td>
                     <td className="actions">
                       <div className="row" style={{ justifyContent: 'flex-end', gap: 6 }}>
                         {mayCreate && (

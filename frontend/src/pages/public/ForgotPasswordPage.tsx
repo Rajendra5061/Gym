@@ -7,6 +7,7 @@ import {
 } from '@/components/icons';
 import { PublicNav, useGymSettings } from '@/components/PublicNav';
 import { dateTime } from '@/lib/format';
+import { AthleteCurl, AthleteRun, AthleteStretch } from './athletes';
 import './public.css';
 
 /**
@@ -114,7 +115,7 @@ export default function ForgotPasswordPage() {
     <div className="pub-shell">
       <PublicNav gymName={gymName} />
 
-      <main className="pub-auth-wrap">
+      <main className="pub-auth-wrap pub-auth-wrap-stack">
         <div className="pub-auth-single">
           <div className="pub-auth-head">
             <span className="pub-auth-badge pub-badge-lavender"><IconLock size={22} /></span>
@@ -208,12 +209,15 @@ export default function ForgotPasswordPage() {
                 </Alert>
 
                 <Field label="Reset code" required error={fieldError.token}>
-                  <input
-                    className={`input ${fieldError.token ? 'input-invalid' : ''}`}
-                    value={resetToken}
-                    onChange={(e) => setResetToken(e.target.value)}
-                    placeholder="Paste the reset code"
-                  />
+                  <div className="input-group">
+                    <span className="input-icon"><IconLock size={15} /></span>
+                    <input
+                      className={`input ${fieldError.token ? 'input-invalid' : ''}`}
+                      value={resetToken}
+                      onChange={(e) => setResetToken(e.target.value)}
+                      placeholder="Paste the reset code"
+                    />
+                  </div>
                 </Field>
 
                 <Field
@@ -277,6 +281,15 @@ export default function ForgotPasswordPage() {
             <IconInfo size={14} /> Reset codes are issued by the server and expire; ask an
             administrator if you cannot complete this yourself.
           </div>
+        </div>
+
+        {/* Decorative strip under the card. Below the form on purpose: this is a page somebody
+            reaches when they are locked out, and nothing decorative belongs above the field they
+            came here to fill in. */}
+        <div className="pub-figure-strip">
+          <AthleteStretch className="pub-strip-figure" />
+          <AthleteCurl className="pub-strip-figure" />
+          <AthleteRun className="pub-strip-figure" />
         </div>
       </main>
     </div>

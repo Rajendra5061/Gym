@@ -47,6 +47,10 @@ public class GymDbContext : DbContext
     public DbSet<WorkoutSession> WorkoutSessions => Set<WorkoutSession>();
     public DbSet<WorkoutSessionExercise> WorkoutSessionExercises => Set<WorkoutSessionExercise>();
 
+    // Diet
+    public DbSet<DietPlan> DietPlans => Set<DietPlan>();
+    public DbSet<DietPlanMeal> DietPlanMeals => Set<DietPlanMeal>();
+
     // Attendance
     public DbSet<Attendance> Attendance => Set<Attendance>();
 
@@ -62,6 +66,7 @@ public class GymDbContext : DbContext
     public DbSet<PaymentGatewayEvent> PaymentGatewayEvents => Set<PaymentGatewayEvent>();
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
+    public DbSet<SalaryPayment> SalaryPayments => Set<SalaryPayment>();
 
     // Operations
     public DbSet<Equipment> Equipment => Set<Equipment>();

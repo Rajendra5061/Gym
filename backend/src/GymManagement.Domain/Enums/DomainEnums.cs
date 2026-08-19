@@ -203,6 +203,25 @@ public enum EnquiryStatus
     Lost = 5
 }
 
+/// <summary>Lifecycle of a diet plan assigned to a member.</summary>
+public enum DietPlanStatus
+{
+    Active = 1,
+    Completed = 2,
+    Cancelled = 3
+}
+
+/// <summary>The meal slot a diet plan line belongs to.</summary>
+public enum DietMealType
+{
+    Breakfast = 1,
+    MidMorning = 2,
+    Lunch = 3,
+    EveningSnack = 4,
+    Dinner = 5,
+    PostWorkout = 6
+}
+
 /// <summary>Review state of member feedback.</summary>
 public enum FeedbackStatus
 {

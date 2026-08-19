@@ -9,10 +9,10 @@ import type { Gender, Lookup, MemberListDto, MemberStatus, PagedResult } from '@
 import { useAuth } from '@/auth/AuthContext';
 import {
   ConfirmModal, EmptyState, ErrorAlert, FilterField, FilterMenu, FilterStrip, Loading,
-  PageCard, PageCardHeader, Pager, Pill, StatusPill, type PillTone,
+  PageCard, PageCardHeader, Pager, Pill, SearchField, StatusPill, type PillTone,
 } from '@/components/ui';
 import {
-  IconCalendar, IconMoney, IconPhone, IconPlus, IconSearch,
+  IconCalendar, IconMoney, IconPhone, IconPlus,
   IconUser, IconUsers,
 } from '@/components/icons';
 import { date, money } from '@/lib/format';
@@ -278,18 +278,12 @@ export default function MembersPage() {
 
         {/* Search and Reset stay in the open, since they are the two controls reached most often. */}
         <FilterStrip>
-          <FilterField label="Search">
-            <div className="input-group">
-              <span className="input-icon"><IconSearch size={15} /></span>
-              <input
-                className="input"
-                placeholder="Name, code, phone or email"
-                value={draft.search}
-                onChange={(e) => setDraft({ ...draft, search: e.target.value })}
-                onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
-              />
-            </div>
-          </FilterField>
+          <SearchField
+            placeholder="Name, code, phone or email"
+            value={draft.search}
+            onChange={(value) => setDraft({ ...draft, search: value })}
+            onSearch={applyFilters}
+          />
         </FilterStrip>
 
         {error ? <div style={{ padding: 'var(--sp-5)' }}><ErrorAlert error={error} /></div> : null}
@@ -303,12 +297,12 @@ export default function MembersPage() {
                 <thead>
                   <tr>
                     <th className="idx">#</th>
-                    <SortHeader column="fullName" label="Member" />
-                    <th>Phone</th>
-                    <th>Plan</th>
-                    <SortHeader column="subscriptionEndDate" label="Ends" />
-                    <th>Days left</th>
-                    <SortHeader column="status" label="Status" />
+                    <SortHeader column="fullName" label="Member" className="wide" />
+                    <th className="fit">Phone</th>
+                    <th className="fit">Plan</th>
+                    <SortHeader column="subscriptionEndDate" label="Ends" className="fit" />
+                    <th className="fit">Days left</th>
+                    <SortHeader column="status" label="Status" className="fit" />
                     <th className="num">Outstanding</th>
                     <th className="actions">Actions</th>
                   </tr>
@@ -331,17 +325,17 @@ export default function MembersPage() {
                       <td>
                         <span className="cell-icon"><IconPhone size={13} />{member.phone}</span>
                       </td>
-                      <td>
+                      <td className="fit">
                         {member.currentPlanName
                           ? <Pill tone="primary">{member.currentPlanName}</Pill>
                           : <span className="muted">&mdash;</span>}
                       </td>
-                      <td>
+                      <td className="fit">
                         <span className="cell-icon">
                           <IconCalendar size={13} />{date(member.subscriptionEndDate)}
                         </span>
                       </td>
-                      <td><DaysLeft days={member.daysRemaining} /></td>
+                      <td className="fit"><DaysLeft days={member.daysRemaining} /></td>
                       <td><StatusPill status={member.statusText} /></td>
                       <td className="num">
                         <span className="cell-icon">

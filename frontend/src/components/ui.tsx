@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { words } from '@/lib/format';
-import { IconFilter } from '@/components/icons';
+import { IconFilter, IconSearch } from '@/components/icons';
 
 /* ------------------------------------------------------------------ page card */
 
@@ -106,6 +106,39 @@ export function FilterField({ label, children }: { label: string; children: Reac
       <span className="field-label">{label}</span>
       {children}
     </div>
+  );
+}
+
+/**
+ * The search box every list screen puts in its filter strip. It exists so the magnifier sits
+ * inside the field on all of them rather than each page hand-rolling the input-group wrapper
+ * and half of them forgetting it.
+ */
+export function SearchField(
+  { placeholder, value, onChange, onSearch, label = 'Search' }:
+  {
+    placeholder: string;
+    value: string;
+    onChange: (value: string) => void;
+    /** Run the search. Wired to Enter; pages that filter as you type may leave it out. */
+    onSearch?: () => void;
+    label?: string;
+  },
+) {
+  return (
+    <FilterField label={label}>
+      <div className="input-group">
+        <span className="input-icon"><IconSearch size={14} /></span>
+        <input
+          className="input"
+          type="search"
+          placeholder={placeholder}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => { if (event.key === 'Enter') onSearch?.(); }}
+        />
+      </div>
+    </FilterField>
   );
 }
 

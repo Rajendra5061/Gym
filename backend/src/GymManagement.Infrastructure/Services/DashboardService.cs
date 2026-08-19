@@ -516,6 +516,111 @@ public sealed class DashboardService : IDashboardService
         return assignment;
     }
 
+    // ---------------------------------------------------------------- trainer dashboard
+
+    private const int TrainerExpiringTake = 10;
+    private const int TrainerRosterTake = 50;
+
+    public async Task<TrainerDashboardDto> GetTrainerDashboardAsync(CancellationToken ct = default)
+    {
+        // The trainer is always resolved from the validated JWT, never from a route or query value,
+        // so a trainer cannot request another trainer's dashboard.
+        var trainerId = _currentUser.TrainerId
+            ?? throw new NotFoundAppException("Your account is not linked to a trainer profile.");
+
+        var trainerName = await _db.Trainers.AsNoTracking()
+            .Where(t => t.Id == trainerId)
+            .Select(t => t.FullName)
+            .FirstOrDefaultAsync(ct).ConfigureAwait(false)
+            ?? throw new NotFoundAppException("Your account is not linked to a trainer profile.");
+
+        var today = _clock.Today.Date;
+        var tomorrow = today.AddDays(1);
+
+        var gym = await _settings.GetGymSettingsAsync(ct).ConfigureAwait(false);
+        var reminderDays = gym.ExpiryReminderDays > 0 ? gym.ExpiryReminderDays : 7;
+        var horizon = today.AddDays(reminderDays);
+
+        var dto = new TrainerDashboardDto
+        {
+            TrainerId = trainerId,
+            TrainerName = trainerName,
+            AssignedMemberCount = await _db.Members.AsNoTracking()
+                .CountAsync(m => m.AssignedTrainerId == trainerId, ct).ConfigureAwait(false),
+            ActiveWorkoutPlanCount = await _db.MemberWorkoutPlans.AsNoTracking()
+                .CountAsync(a => a.TrainerId == trainerId && a.IsActive, ct).ConfigureAwait(false),
+            ActiveDietPlanCount = await _db.DietPlans.AsNoTracking()
+                .CountAsync(p => p.TrainerId == trainerId && p.Status == DietPlanStatus.Active, ct)
+                .ConfigureAwait(false),
+            TodayCheckInCount = await _db.Attendance.AsNoTracking()
+                .CountAsync(a => a.AttendanceDate >= today && a.AttendanceDate < tomorrow
+                                 && a.Member != null && a.Member.AssignedTrainerId == trainerId, ct)
+                .ConfigureAwait(false)
+        };
+
+        var expiring = await _db.Subscriptions.AsNoTracking()
+            .Where(s => s.Status == SubscriptionStatus.Active
+                        && s.EndDate >= today && s.EndDate <= horizon
+                        && s.Member != null && s.Member.AssignedTrainerId == trainerId)
+            .OrderBy(s => s.EndDate)
+            .Take(TrainerExpiringTake)
+            .Select(s => new
+            {
+                s.MemberId,
+                MemberName = s.Member != null ? s.Member.FullName : string.Empty,
+                s.EndDate
+            })
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        dto.ExpiringSoon = expiring.Select(s => new TrainerExpiringMemberDto
+        {
+            MemberId = s.MemberId,
+            MemberName = s.MemberName,
+            EndDate = s.EndDate,
+            DaysLeft = (s.EndDate.Date - today).Days
+        }).ToList();
+
+        // "Current" subscription = the active one with the latest end date, else the most recent
+        // by end date — the same rule the member list uses.
+        var roster = await _db.Members.AsNoTracking()
+            .Where(m => m.AssignedTrainerId == trainerId)
+            .OrderBy(m => m.FullName).ThenBy(m => m.Id)
+            .Take(TrainerRosterTake)
+            .Select(m => new
+            {
+                m.Id,
+                m.FullName,
+                m.MemberCode,
+                PlanName = m.Subscriptions
+                    .OrderByDescending(s => s.Status == SubscriptionStatus.Active)
+                    .ThenByDescending(s => s.EndDate)
+                    .ThenByDescending(s => s.Id)
+                    .Select(s => s.MembershipPlan != null ? s.MembershipPlan.Name : null)
+                    .FirstOrDefault(),
+                EndDate = m.Subscriptions
+                    .OrderByDescending(s => s.Status == SubscriptionStatus.Active)
+                    .ThenByDescending(s => s.EndDate)
+                    .ThenByDescending(s => s.Id)
+                    .Select(s => (DateTime?)s.EndDate)
+                    .FirstOrDefault(),
+                LastCheckInDate = m.AttendanceRecords.Max(a => (DateTime?)a.AttendanceDate)
+            })
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        dto.MyMembers = roster.Select(m => new TrainerMemberSummaryDto
+        {
+            MemberId = m.Id,
+            MemberName = m.FullName,
+            MemberCode = m.MemberCode,
+            PlanName = m.PlanName,
+            EndDate = m.EndDate,
+            DaysLeft = m.EndDate.HasValue ? (m.EndDate.Value.Date - today).Days : null,
+            LastCheckInDate = m.LastCheckInDate
+        }).ToList();
+
+        return dto;
+    }
+
     // ---------------------------------------------------------------- series builders
 
     private async Task<List<ChartSeriesDto>> RevenueDailyAsync(DateTime today, DateTime tomorrow,

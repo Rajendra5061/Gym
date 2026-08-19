@@ -35,6 +35,15 @@ public static class Permissions
     public const string AttendanceView = "attendance.view";
     public const string AttendanceManage = "attendance.manage";
 
+    public const string DietView = "diet.view";
+    public const string DietManage = "diet.manage";
+
+    /// <summary>Record / delete body measurements without needing full member-edit rights.</summary>
+    public const string MeasurementsManage = "measurements.manage";
+
+    public const string SalaryView = "salary.view";
+    public const string SalaryManage = "salary.manage";
+
     public const string PlansView = "plans.view";
     public const string PlansManage = "plans.manage";
 
@@ -107,6 +116,14 @@ public static class Permissions
         (AttendanceView, "Attendance", "View attendance"),
         (AttendanceManage, "Attendance", "Record check-in / check-out"),
 
+        (DietView, "Diet Plans", "View diet plans"),
+        (DietManage, "Diet Plans", "Create / edit diet plans"),
+
+        (MeasurementsManage, "Members", "Record body measurements"),
+
+        (SalaryView, "Salaries", "View trainer salary payments"),
+        (SalaryManage, "Salaries", "Record trainer salary payments"),
+
         (PlansView, "Membership Plans", "View membership plans"),
         (PlansManage, "Membership Plans", "Create / edit membership plans"),
 
@@ -167,6 +184,7 @@ public static class Permissions
             ExercisesView,
             WorkoutsView,
             AttendanceView, AttendanceManage,
+            MeasurementsManage,
             PlansView,
             SubscriptionsView, SubscriptionsCreate,
             PaymentsView, PaymentsCollect,
@@ -184,7 +202,9 @@ public static class Permissions
             MembersView,
             ExercisesView, ExercisesManage,
             WorkoutsView, WorkoutsManage,
-            AttendanceView,
+            DietView, DietManage,
+            MeasurementsManage,
+            AttendanceView, AttendanceManage,
             SubscriptionsView,
             ReportsBasic,
             NotificationsView

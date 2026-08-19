@@ -9,7 +9,7 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import {
   EmptyState, ErrorAlert, FilterField, FilterMenu, FilterStrip, Loading, PageCard, PageCardHeader,
-  Pager, Pill, StatusPill,
+  Pager, Pill, SearchField, StatusPill,
 } from '@/components/ui';
 import { IconCalendar, IconFile, IconInfo, IconRefresh, IconUser } from '@/components/icons';
 import { auditApi, usersApi } from '@/api/endpoints/system';
@@ -226,15 +226,12 @@ export default function AuditPage() {
 
         {tab === 'logins' && (
           <FilterStrip>
-            <FilterField label="Search">
-              <input
-                className="input"
-                placeholder="User name or e-mail"
-                value={loginQuery.search ?? ''}
-                onChange={(e) => setLoginQuery((q) => ({ ...q, search: e.target.value }))}
-                onKeyDown={(e) => { if (e.key === 'Enter') setLoginQuery((q) => ({ ...q, pageNumber: 1 })); }}
-              />
-            </FilterField>
+            <SearchField
+              placeholder="User name or e-mail"
+              value={loginQuery.search ?? ''}
+              onChange={(value) => setLoginQuery((q) => ({ ...q, search: value }))}
+              onSearch={() => setLoginQuery((q) => ({ ...q, pageNumber: 1 }))}
+            />
           </FilterStrip>
         )}
 
@@ -249,13 +246,13 @@ export default function AuditPage() {
                 <thead>
                   <tr>
                     <th className="idx">#</th>
-                    <th>Timestamp</th>
+                    <th className="fit">Timestamp</th>
                     <th>User</th>
-                    <th>Action</th>
-                    <th>Entity</th>
-                    <th className="center">Entity id</th>
-                    <th>Description</th>
-                    <th>IP</th>
+                    <th className="fit">Action</th>
+                    <th className="fit">Entity</th>
+                    <th className="center fit">Entity id</th>
+                    <th className="wide">Description</th>
+                    <th className="fit">IP</th>
                     <th className="actions">Details</th>
                   </tr>
                 </thead>
@@ -264,13 +261,13 @@ export default function AuditPage() {
                     <Fragment key={row.id}>
                       <tr>
                         <td className="idx">{(pageNumber - 1) * pageSize + index + 1}</td>
-                        <td><span className="cell-icon"><IconCalendar size={14} />{dateTime(row.changedAtUtc)}</span></td>
+                        <td className="fit"><span className="cell-icon"><IconCalendar size={14} />{dateTime(row.changedAtUtc)}</span></td>
                         <td>
                           <div className="cell-main">{row.userName || 'System'}</div>
                           <div className="cell-sub">{row.userId ? `User #${row.userId}` : 'Background task'}</div>
                         </td>
-                        <td><Pill tone={actionTone(row.action)}>{words(row.action)}</Pill></td>
-                        <td>{words(row.entityName)}</td>
+                        <td className="fit"><Pill tone={actionTone(row.action)}>{words(row.action)}</Pill></td>
+                        <td className="fit">{words(row.entityName)}</td>
                         <td className="center">{row.entityId ?? '—'}</td>
                         <td style={{ maxWidth: 320 }}>{row.description || '—'}</td>
                         <td className="muted">{row.ipAddress || '—'}</td>
@@ -318,11 +315,11 @@ export default function AuditPage() {
               <thead>
                 <tr>
                   <th className="idx">#</th>
-                  <th>Attempted at</th>
-                  <th>User name / e-mail</th>
-                  <th>Result</th>
+                  <th className="fit">Attempted at</th>
+                  <th className="wide">User name / e-mail</th>
+                  <th className="fit">Result</th>
                   <th>Reason</th>
-                  <th>IP</th>
+                  <th className="fit">IP</th>
                   <th>Device</th>
                 </tr>
               </thead>
@@ -330,7 +327,7 @@ export default function AuditPage() {
                 {loginRows.map((row, index) => (
                   <tr key={row.id}>
                     <td className="idx">{(loginPageNumber - 1) * loginPageSize + index + 1}</td>
-                    <td><span className="cell-icon"><IconCalendar size={14} />{dateTime(row.attemptedAtUtc)}</span></td>
+                    <td className="fit"><span className="cell-icon"><IconCalendar size={14} />{dateTime(row.attemptedAtUtc)}</span></td>
                     <td>
                       <div className="cell-main">{row.userNameOrEmail}</div>
                       <div className="cell-sub">{row.userId ? `User #${row.userId}` : 'Unknown account'}</div>

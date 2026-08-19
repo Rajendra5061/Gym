@@ -67,6 +67,40 @@ public class RecentActivityDto
     public string? Icon { get; set; }
 }
 
+/// <summary>Compact dashboard for the signed-in trainer's own portal view.</summary>
+public class TrainerDashboardDto
+{
+    public int TrainerId { get; set; }
+    public string TrainerName { get; set; } = string.Empty;
+    public int AssignedMemberCount { get; set; }
+    public int ActiveWorkoutPlanCount { get; set; }
+    public int ActiveDietPlanCount { get; set; }
+    public int TodayCheckInCount { get; set; }
+    public List<TrainerExpiringMemberDto> ExpiringSoon { get; set; } = new();
+    public List<TrainerMemberSummaryDto> MyMembers { get; set; } = new();
+}
+
+/// <summary>An assigned member whose membership runs out within the reminder window.</summary>
+public class TrainerExpiringMemberDto
+{
+    public int MemberId { get; set; }
+    public string MemberName { get; set; } = string.Empty;
+    public DateTime EndDate { get; set; }
+    public int DaysLeft { get; set; }
+}
+
+/// <summary>One row of the trainer's member roster.</summary>
+public class TrainerMemberSummaryDto
+{
+    public int MemberId { get; set; }
+    public string MemberName { get; set; } = string.Empty;
+    public string MemberCode { get; set; } = string.Empty;
+    public string? PlanName { get; set; }
+    public DateTime? EndDate { get; set; }
+    public int? DaysLeft { get; set; }
+    public DateTime? LastCheckInDate { get; set; }
+}
+
 /// <summary>Compact dashboard for the logged-in member's own portal view.</summary>
 public class MemberDashboardDto
 {

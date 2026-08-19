@@ -41,12 +41,14 @@ const adminNav: NavSection[] = [
       { to: '/admin/subscriptions', label: 'Subscriptions',    icon: <IconCheckSquare size={16} />, permission: 'subscriptions.view' },
       { to: '/admin/payments',      label: 'Payments',         icon: <IconCard size={16} />,        permission: 'payments.view' },
       { to: '/admin/expenses',      label: 'Expenses',         icon: <IconMoney size={16} />,       permission: 'expenses.view' },
+      { to: '/admin/salaries',      label: 'Salaries',         icon: <IconMoney size={16} />,       permission: 'salary.view' },
     ],
   },
   {
     label: 'Activity', items: [
       { to: '/admin/attendance',    label: 'Attendance',    icon: <IconCalendar size={16} />, permission: 'attendance.view' },
       { to: '/admin/workout-plans', label: 'Workout Plans', icon: <IconDumbbell size={16} />, permission: 'workouts.view' },
+      { to: '/admin/diet-plans',    label: 'Diet Plans',    icon: <IconFile size={16} />,     permission: 'diet.view' },
       { to: '/admin/equipment',     label: 'Equipment',     icon: <IconBox size={16} />,      permission: 'equipment.view' },
     ],
   },
@@ -65,7 +67,6 @@ const adminNav: NavSection[] = [
   {
     label: 'System', items: [
       { to: '/admin/users',       label: 'Users',       icon: <IconUser size={16} />,     permission: 'users.view' },
-      { to: '/admin/roles',       label: 'Roles',       icon: <IconShield size={16} />,   permission: 'roles.manage' },
       { to: '/admin/audit',       label: 'Audit Logs',  icon: <IconFile size={16} />,     permission: 'audit.view' },
       { to: '/admin/recycle-bin', label: 'Recycle Bin', icon: <IconTrash size={16} />,    permission: 'recyclebin.view' },
       { to: '/admin/settings',    label: 'Settings',    icon: <IconSettings size={16} />, permission: 'settings.view' },
@@ -73,23 +74,85 @@ const adminNav: NavSection[] = [
   },
 ];
 
-/** Member self-service navigation — few enough destinations that headings would only add noise. */
+/**
+ * Trainer portal navigation. Trainers see only the screens their day runs on: their roster,
+ * the plans they write, and the attendance desk. The list/form screens reuse the admin
+ * components on /trainer paths, so permission codes gate them exactly as they do for staff.
+ */
+const trainerNav: NavSection[] = [
+  {
+    label: null, items: [
+      { to: '/trainer/dashboard', label: 'Dashboard', icon: <IconDashboard size={16} /> },
+    ],
+  },
+  {
+    label: 'Members', items: [
+      { to: '/trainer/members',    label: 'My Members', icon: <IconUsers size={16} /> },
+      { to: '/trainer/attendance', label: 'Attendance', icon: <IconCalendar size={16} />, permission: 'attendance.view' },
+    ],
+  },
+  {
+    label: 'Coaching', items: [
+      { to: '/trainer/workout-plans', label: 'Workout Plans', icon: <IconDumbbell size={16} />, permission: 'workouts.view' },
+      { to: '/trainer/diet-plans',    label: 'Diet Plans',    icon: <IconFile size={16} />,     permission: 'diet.view' },
+    ],
+  },
+  {
+    label: 'Updates', items: [
+      { to: '/trainer/notifications', label: 'Notifications', icon: <IconBell size={16} />, permission: 'notifications.view' },
+    ],
+  },
+];
+
+/**
+ * Member self-service navigation. Grouped under the same heading idiom as the admin and trainer
+ * rails: nine flat entries read as one undifferentiated list, and the headings say which of them
+ * are about paying, which about training, and which about keeping in touch.
+ */
 const memberNav: NavSection[] = [
   {
     label: null, items: [
-      { to: '/member/dashboard',     label: 'Dashboard',     icon: <IconDashboard size={16} /> },
+      { to: '/member/dashboard', label: 'Dashboard', icon: <IconDashboard size={16} /> },
+    ],
+  },
+  {
+    label: 'Membership', items: [
       // No profile entry here: the avatar menu in the header already has "View Profile", and two
       // routes to the same screen in two places invites them to drift apart.
-      { to: '/member/membership',    label: 'Membership',    icon: <IconCrown size={16} /> },
-      { to: '/member/attendance',    label: 'Attendance',    icon: <IconCalendar size={16} /> },
-      { to: '/member/payments',      label: 'Payments',      icon: <IconCard size={16} /> },
+      { to: '/member/membership', label: 'Membership', icon: <IconCrown size={16} /> },
+      { to: '/member/payments',   label: 'Payments',   icon: <IconCard size={16} /> },
+    ],
+  },
+  {
+    label: 'Training', items: [
       { to: '/member/workout-plans', label: 'Workout Plans', icon: <IconDumbbell size={16} /> },
+      { to: '/member/diet',          label: 'Diet',          icon: <IconFile size={16} /> },
+    ],
+  },
+  {
+    label: 'Activity', items: [
+      { to: '/member/attendance', label: 'Attendance', icon: <IconCalendar size={16} /> },
+      { to: '/member/progress',   label: 'Progress',   icon: <IconChart size={16} /> },
+    ],
+  },
+  {
+    label: 'Updates', items: [
+      { to: '/member/notifications', label: 'Notifications', icon: <IconBell size={16} /> },
       { to: '/member/feedback',      label: 'Feedback',      icon: <IconMessage size={16} /> },
     ],
   },
 ];
 
-export function AppLayout({ area }: { area: 'admin' | 'member' }) {
+const NAV_BY_AREA = { admin: adminNav, trainer: trainerNav, member: memberNav } as const;
+
+/** Where the header bell lands: each area reads its alerts on its own notifications screen. */
+const BELL_TARGET = {
+  admin: '/admin/notifications',
+  trainer: '/trainer/notifications',
+  member: '/member/notifications',
+} as const;
+
+export function AppLayout({ area }: { area: 'admin' | 'trainer' | 'member' }) {
   const { gym, user, can, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -105,14 +168,14 @@ export function AppLayout({ area }: { area: 'admin' | 'member' }) {
 
   // Drop destinations the signed-in user may not reach, then drop any heading left with nothing
   // under it — an "Engagement" label above empty space reads as a broken menu.
-  const sections = (area === 'admin' ? adminNav : memberNav)
+  const sections = NAV_BY_AREA[area]
     .map((section) => ({
       ...section,
       items: section.items.filter((item) => !item.permission || can(item.permission)),
     }))
     .filter((section) => section.items.length > 0);
 
-  const canSeeNotifications = area === 'admin' && can('notifications.view');
+  const canSeeNotifications = can('notifications.view');
 
   // Name the current screen in the header. Longest matching path wins, so /admin/members/new is
   // still reported as "Members" rather than falling back to the area name.
@@ -121,11 +184,11 @@ export function AppLayout({ area }: { area: 'admin' | 'member' }) {
     .filter((item) => location.pathname.startsWith(item.to))
     .sort((a, b) => b.to.length - a.to.length)[0];
 
-  const profilePath = area === 'admin' ? '/admin/profile' : '/member/profile';
+  const profilePath = `/${area}/profile`;
   // Screens reachable from the account menu rather than the rail still deserve a header title.
   const title = current?.label
     ?? (location.pathname === profilePath ? 'My Profile' : null)
-    ?? (area === 'admin' ? 'Administration' : 'My Gym');
+    ?? (area === 'admin' ? 'Administration' : area === 'trainer' ? 'Trainer Portal' : 'My Gym');
 
   // Unread badge. Refreshed on navigation rather than polled: the count only changes when
   // something happens in the app, and a timer would add background traffic on every screen.
@@ -219,7 +282,7 @@ export function AppLayout({ area }: { area: 'admin' | 'member' }) {
             {canSeeNotifications && (
               <NavLink
                 className="topbar-bell"
-                to="/admin/notifications"
+                to={BELL_TARGET[area]}
                 aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
                 title={unread > 0 ? `${unread} unread` : 'Notifications'}
               >

@@ -140,12 +140,12 @@ export default function MyWorkoutPlansPage() {
                   <thead>
                     <tr>
                       <th className="idx">#</th>
-                      <th>Exercise</th>
-                      <th>Day</th>
-                      <th className="center">Sets</th>
-                      <th className="center">Reps</th>
-                      <th className="center">Weight</th>
-                      <th className="center">Rest</th>
+                      <th className="wide">Exercise</th>
+                      <th className="fit">Day</th>
+                      <th className="center fit">Sets</th>
+                      <th className="center fit">Reps</th>
+                      <th className="center fit">Weight</th>
+                      <th className="center fit">Rest</th>
                       <th>Notes</th>
                     </tr>
                   </thead>
@@ -159,11 +159,11 @@ export default function MyWorkoutPlansPage() {
                             <div className="cell-main">{exercise.exerciseName}</div>
                             <div className="cell-sub">{label(exercise.muscleGroupText)}</div>
                           </td>
-                          <td>{exercise.dayOfWeek !== null && exercise.dayOfWeek !== undefined ? DAYS[exercise.dayOfWeek % 7] : '—'}</td>
-                          <td className="center">{exercise.sets}</td>
-                          <td className="center">{exercise.repetitions}</td>
-                          <td className="center">{exercise.targetWeightKg ? `${exercise.targetWeightKg} kg` : '—'}</td>
-                          <td className="center">{exercise.restSeconds ? `${exercise.restSeconds}s` : '—'}</td>
+                          <td className="fit">{exercise.dayOfWeek !== null && exercise.dayOfWeek !== undefined ? DAYS[exercise.dayOfWeek % 7] : '—'}</td>
+                          <td className="center fit">{exercise.sets}</td>
+                          <td className="center fit">{exercise.repetitions}</td>
+                          <td className="center fit">{exercise.targetWeightKg ? `${exercise.targetWeightKg} kg` : '—'}</td>
+                          <td className="center fit">{exercise.restSeconds ? `${exercise.restSeconds}s` : '—'}</td>
                           <td className="muted">{exercise.notes || '—'}</td>
                         </tr>
                       ))}

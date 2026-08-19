@@ -19,8 +19,11 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 /* ---------------------------------------------------------------- app chrome */
 /* Rail beside content, not stacked above it. `min-width: 0` lets wide tables inside the main
    column shrink instead of forcing the whole page to scroll sideways. */
-.app { min-height: 100%; display: flex; flex-direction: row; background: var(--surface); }
-.app-body { flex: 1 1 auto; min-width: 0; }
+/* The shell is locked to the viewport: rail, top bar and footer never move, and `.app-body`
+   is the single scroll container for page content — so every page keeps its chrome fixed
+   while only the body scrolls. */
+.app { height: 100vh; height: 100dvh; overflow: hidden; display: flex; flex-direction: row; background: var(--surface); }
+.app-body { flex: 1 1 auto; min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 
 /* ------------------------------------------------------------------ sidebar */
 /*
@@ -36,7 +39,7 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   flex: 0 0 240px; width: 240px;
   background: var(--chrome); color: var(--on-dark);
   display: flex; flex-direction: column;
-  position: sticky; top: 0; height: 100vh; z-index: 40;
+  height: 100%; z-index: 40;
 }
 .sidebar-brand {
   display: flex; align-items: center; gap: 9px;
@@ -46,6 +49,12 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 }
 .sidebar-brand:hover { text-decoration: none; color: var(--on-dark); }
 .sidebar-brand span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The dumbbell sits in its own gradient tile so the brand reads as a logo, not a stray glyph. */
+.sidebar-brand svg {
+  box-sizing: content-box; padding: 5px; border-radius: 9px; flex: none;
+  background: var(--grad-hero); color: #fff;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, .4);
+}
 
 /* Lives in the rail rather than the header, so the control sits with the thing it controls. */
 .sidebar-collapse {
@@ -80,22 +89,28 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   color: #cfd4e0; font-size: var(--fs-md); font-weight: 600;
   white-space: nowrap; overflow: hidden;
 }
-.sidebar-link svg { flex: 0 0 auto; }
+.sidebar-link svg { flex: 0 0 auto; color: #97a1b8; transition: transform .15s ease, color .15s ease; }
 .sidebar-link span { overflow: hidden; text-overflow: ellipsis; }
 .sidebar-link:hover { background: #ffffff1a; color: var(--on-dark); text-decoration: none; }
-.sidebar-link.active { background: var(--primary); color: var(--on-dark); }
+.sidebar-link:hover svg { color: var(--on-dark); transform: scale(1.15); }
+.sidebar-link.active {
+  background: linear-gradient(120deg, var(--primary), var(--accent));
+  color: var(--on-dark);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, .35);
+}
+.sidebar-link.active svg { color: var(--on-dark); }
 
 /* ------------------------------------------------------------------- header */
 /* Sits beside the rail rather than above it, so the sidebar owns the full height and the header
    only spans the content column. Sticky, so the current screen stays named while a long table
    scrolls underneath. */
-.app-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.app-main { flex: 1 1 auto; min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; }
 .topbar {
   flex: 0 0 auto; height: 58px;
   display: flex; align-items: center; gap: var(--sp-4);
   padding: 0 var(--sp-6);
   background: var(--card); border-bottom: 1px solid var(--divider);
-  position: sticky; top: 0; z-index: 30;
+  z-index: 30;
 }
 .app-footer {
   flex: 0 0 auto;
@@ -115,6 +130,16 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 }
 .topbar-bell:hover { background: var(--surface-alt); color: var(--text); text-decoration: none; }
 .topbar-bell.active { background: var(--primary-soft); color: var(--primary); }
+/* A tiny ring on hover — the one place a playful animation earns its keep. */
+@keyframes bell-swing {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(13deg); }
+  40% { transform: rotate(-10deg); }
+  60% { transform: rotate(6deg); }
+  80% { transform: rotate(-3deg); }
+}
+.topbar-bell svg { transform-origin: 50% 15%; }
+.topbar-bell:hover svg { animation: bell-swing .6s ease; }
 .topbar-badge {
   position: absolute; top: 3px; right: 2px;
   min-width: 17px; height: 17px; padding: 0 4px;
@@ -189,9 +214,18 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 .page-card-header {
   display: flex; align-items: flex-start; gap: var(--sp-4);
   padding: 18px var(--sp-5); border-bottom: 1px solid var(--divider);
+  /* Stays pinned while its card's content scrolls beneath it in the `.app-body` scroller. */
+  position: sticky; top: 0; z-index: 10; background: var(--card);
 }
 .page-card-header .grow { flex: 1; min-width: 0; }
 .page-card-title { display: flex; align-items: center; gap: 10px; font-size: var(--fs-xl); font-weight: 700; }
+/* Every page header icon gets a soft gradient chip, so screens open with a splash of colour. */
+.page-card-title > svg {
+  box-sizing: content-box; padding: 7px; border-radius: 10px; flex: none;
+  color: var(--primary-dark);
+  background: linear-gradient(135deg, var(--primary-soft), color-mix(in srgb, var(--accent) 16%, var(--card)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 18%, transparent);
+}
 .page-card-subtitle { margin-top: 3px; font-size: var(--fs-sm); color: var(--text-muted); }
 .page-card-body { padding: var(--sp-5); }
 /* Only the search box lives here now — the secondary filters moved into the header's Filters
@@ -313,8 +347,14 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 .input:focus, .select:focus, .textarea:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: var(--primary); }
 .input:disabled, .select:disabled { background: var(--surface-alt); color: var(--text-muted); }
 .input-invalid { border-color: var(--danger); }
-.input-group { position: relative; display: flex; align-items: center; }
+.input-group { position: relative; display: flex; align-items: center; width: 100%; }
 .input-group .input { padding-left: 36px; }
+/* The magnifier is drawn inside the field, so the platform's own search ornaments are just
+   clutter. The clear button stays — it is the one part that does something. */
+.input[type="search"]::-webkit-search-decoration,
+.input[type="search"]::-webkit-search-results-button,
+.input[type="search"]::-webkit-search-results-decoration { -webkit-appearance: none; }
+.input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
 .input-group .input-icon { position: absolute; left: 12px; color: var(--text-muted); display: flex; pointer-events: none; }
 .input-group .input-suffix { position: absolute; right: 6px; }
 .form-grid { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
@@ -337,11 +377,20 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
  */
 .table-wrap {
   width: 100%; overflow: auto;
-  max-height: calc(100vh - 300px);
+  /* `dvh` so a mobile browser's collapsing address bar does not leave the cap stale, and `max()`
+     so a short window cannot drive the cap to nothing and leave a header with no visible rows.
+     It has to stay a cap rather than a `min-height`: a floor on the box itself would pad every
+     short table out to 240px of blank space above the pager. */
+  max-height: max(240px, calc(100dvh - 330px));
+  /* The shell is the page scroller; this is a nested one. Without this, reaching the end of the
+     rows hands the wheel straight to the page and the table jumps away mid-read. */
+  overscroll-behavior: contain;
 }
 .table { width: 100%; border-collapse: collapse; }
 .table th {
-  text-align: left; font-size: var(--fs-sm); font-weight: 700; color: var(--text-2);
+  /* Small caps with tracking: the header reads as chrome, and the data rows stand out under it. */
+  text-align: left; font-size: var(--fs-xs); font-weight: 700; color: var(--text-2);
+  text-transform: uppercase; letter-spacing: .05em;
   /* Opaque, because the rows scroll underneath it — mixed from the card so it is a shade off the
      card in both themes rather than a fixed near-white block. */
   padding: 12px var(--sp-4); white-space: nowrap; background: color-mix(in srgb, var(--text) 5%, var(--card));
@@ -351,19 +400,33 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   box-shadow: inset 0 -1px 0 var(--divider);
 }
 .table td { padding: 12px var(--sp-4); border-bottom: 1px solid var(--divider); font-size: var(--fs-md); vertical-align: middle; }
+/* Every other row carries a whisper of the text colour: enough to guide the eye across a wide
+   row, far too little to read as stripes. */
+.table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--text) 2.5%, transparent); }
 /* A wash of the text colour: it darkens the row on the light theme and lightens it on the dark
    one, so the hover is the same strength either way instead of a near-white slab. */
 .table tbody tr:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
 .table tbody tr:last-child td { border-bottom: 0; }
-.table .num { text-align: right; }
+.table .num { text-align: right; white-space: nowrap; }
 .table .center { text-align: center; }
 .table .idx { width: 52px; color: var(--text-muted); text-align: center; }
-.table .actions { text-align: right; white-space: nowrap; }
+.table .actions { text-align: right; white-space: nowrap; width: 1%; }
 .table .actions .btn + .btn { margin-left: 6px; }
+/* The column is sized to its content, so a flex row inside one must not wrap: given a narrow
+   column a wrapping row stacks its buttons and drags the whole table row tall. */
+.table .actions > * { flex-wrap: nowrap; }
+/* Column comfort: `.fit` shrinks a column to its content (dates, codes, pills, buttons) so the
+   text columns get the leftover room; `.wide` guarantees a text column never gets crushed. */
+.table .fit { width: 1%; white-space: nowrap; }
+.table .wide { min-width: 200px; }
+/* Below this the browser starts crushing columns into vertical slivers; scrolling sideways
+   inside the wrap reads far better than eight one-word-wide columns. */
+.table { min-width: 640px; }
 .cell-main { font-weight: 600; }
 .cell-sub { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
 .cell-icon { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); }
-.cell-icon svg { color: var(--text-muted); flex: none; }
+/* The icons in data cells pick up the brand colour, so phone, mail and code cells scan fast. */
+.cell-icon svg { color: var(--primary); opacity: .8; flex: none; }
 
 /* ---------------------------------------------------------------- misc */
 .stat-grid { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
@@ -373,12 +436,22 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 .stat-title { font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); }
 .stat-value { font-size: 26px; font-weight: 700; margin-top: 4px; }
 .stat-caption { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 3px; }
-.stat-icon { width: 46px; height: 46px; border-radius: var(--r-md); display: grid; place-items: center; flex: none; }
+.stat-icon {
+  width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; flex: none;
+  box-shadow: inset 0 1px 0 #ffffff2e, 0 4px 10px color-mix(in srgb, var(--primary) 10%, transparent);
+  transition: transform .18s ease;
+}
+.stat-card:hover .stat-icon { transform: scale(1.08) rotate(-5deg); }
 /* `.grad` tiles carry their own gradient, which is identical in both themes, so everything drawn
    on one stays white. */
 .stat-card.grad { border: 0; color: var(--on-dark); }
 .stat-card.grad .stat-title, .stat-card.grad .stat-caption { color: #ffffffdd; }
-.stat-card.grad .stat-icon { background: #ffffff33; }
+/* Frosted-glass chip on the gradient tiles: a white veil, an inner highlight and a soft drop. */
+.stat-card.grad .stat-icon {
+  background: #ffffff2e;
+  box-shadow: inset 0 1px 0 #ffffff59, 0 6px 14px #00000024;
+  backdrop-filter: blur(3px);
+}
 
 .alert { border-radius: var(--r-md); padding: 12px 14px; font-size: var(--fs-md); display: flex; gap: 10px; align-items: flex-start; }
 .alert-error   { background: var(--danger-soft);  color: color-mix(in srgb, var(--danger)  60%, var(--text));
@@ -399,6 +472,13 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 }
 
 .empty { text-align: center; padding: 48px 24px; color: var(--text-muted); }
+/* Empty states get a big friendly gradient medallion instead of a lone grey outline. */
+.empty > svg {
+  box-sizing: content-box; padding: 18px; border-radius: 50%;
+  color: var(--primary-dark);
+  background: linear-gradient(135deg, var(--primary-soft), var(--info-soft));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 14%, transparent);
+}
 .empty-title { font-size: var(--fs-lg); font-weight: 700; color: var(--text-2); margin-top: 12px; }
 .empty-msg { font-size: var(--fs-md); margin-top: 6px; }
 
@@ -451,6 +531,11 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   display: flex; align-items: center; gap: 10px;
   font-size: 30px; font-weight: 800; margin-top: 4px; line-height: 1.15;
 }
+/* Frosted chip on the hero gradient, matching the KPI tiles below it. */
+.dash-hero-title svg {
+  box-sizing: content-box; padding: 7px; border-radius: 11px; flex: none;
+  background: #ffffff2b; box-shadow: inset 0 1px 0 #ffffff4d;
+}
 .dash-hero-text { margin: 8px 0 0; font-size: var(--fs-md); color: #ffffffd6; }
 .dash-hero-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
 .dash-hero .btn-on-hero {
@@ -491,10 +576,16 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   transition: box-shadow .12s ease, transform .12s ease;
 }
 .quick-tile:hover { box-shadow: var(--shadow-card); transform: translateY(-1px); }
-.quick-tile-icon { width: 42px; height: 42px; border-radius: var(--r-md); display: grid; place-items: center; flex: none; }
+.quick-tile-icon {
+  width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; flex: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 18%, transparent), inset 0 1px 0 #ffffff40;
+  transition: transform .18s ease;
+}
+.quick-tile:hover .quick-tile-icon { transform: scale(1.1) rotate(-6deg); }
 .quick-tile-title { display: block; font-size: var(--fs-lg); font-weight: 700; }
 .quick-tile-text { display: block; font-size: var(--fs-sm); color: var(--text-muted); margin-top: 2px; }
-.quick-tile-chevron { margin-left: auto; color: var(--text-muted); flex: none; }
+.quick-tile-chevron { margin-left: auto; color: var(--text-muted); flex: none; transition: transform .18s ease, color .18s ease; }
+.quick-tile:hover .quick-tile-chevron { transform: translateX(4px); color: var(--primary); }
 
 /* ---------------------------------------------------------------- profile page */
 /* Narrow summary beside a wide detail table, shared by the admin/staff/trainer profile and the
@@ -571,7 +662,11 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted);
   text-transform: uppercase; letter-spacing: .04em;
 }
-.dash-metric-label svg { color: var(--text-muted); flex: none; }
+/* A tiny tinted coin behind each mini-metric glyph lifts the row without shouting. */
+.dash-metric-label svg {
+  box-sizing: content-box; padding: 4px; border-radius: 7px; flex: none;
+  color: var(--primary-dark); background: var(--primary-soft);
+}
 .dash-metric-value { font-size: 19px; font-weight: 700; margin-top: 5px; }
 .dash-metric-sub { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 1px; }
 
@@ -584,7 +679,10 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   padding: 12px 14px; border-radius: var(--r-md);
   background: var(--surface); border: 1px solid var(--divider);
 }
-.dash-attn-icon { width: 34px; height: 34px; border-radius: var(--r-md); display: grid; place-items: center; flex: none; }
+.dash-attn-icon {
+  width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; flex: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent);
+}
 .dash-attn-text { display: block; font-size: var(--fs-md); font-weight: 600; }
 .dash-attn-sub { display: block; font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
 .dash-attn-row .btn { margin-left: auto; flex: none; }
@@ -595,13 +693,8 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   font-weight: 600; font-size: var(--fs-md);
 }
 
-.dash-bars { display: grid; gap: 14px; }
-.dash-bar-row { display: grid; gap: 6px; }
-.dash-bar-head { display: flex; align-items: baseline; gap: var(--sp-3); font-size: var(--fs-md); }
-.dash-bar-head b { margin-left: auto; font-weight: 700; }
-.dash-bar-head span.pct { font-size: var(--fs-xs); color: var(--text-muted); min-width: 38px; text-align: right; }
-.dash-bar { height: 9px; border-radius: var(--r-pill); background: var(--surface-alt); overflow: hidden; }
-.dash-bar-fill { height: 100%; border-radius: var(--r-pill); }
+/* The per-row breakdown bars these used to style became one stacked bar (`.share-*` in
+   admin.css); only the empty state outlived them. */
 .dash-bars-empty { font-size: var(--fs-md); color: var(--text-muted); }
 
 /* --------------------------------------------------------------- theme toggle */
@@ -625,3 +718,16 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 }
 .app-footer-contact a:hover { color: var(--primary); text-decoration: none; }
 .app-footer-contact svg { color: var(--text-muted); }
+
+/* Icon motion is decorative; drop it wholesale for people who asked the OS for less movement. */
+@media (prefers-reduced-motion: reduce) {
+  .stat-icon, .quick-tile-icon, .quick-tile-chevron, .sidebar-link svg,
+  .m-tile-icon, .m-quick-card-icon { transition: none; }
+  .stat-card:hover .stat-icon,
+  .quick-tile:hover .quick-tile-icon,
+  .quick-tile:hover .quick-tile-chevron,
+  .m-tile:hover .m-tile-icon,
+  .m-quick-card:hover .m-quick-card-icon,
+  .sidebar-link:hover svg { transform: none; }
+  .topbar-bell:hover svg { animation: none; }
+}

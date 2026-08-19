@@ -14,13 +14,14 @@ import {
   EmptyState, ErrorAlert, Loading, PageCard, PageCardHeader, Pill, StatusPill,
 } from '@/components/ui';
 import {
-  IconCalendar, IconCard, IconChart, IconCheckSquare, IconCrown, IconDumbbell, IconMoney,
-  IconUser,
+  IconBell, IconCalendar, IconCard, IconChart, IconCheckSquare, IconCrown, IconDumbbell,
+  IconMoney, IconUser, IconWarning,
 } from '@/components/icons';
 import { memberApi, optional } from '@/api/endpoints/member';
 import type { MemberDashboardDto } from '@/api/endpoints/member';
+import { severityKey } from '@/api/endpoints/notifications';
 import { useAuth } from '@/auth/AuthContext';
-import { date, initials, money, time } from '@/lib/format';
+import { date, initials, money, relativeTime, time } from '@/lib/format';
 import './member.css';
 
 export default function MemberDashboardPage() {
@@ -97,6 +98,7 @@ export default function MemberDashboardPage() {
             </span>
             <span className="member-hero-badge">
               <IconCalendar size={13} /> {data.daysRemaining} day{data.daysRemaining === 1 ? '' : 's'} remaining
+              {subscription ? ` · ends ${date(subscription.endDate)}` : ''}
             </span>
             <span className="member-hero-badge">
               <IconMoney size={13} /> {money(data.outstandingAmount, currency)} outstanding
@@ -104,6 +106,24 @@ export default function MemberDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ------------------------------------------------------ expiry banner */}
+      {data.daysRemaining <= 7 && (
+        <Link
+          to="/member/membership"
+          className={`m-expiry-banner ${data.daysRemaining <= 0 ? 'm-expiry-danger' : 'm-expiry-warning'}`}
+        >
+          <IconWarning size={20} />
+          <span className="grow">
+            {data.daysRemaining <= 0
+              ? (subscription
+                ? `Your membership ended on ${date(subscription.endDate)}. Renew at the front desk to keep training.`
+                : 'You have no active membership. Speak to the front desk to renew.')
+              : `Your membership ends ${subscription ? `on ${date(subscription.endDate)}` : 'soon'} — ${data.daysRemaining} day${data.daysRemaining === 1 ? '' : 's'} left.`}
+          </span>
+          <span className="m-expiry-link">View membership →</span>
+        </Link>
+      )}
 
       {/* ------------------------------------------------------------- tiles */}
       <div className="member-tiles">
@@ -169,6 +189,38 @@ export default function MemberDashboardPage() {
         </div>
       </PageCard>
 
+      {/* ---------------------------------------------- recent notifications */}
+      <PageCard>
+        <PageCardHeader
+          icon={<IconBell size={20} />}
+          title="Recent Notifications"
+          subtitle="Reminders and alerts about your membership."
+          actions={<Link className="btn btn-dark" to="/member/notifications">View all</Link>}
+        />
+        {data.notifications.length === 0 ? (
+          <EmptyState icon={<IconBell size={30} />} title="No notifications yet" message="Alerts about your membership and payments appear here." />
+        ) : (
+          <div className="m-notice-list">
+            {data.notifications.slice(0, 5).map((item) => (
+              <Link
+                className={`m-notice-card m-sev-${severityKey(item.severity)} ${item.isRead ? '' : 'm-unread'}`}
+                key={item.id}
+                to="/member/notifications"
+              >
+                <div className="grow">
+                  <div className="m-notice-title">
+                    {!item.isRead && <span className="m-notice-dot" aria-label="Unread" />}
+                    {item.title}
+                  </div>
+                  <div className="m-notice-message m-clamp-2">{item.message}</div>
+                </div>
+                <span className="m-notice-time">{relativeTime(item.createdAtUtc)}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </PageCard>
+
       {/* ------------------------------------------------- recent attendance */}
       <PageCard>
         <PageCardHeader
@@ -185,20 +237,20 @@ export default function MemberDashboardPage() {
               <thead>
                 <tr>
                   <th className="idx">#</th>
-                  <th>Date</th>
-                  <th>Time In</th>
-                  <th>Time Out</th>
-                  <th>Duration</th>
+                  <th className="fit">Date</th>
+                  <th className="fit">Time In</th>
+                  <th className="fit">Time Out</th>
+                  <th className="fit">Duration</th>
                 </tr>
               </thead>
               <tbody>
                 {data.recentAttendance.map((row, index) => (
                   <tr key={row.id}>
                     <td className="idx">{index + 1}</td>
-                    <td><span className="cell-icon"><IconCalendar size={14} />{date(row.attendanceDate)}</span></td>
+                    <td className="fit"><span className="cell-icon"><IconCalendar size={14} />{date(row.attendanceDate)}</span></td>
                     <td><Pill tone="success">{time(row.checkInTime)}</Pill></td>
                     <td>{row.checkOutTime ? time(row.checkOutTime) : <span className="muted">—</span>}</td>
-                    <td>{row.durationMinutes ? `${row.durationMinutes} min` : '—'}</td>
+                    <td className="fit">{row.durationMinutes ? `${row.durationMinutes} min` : '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -223,22 +275,22 @@ export default function MemberDashboardPage() {
               <thead>
                 <tr>
                   <th className="idx">#</th>
-                  <th>Receipt</th>
-                  <th>Plan</th>
-                  <th>Amount</th>
-                  <th>Payment Date</th>
-                  <th>Status</th>
+                  <th className="fit">Receipt</th>
+                  <th className="wide">Plan</th>
+                  <th className="fit">Amount</th>
+                  <th className="fit">Payment Date</th>
+                  <th className="fit">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {data.recentPayments.map((row, index) => (
                   <tr key={row.id}>
                     <td className="idx">{index + 1}</td>
-                    <td className="cell-main">{row.receiptNumber}</td>
+                    <td className="cell-main fit">{row.receiptNumber}</td>
                     <td>{row.planName ?? '—'}</td>
-                    <td><span className="cell-icon"><IconMoney size={14} />{money(row.finalAmount, currency)}</span></td>
-                    <td><span className="cell-icon"><IconCalendar size={14} />{date(row.paymentDate)}</span></td>
-                    <td><StatusPill status={row.statusText} /></td>
+                    <td className="fit"><span className="cell-icon"><IconMoney size={14} />{money(row.finalAmount, currency)}</span></td>
+                    <td className="fit"><span className="cell-icon"><IconCalendar size={14} />{date(row.paymentDate)}</span></td>
+                    <td className="fit"><StatusPill status={row.statusText} /></td>
                   </tr>
                 ))}
               </tbody>

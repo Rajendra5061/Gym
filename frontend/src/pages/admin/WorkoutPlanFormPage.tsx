@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import {
   Alert, ErrorAlert, Field, FormSection, Loading, PageCard, PageCardHeader,
 } from '@/components/ui';
-import { IconArrowLeft, IconDumbbell, IconSearch, IconUser } from '@/components/icons';
 import {
-  DIFFICULTY_OPTIONS, assignWorkoutPlan, createWorkoutPlan, getWorkoutPlan, memberLookup,
-  trainerLookup, updateWorkoutPlan,
+  IconArrowLeft, IconDumbbell, IconPlus, IconSearch, IconTrash, IconUser,
+} from '@/components/icons';
+import {
+  DIFFICULTY_OPTIONS, assignWorkoutPlan, createWorkoutPlan, exerciseLookup, getWorkoutPlan,
+  memberLookup, trainerLookup, updateWorkoutPlan,
 } from '@/api/endpoints/workouts';
+import { membersApi } from '@/api/endpoints/members';
 import type { Lookup } from '@/api/types';
 import { DifficultyLevel } from '@/api/types';
 import { isoDate } from '@/lib/format';
@@ -38,15 +41,47 @@ const BLANK: FormState = {
   isActive: true,
 };
 
+/** One editable exercise line. Numbers live as strings so half-typed input never NaNs. */
+interface ExerciseRow {
+  key: number;
+  id: number;            // existing server row id; 0 for a new line
+  exerciseId: string;
+  dayOfWeek: string;     // '' = any day, otherwise '1'..'7'
+  sets: string;
+  repetitions: string;
+  targetWeightKg: string;
+  restSeconds: string;
+  notes: string;
+}
+
+const DAY_OPTIONS = [
+  { value: '', label: 'Any day' },
+  { value: '1', label: 'Day 1 (Mon)' },
+  { value: '2', label: 'Day 2 (Tue)' },
+  { value: '3', label: 'Day 3 (Wed)' },
+  { value: '4', label: 'Day 4 (Thu)' },
+  { value: '5', label: 'Day 5 (Fri)' },
+  { value: '6', label: 'Day 6 (Sat)' },
+  { value: '7', label: 'Day 7 (Sun)' },
+];
+
 export default function WorkoutPlanFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
   const { can } = useAuth();
   const planId = id ? Number(id) : 0;
   const isEdit = planId > 0;
   const readOnly = !can('workouts.manage');
 
+  // The same component serves /admin and /trainer, so every exit stays in the caller's area.
+  const base = pathname.startsWith('/trainer') ? '/trainer' : '/admin';
+  const listPath = `${base}/workout-plans`;
+
   const [form, setForm] = useState<FormState>(BLANK);
+  const [rows, setRows] = useState<ExerciseRow[]>([]);
+  const nextKey = useRef(1);
   const [assignedCount, setAssignedCount] = useState(0);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -56,9 +91,24 @@ export default function WorkoutPlanFormPage() {
 
   const [memberTerm, setMemberTerm] = useState('');
   const [members, setMembers] = useState<Lookup[]>([]);
+  const [pinnedMember, setPinnedMember] = useState<Lookup | null>(null);
   const [trainers, setTrainers] = useState<Lookup[]>([]);
+  const [exercises, setExercises] = useState<Lookup[]>([]);
 
-  /* Existing plan ------------------------------------------------------------------ */
+  const makeRow = (partial?: Partial<ExerciseRow>): ExerciseRow => ({
+    key: nextKey.current++,
+    id: 0,
+    exerciseId: '',
+    dayOfWeek: '',
+    sets: '3',
+    repetitions: '10',
+    targetWeightKg: '',
+    restSeconds: '',
+    notes: '',
+    ...partial,
+  });
+
+  /* Existing plan — including its exercise rows, so saving never wipes them ---------- */
   useEffect(() => {
     if (!isEdit) return;
     const controller = new AbortController();
@@ -78,6 +128,20 @@ export default function WorkoutPlanFormPage() {
           sessionsPerWeek: plan.sessionsPerWeek || 3,
           isActive: plan.isActive,
         });
+        setRows(
+          [...(plan.exercises ?? [])]
+            .sort((a, b) => a.displayOrder - b.displayOrder)
+            .map((exercise) => makeRow({
+              id: exercise.id,
+              exerciseId: String(exercise.exerciseId),
+              dayOfWeek: exercise.dayOfWeek ? String(exercise.dayOfWeek) : '',
+              sets: String(exercise.sets),
+              repetitions: String(exercise.repetitions),
+              targetWeightKg: exercise.targetWeightKg != null ? String(exercise.targetWeightKg) : '',
+              restSeconds: exercise.restSeconds != null ? String(exercise.restSeconds) : '',
+              notes: exercise.notes ?? '',
+            })),
+        );
         setAssignedCount(plan.assignedMemberCount);
         setError(null);
       } catch (err) {
@@ -87,7 +151,25 @@ export default function WorkoutPlanFormPage() {
       }
     })();
     return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEdit, planId]);
+
+  /* ?memberId= prefill (from the trainer roster's "New workout plan" link) ----------- */
+  useEffect(() => {
+    if (isEdit) return;
+    const preselect = Number(searchParams.get('memberId') ?? '');
+    if (!preselect || Number.isNaN(preselect)) return;
+    setForm((f) => (f.memberId ? f : { ...f, memberId: String(preselect) }));
+    const controller = new AbortController();
+    membersApi.get(preselect, controller.signal)
+      .then((member) => {
+        if (controller.signal.aborted) return;
+        setPinnedMember({ id: member.id, name: member.fullName, code: member.memberCode, isActive: true });
+      })
+      .catch(() => { /* the id still travels; only the display name is missing */ });
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit]);
 
   /* Member search — debounced so typing does not hammer the lookup ------------------ */
   useEffect(() => {
@@ -109,16 +191,33 @@ export default function WorkoutPlanFormPage() {
     const controller = new AbortController();
     (async () => {
       try {
-        const results = await trainerLookup(controller.signal);
-        if (!controller.signal.aborted) setTrainers(results);
+        const [trainerResults, exerciseResults] = await Promise.all([
+          trainerLookup(controller.signal),
+          exerciseLookup(controller.signal),
+        ]);
+        if (controller.signal.aborted) return;
+        setTrainers(trainerResults);
+        setExercises(exerciseResults);
       } catch {
-        if (!controller.signal.aborted) setTrainers([]);
+        if (!controller.signal.aborted) { setTrainers([]); setExercises([]); }
       }
     })();
     return () => controller.abort();
   }, []);
 
-  const memberOptions = useMemo(() => members, [members]);
+  // The preselected member may not be inside the first page of lookup results.
+  const memberOptions = useMemo(() => {
+    if (pinnedMember && !members.some((m) => m.id === pinnedMember.id)) {
+      return [pinnedMember, ...members];
+    }
+    return members;
+  }, [members, pinnedMember]);
+
+  /* Exercise row helpers ------------------------------------------------------------- */
+  const addRow = () => setRows((current) => [...current, makeRow()]);
+  const removeRow = (key: number) => setRows((current) => current.filter((row) => row.key !== key));
+  const patchRow = (key: number, patch: Partial<ExerciseRow>) =>
+    setRows((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)));
 
   const validate = (): boolean => {
     const errors: Record<string, string> = {};
@@ -127,6 +226,30 @@ export default function WorkoutPlanFormPage() {
     }
     if (!isEdit && !form.memberId) {
       errors.memberId = 'Choose the member this plan is for.';
+    }
+    for (const row of rows) {
+      if (!row.exerciseId) {
+        errors.exercises = 'Every exercise line needs an exercise selected — remove empty lines.';
+        break;
+      }
+      const sets = Number(row.sets);
+      const reps = Number(row.repetitions);
+      if (!Number.isInteger(sets) || sets < 1 || sets > 20) {
+        errors.exercises = 'Sets must be between 1 and 20 on every line.';
+        break;
+      }
+      if (!Number.isInteger(reps) || reps < 1 || reps > 200) {
+        errors.exercises = 'Repetitions must be between 1 and 200 on every line.';
+        break;
+      }
+      if (row.targetWeightKg.trim() !== '' && (Number(row.targetWeightKg) < 0 || Number(row.targetWeightKg) > 1000)) {
+        errors.exercises = 'Target weight must be between 0 and 1000 kg.';
+        break;
+      }
+      if (row.restSeconds.trim() !== '' && (Number(row.restSeconds) < 0 || Number(row.restSeconds) > 900)) {
+        errors.exercises = 'Rest must be between 0 and 900 seconds.';
+        break;
+      }
     }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -146,7 +269,21 @@ export default function WorkoutPlanFormPage() {
         durationWeeks: form.durationWeeks,
         sessionsPerWeek: form.sessionsPerWeek,
         isActive: form.isActive,
-        exercises: [],
+        // The server replaces the plan's children with exactly this list on every save,
+        // so it must always be the real rows — an empty array here wipes the plan.
+        exercises: rows.map((row, index) => ({
+          id: row.id,
+          exerciseId: Number(row.exerciseId),
+          exerciseName: exercises.find((e) => e.id === Number(row.exerciseId))?.name ?? '',
+          dayOfWeek: row.dayOfWeek ? Number(row.dayOfWeek) : null,
+          displayOrder: index + 1,
+          sets: Number(row.sets),
+          repetitions: Number(row.repetitions),
+          targetWeightKg: row.targetWeightKg.trim() === '' ? null : Number(row.targetWeightKg),
+          restSeconds: row.restSeconds.trim() === '' ? null : Number(row.restSeconds),
+          durationMinutes: null,
+          notes: row.notes.trim() || null,
+        })),
       };
 
       const saved = isEdit
@@ -162,7 +299,7 @@ export default function WorkoutPlanFormPage() {
           startDate: isoDate(new Date()),
         });
       }
-      navigate('/admin/workout-plans');
+      navigate(listPath);
     } catch (err) {
       setError(err);
       setNotice(null);
@@ -184,10 +321,10 @@ export default function WorkoutPlanFormPage() {
       <PageCard>
         <PageCardHeader
           icon={<IconDumbbell size={20} />}
-          title={isEdit ? 'Edit Workout / Diet Plan' : 'Add Workout / Diet Plan'}
-          subtitle="Create a day-wise workout and diet plan and hand it to a member."
+          title={isEdit ? 'Edit Workout Plan' : 'Add Workout Plan'}
+          subtitle="Build the exercise programme and hand it to a member."
           actions={
-            <button className="btn btn-outline" onClick={() => navigate('/admin/workout-plans')}>
+            <button className="btn btn-outline" onClick={() => navigate(listPath)}>
               <IconArrowLeft size={15} /> Back to Plans
             </button>
           }
@@ -206,7 +343,7 @@ export default function WorkoutPlanFormPage() {
 
             <FormSection
               title="Plan details"
-              caption="The member, the title they will see, and the day-wise plan itself."
+              caption="The member, the title they will see, and any overall guidance."
               icon={<IconUser size={16} />}
             >
               <div className="form-grid">
@@ -258,7 +395,7 @@ export default function WorkoutPlanFormPage() {
                 <Field label="Title" required error={fieldErrors.title}>
                   <input
                     className={`input ${fieldErrors.title ? 'input-invalid' : ''}`}
-                    placeholder="e.g. 4-Week Strength + Diet Plan"
+                    placeholder="e.g. 4-Week Strength Plan"
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
                     disabled={readOnly}
@@ -278,18 +415,166 @@ export default function WorkoutPlanFormPage() {
 
               <div style={{ marginTop: 16 }}>
                 <Field
-                  label="Description / Plan Details"
-                  help="Use Day-wise points for clarity (Workout + Diet)."
+                  label="Description"
+                  help="Optional. Warm-up guidance, technique cues, or anything the exercise rows don't capture."
                 >
                   <textarea
                     className="textarea"
-                    style={{ minHeight: 220 }}
-                    placeholder={'Day 1 - Chest & Triceps\n  Workout: Bench press 4x10, Incline dumbbell 3x12\n  Diet: 4 egg whites + oats (breakfast), grilled chicken + salad (lunch)\n\nDay 2 - Back & Biceps\n  ...'}
+                    style={{ minHeight: 120 }}
+                    placeholder={'e.g. Warm up 10 minutes before every session. Focus on form over load in week 1.'}
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                     disabled={readOnly}
                   />
                 </Field>
+              </div>
+            </FormSection>
+
+            <FormSection
+              title="Exercises"
+              caption="The day-wise exercise rows the member sees. Order here is the order they appear."
+              icon={<IconDumbbell size={16} />}
+            >
+              <div className="stack" style={{ gap: 10 }}>
+                {fieldErrors.exercises ? <Alert tone="warning">{fieldErrors.exercises}</Alert> : null}
+
+                {rows.length === 0 && (
+                  <Alert tone="info">
+                    No exercise rows yet. Add lines below — the plan is saved with exactly the rows listed here.
+                  </Alert>
+                )}
+
+                {rows.length > 0 && (
+                  <div className="table-wrap">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th className="idx">#</th>
+                          <th style={{ minWidth: 180 }}>Exercise</th>
+                          <th>Day</th>
+                          <th className="num">Sets</th>
+                          <th className="num">Reps</th>
+                          <th className="num">Weight (kg)</th>
+                          <th className="num">Rest (s)</th>
+                          <th style={{ minWidth: 140 }}>Notes</th>
+                          {!readOnly && <th aria-label="Remove" />}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((row, index) => (
+                          <tr key={row.key}>
+                            <td className="idx">{index + 1}</td>
+                            <td>
+                              <select
+                                className="select"
+                                value={row.exerciseId}
+                                onChange={(e) => patchRow(row.key, { exerciseId: e.target.value })}
+                                disabled={readOnly}
+                              >
+                                <option value="">Select exercise…</option>
+                                {exercises.map((exercise) => (
+                                  <option key={exercise.id} value={exercise.id}>{exercise.name}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td>
+                              <select
+                                className="select"
+                                value={row.dayOfWeek}
+                                onChange={(e) => patchRow(row.key, { dayOfWeek: e.target.value })}
+                                disabled={readOnly}
+                              >
+                                {DAY_OPTIONS.map((day) => (
+                                  <option key={day.value} value={day.value}>{day.label}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="num">
+                              <input
+                                className="input"
+                                type="number"
+                                min={1}
+                                max={20}
+                                style={{ width: 70 }}
+                                value={row.sets}
+                                onChange={(e) => patchRow(row.key, { sets: e.target.value })}
+                                disabled={readOnly}
+                              />
+                            </td>
+                            <td className="num">
+                              <input
+                                className="input"
+                                type="number"
+                                min={1}
+                                max={200}
+                                style={{ width: 70 }}
+                                value={row.repetitions}
+                                onChange={(e) => patchRow(row.key, { repetitions: e.target.value })}
+                                disabled={readOnly}
+                              />
+                            </td>
+                            <td className="num">
+                              <input
+                                className="input"
+                                type="number"
+                                min={0}
+                                max={1000}
+                                step="0.5"
+                                style={{ width: 90 }}
+                                placeholder="—"
+                                value={row.targetWeightKg}
+                                onChange={(e) => patchRow(row.key, { targetWeightKg: e.target.value })}
+                                disabled={readOnly}
+                              />
+                            </td>
+                            <td className="num">
+                              <input
+                                className="input"
+                                type="number"
+                                min={0}
+                                max={900}
+                                style={{ width: 80 }}
+                                placeholder="—"
+                                value={row.restSeconds}
+                                onChange={(e) => patchRow(row.key, { restSeconds: e.target.value })}
+                                disabled={readOnly}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                className="input"
+                                placeholder="e.g. slow negatives"
+                                value={row.notes}
+                                onChange={(e) => patchRow(row.key, { notes: e.target.value })}
+                                disabled={readOnly}
+                              />
+                            </td>
+                            {!readOnly && (
+                              <td>
+                                <button
+                                  className="btn btn-ghost btn-icon btn-sm"
+                                  title="Remove this line"
+                                  aria-label={`Remove exercise line ${index + 1}`}
+                                  onClick={() => removeRow(row.key)}
+                                >
+                                  <IconTrash size={14} />
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {!readOnly && (
+                  <div>
+                    <button className="btn btn-outline btn-sm" onClick={addRow}>
+                      <IconPlus size={14} /> Add Exercise
+                    </button>
+                  </div>
+                )}
               </div>
             </FormSection>
 
@@ -351,7 +636,7 @@ export default function WorkoutPlanFormPage() {
               </button>
               <button
                 className="btn btn-outline"
-                onClick={() => navigate('/admin/workout-plans')}
+                onClick={() => navigate(listPath)}
                 disabled={saving}
               >
                 Cancel

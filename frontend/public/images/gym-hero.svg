@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720">
+  <!--
+    Home hero: the whole room at sunset. Power rack with a racked bar on the left, a row of
+    treadmills receding on the right, pendant lights, and low sun coming through three tall
+    windows. 4:3 exactly, matching the frame it fills, so nothing is ever cropped away.
+
+    Warm where the other two scenes are violet: this is the postcard shot, and the sunset is
+    what makes it one — but the fittings stay in the same near-black family so all three scenes
+    read as the same gym.
+  -->
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#242138"/>
+      <stop offset="1" stop-color="#151420"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c1a28"/>
+      <stop offset="1" stop-color="#0c0b12"/>
+    </linearGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0a05a" stop-opacity=".8"/>
+      <stop offset=".55" stop-color="#c95f74" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#3d2c56" stop-opacity=".2"/>
+    </linearGradient>
+    <radialGradient id="sun" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#ffe0ae" stop-opacity=".95"/>
+      <stop offset=".55" stop-color="#ffc27a" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#ffb257" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vign" cx=".5" cy=".42" r=".78">
+      <stop offset=".55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".4"/>
+    </radialGradient>
+    <!-- one treadmill, reused three times at falling scale -->
+    <g id="tread">
+      <path d="M0 150 200 116l32 14L36 168Z" fill="#0f121c"/>
+      <path d="M18 148 196 118l20 9L40 158Z" fill="#1a1f30"/>
+      <path d="M60 140 204 112" stroke="#232a40" stroke-width="6" stroke-linecap="round" fill="none"/>
+      <g transform="rotate(-12 200 20)"><rect x="196" y="16" width="11" height="104" fill="#161a28"/></g>
+      <rect x="168" y="6" width="74" height="24" rx="8" fill="#1e2436"/>
+      <rect x="178" y="12" width="28" height="11" rx="2" fill="#ffb257" opacity=".85"/>
+    </g>
+  </defs>
+
+  <!-- room -->
+  <rect width="960" height="470" fill="url(#wall)"/>
+  <rect y="462" width="960" height="10" fill="#0e0d16"/>
+  <rect y="470" width="960" height="250" fill="url(#floor)"/>
+
+  <!-- windows with the sunset behind the middle one -->
+  <g>
+    <rect x="52" y="72" width="256" height="286" rx="10" fill="#0b0d15"/>
+    <rect x="60" y="80" width="240" height="270" rx="6" fill="url(#sky)"/>
+    <circle cx="140" cy="150" r="14" fill="#ffffff" opacity=".08"/>
+    <rect x="174" y="80" width="10" height="270" fill="#0b0d15"/>
+    <rect x="60" y="208" width="240" height="10" fill="#0b0d15"/>
+  </g>
+  <g>
+    <rect x="352" y="72" width="256" height="286" rx="10" fill="#0b0d15"/>
+    <rect x="360" y="80" width="240" height="270" rx="6" fill="url(#sky)"/>
+    <circle cx="480" cy="196" r="86" fill="url(#sun)"/>
+    <circle cx="480" cy="196" r="34" fill="#ffe6bf" opacity=".9"/>
+    <rect x="474" y="80" width="10" height="270" fill="#0b0d15"/>
+    <rect x="360" y="208" width="240" height="10" fill="#0b0d15"/>
+  </g>
+  <g>
+    <rect x="652" y="72" width="256" height="286" rx="10" fill="#0b0d15"/>
+    <rect x="660" y="80" width="240" height="270" rx="6" fill="url(#sky)"/>
+    <circle cx="820" cy="140" r="11" fill="#ffffff" opacity=".07"/>
+    <rect x="774" y="80" width="10" height="270" fill="#0b0d15"/>
+    <rect x="660" y="208" width="240" height="10" fill="#0b0d15"/>
+  </g>
+
+  <!-- pendant lights -->
+  <g>
+    <line x1="250" y1="0" x2="250" y2="52" stroke="#0b0d15" stroke-width="3"/>
+    <path d="M236 52h28l-6 14h-16Z" fill="#12151f"/>
+    <circle cx="250" cy="72" r="15" fill="#ffd9a0" opacity=".16"/>
+    <circle cx="250" cy="72" r="5.5" fill="#ffd9a0" opacity=".95"/>
+    <line x1="480" y1="0" x2="480" y2="44" stroke="#0b0d15" stroke-width="3"/>
+    <path d="M466 44h28l-6 14h-16Z" fill="#12151f"/>
+    <circle cx="480" cy="64" r="15" fill="#ffd9a0" opacity=".16"/>
+    <circle cx="480" cy="64" r="5.5" fill="#ffd9a0" opacity=".95"/>
+    <line x1="710" y1="0" x2="710" y2="52" stroke="#0b0d15" stroke-width="3"/>
+    <path d="M696 52h28l-6 14h-16Z" fill="#12151f"/>
+    <circle cx="710" cy="72" r="15" fill="#ffd9a0" opacity=".16"/>
+    <circle cx="710" cy="72" r="5.5" fill="#ffd9a0" opacity=".95"/>
+  </g>
+
+  <!-- sun shafts and warm pools on the floor -->
+  <polygon points="360,80 600,80 700,720 260,720" fill="#ffb257" opacity=".05"/>
+  <g transform="skewX(-12)" opacity=".05">
+    <rect x="200" y="470" width="150" height="250" fill="#ffb257"/>
+    <rect x="510" y="470" width="150" height="250" fill="#ffb257"/>
+  </g>
+
+  <!-- power rack, left -->
+  <g>
+    <rect x="80" y="250" width="16" height="388" fill="#161a28"/>
+    <rect x="180" y="250" width="16" height="388" fill="#161a28"/>
+    <rect x="80" y="250" width="116" height="12" fill="#1a1f30"/>
+    <g fill="#000000" opacity=".4">
+      <circle cx="88" cy="300" r="2.5"/><circle cx="88" cy="330" r="2.5"/><circle cx="88" cy="360" r="2.5"/>
+      <circle cx="88" cy="420" r="2.5"/><circle cx="88" cy="450" r="2.5"/><circle cx="88" cy="480" r="2.5"/>
+      <circle cx="188" cy="300" r="2.5"/><circle cx="188" cy="330" r="2.5"/><circle cx="188" cy="360" r="2.5"/>
+      <circle cx="188" cy="420" r="2.5"/><circle cx="188" cy="450" r="2.5"/><circle cx="188" cy="480" r="2.5"/>
+    </g>
+    <rect x="94" y="380" width="18" height="10" rx="3" fill="#232a40"/>
+    <rect x="164" y="380" width="18" height="10" rx="3" fill="#232a40"/>
+    <rect x="80" y="520" width="116" height="9" rx="4" fill="#20253a"/>
+    <!-- racked barbell -->
+    <rect x="20" y="372" width="260" height="9" rx="4" fill="#3f4663"/>
+    <rect x="20" y="372" width="260" height="2.5" rx="1" fill="#ffffff" opacity=".14"/>
+    <circle cx="48" cy="376" r="30" fill="#d3484f"/>
+    <circle cx="48" cy="376" r="30" fill="none" stroke="#ffffff" stroke-width="2.5" opacity=".12"/>
+    <circle cx="48" cy="376" r="8" fill="#0d0f16"/>
+    <circle cx="252" cy="376" r="30" fill="#3e6fd9"/>
+    <circle cx="252" cy="376" r="30" fill="none" stroke="#ffffff" stroke-width="2.5" opacity=".12"/>
+    <circle cx="252" cy="376" r="8" fill="#0d0f16"/>
+  </g>
+
+  <!-- treadmill row, far one first so the near ones overlap it -->
+  <use href="#tread" transform="translate(800 408) scale(.62)"/>
+  <use href="#tread" transform="translate(672 430) scale(.8)"/>
+  <use href="#tread" transform="translate(530 458)"/>
+
+  <!-- foreground barbell -->
+  <g>
+    <rect x="262" y="694" width="416" height="7" rx="3.5" fill="#000000" opacity=".3"/>
+    <rect x="240" y="672" width="420" height="8" rx="4" fill="#454c69"/>
+    <rect x="240" y="672" width="420" height="2" rx="1" fill="#ffffff" opacity=".16"/>
+    <circle cx="302" cy="675" r="34" fill="#d3484f"/>
+    <circle cx="302" cy="675" r="34" fill="none" stroke="#ffffff" stroke-width="2.5" opacity=".12"/>
+    <circle cx="302" cy="675" r="9" fill="#0d0f16"/>
+    <circle cx="598" cy="675" r="34" fill="#3e6fd9"/>
+    <circle cx="598" cy="675" r="34" fill="none" stroke="#ffffff" stroke-width="2.5" opacity=".12"/>
+    <circle cx="598" cy="675" r="9" fill="#0d0f16"/>
+  </g>
+
+  <!-- vignette -->
+  <rect width="960" height="720" fill="url(#vign)"/>
+</svg>

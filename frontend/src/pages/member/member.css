@@ -42,10 +42,15 @@
 .m-tile-title { font-size: var(--fs-sm); font-weight: 600; color: #ffffffdd; }
 .m-tile-value { font-size: 27px; font-weight: 700; margin-top: 4px; }
 .m-tile-caption { font-size: var(--fs-xs); color: #ffffffcc; margin-top: 3px; }
+/* Frosted-glass chip, matching the admin KPI tiles. */
 .m-tile-icon {
-  width: 48px; height: 48px; border-radius: var(--r-md); flex: none;
-  background: #ffffff33; display: grid; place-items: center;
+  width: 48px; height: 48px; border-radius: 14px; flex: none;
+  background: #ffffff2e; display: grid; place-items: center;
+  box-shadow: inset 0 1px 0 #ffffff59, 0 6px 14px #00000024;
+  backdrop-filter: blur(3px);
+  transition: transform .18s ease;
 }
+.m-tile:hover .m-tile-icon { transform: scale(1.08) rotate(-5deg); }
 /* The banner and the tile row are not page cards, so they carry their own trailing gap. */
 .member-hero + .page-card,
 .member-tiles + .page-card { margin-top: var(--sp-5); }
@@ -70,9 +75,13 @@
 }
 .m-quick-card:hover { text-decoration: none; border-color: color-mix(in srgb, var(--primary) 35%, var(--divider)); box-shadow: var(--shadow-card); }
 .m-quick-card-icon {
-  width: 42px; height: 42px; border-radius: var(--r-md); flex: none;
-  background: var(--primary-soft); color: var(--primary-dark); display: grid; place-items: center;
+  width: 44px; height: 44px; border-radius: 12px; flex: none;
+  color: var(--primary-dark); display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--primary-soft), color-mix(in srgb, var(--accent) 16%, var(--card)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 16%, transparent);
+  transition: transform .18s ease;
 }
+.m-quick-card:hover .m-quick-card-icon { transform: scale(1.1) rotate(-6deg); }
 .m-quick-card-title { display: block; font-weight: 700; font-size: var(--fs-base); }
 .m-quick-card-sub { display: block; font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
 
@@ -176,4 +185,138 @@
 .m-feedback-response {
   margin-top: 10px; padding: 10px 12px; border-left: 3px solid var(--primary);
   background: var(--primary-soft); border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: var(--fs-md);
+}
+
+/* ----------------------------------------------------------- expiry banner */
+/* A block link so the whole strip is one target; tones follow the alert colours. */
+.m-expiry-banner {
+  display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+  margin-top: var(--sp-5); padding: 13px 16px;
+  border: 1px solid var(--divider); border-radius: var(--r-md);
+  font-size: var(--fs-md); font-weight: 600; color: var(--text); text-decoration: none;
+}
+.m-expiry-banner:hover { text-decoration: none; box-shadow: var(--shadow-card); }
+.m-expiry-banner .grow { flex: 1; min-width: 220px; }
+.m-expiry-warning {
+  background: color-mix(in srgb, var(--warning) 12%, var(--card));
+  border-color: color-mix(in srgb, var(--warning) 50%, var(--divider));
+}
+.m-expiry-warning > svg { color: var(--warning); flex: none; }
+.m-expiry-danger {
+  background: color-mix(in srgb, var(--danger) 10%, var(--card));
+  border-color: color-mix(in srgb, var(--danger) 50%, var(--divider));
+}
+.m-expiry-danger > svg { color: var(--danger); flex: none; }
+.m-expiry-link { font-size: var(--fs-sm); font-weight: 700; color: var(--primary-dark); white-space: nowrap; }
+
+/* ----------------------------------------------------------- notifications */
+/* Mirrors the back office's notice cards, m-prefixed because every stylesheet loads globally. */
+.m-notice-list { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-5); }
+.m-notice-card {
+  display: flex; gap: var(--sp-4); align-items: flex-start;
+  border: 1px solid var(--divider); border-left: 4px solid var(--info);
+  border-radius: var(--r-md); background: var(--card); padding: 13px 16px;
+  color: var(--text); text-decoration: none;
+}
+a.m-notice-card:hover { text-decoration: none; box-shadow: var(--shadow-card); }
+.m-notice-card.m-sev-info { border-left-color: var(--info); }
+.m-notice-card.m-sev-success { border-left-color: var(--success); }
+.m-notice-card.m-sev-warning { border-left-color: var(--warning); }
+.m-notice-card.m-sev-critical { border-left-color: var(--danger); }
+.m-notice-card.m-unread { background: color-mix(in srgb, var(--primary) 5%, var(--card)); box-shadow: var(--shadow-card); }
+.m-notice-clickable { cursor: pointer; }
+.m-notice-title { font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.m-notice-message {
+  margin-top: 4px; font-size: var(--fs-md); color: var(--text-2);
+  line-height: 1.55; white-space: pre-wrap;
+}
+.m-notice-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; text-align: right; }
+.m-notice-time { font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap; }
+.m-notice-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex: none; }
+.m-clamp-2 {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* -------------------------------------------------------------- diet plans */
+.m-diet-stack { display: flex; flex-direction: column; gap: var(--sp-5); }
+.m-meal-groups { display: flex; flex-direction: column; gap: var(--sp-4); }
+.m-meal-group { border: 1px solid var(--divider); border-radius: var(--r-md); overflow: hidden; }
+.m-meal-group-head {
+  background: var(--surface-alt); padding: 9px 14px;
+  font-size: var(--fs-sm); font-weight: 700; color: var(--text-2);
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.m-meal-item { padding: 12px 14px; border-top: 1px solid var(--divider); }
+.m-meal-name { font-weight: 600; font-size: var(--fs-md); }
+.m-meal-desc { margin-top: 2px; font-size: var(--fs-sm); color: var(--text-muted); white-space: pre-wrap; }
+.m-macro-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.m-macro-chip {
+  background: var(--surface-alt); border: 1px solid var(--divider); border-radius: var(--r-pill);
+  padding: 2px 10px; font-size: var(--fs-xs); font-weight: 700; color: var(--text-2); white-space: nowrap;
+}
+.m-diet-past { border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--card); }
+.m-diet-past + .m-diet-past { margin-top: var(--sp-3); }
+.m-diet-past-head { display: flex; align-items: center; gap: var(--sp-3); padding: 12px 16px; flex-wrap: wrap; }
+.m-diet-past-body { border-top: 1px solid var(--divider); padding: 14px 16px; }
+
+/* ---------------------------------------------------------- progress charts */
+.m-chart-grid { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.m-chart-panel { border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--card); padding: 14px 16px; }
+.m-chart-panel-title {
+  font-size: var(--fs-sm); font-weight: 700; color: var(--text-2);
+  display: flex; align-items: center; gap: 7px; margin-bottom: 10px;
+}
+.m-chart-empty { padding: 30px 0; text-align: center; color: var(--text-muted); font-size: var(--fs-md); }
+
+/* ------------------------------------------------------------ diet polish
+   The chips carry no variant classes; their order is fixed by the page (kcal, protein, carbs,
+   fat), so position is the variant. color-mix keeps every tint theme-correct. */
+.m-diet-stack .m-plan-card-head {
+  background: var(--grad-hero);
+}
+.m-diet-stack .m-plan-card { transition: transform .16s ease, box-shadow .16s ease; }
+.m-diet-stack .m-plan-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); }
+
+.m-meal-group { transition: border-color .15s ease; }
+.m-meal-group:hover { border-color: color-mix(in srgb, var(--primary) 45%, var(--divider)); }
+.m-meal-group-head {
+  display: flex; align-items: center; gap: 9px;
+  text-transform: uppercase; letter-spacing: .07em; font-size: var(--fs-xs); font-weight: 800;
+}
+.m-meal-group-head::before {
+  content: '';
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--grad-hero);
+  flex: none;
+}
+.m-meal-item { transition: background .15s ease; }
+.m-meal-item:hover { background: color-mix(in srgb, var(--primary) 5%, transparent); }
+
+.m-macro-chip {
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+.m-macro-row .m-macro-chip:nth-child(1) {
+  background: color-mix(in srgb, var(--primary) 13%, transparent);
+  color: var(--primary);
+}
+.m-macro-row .m-macro-chip:nth-child(2) {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: color-mix(in srgb, var(--success) 75%, var(--text));
+}
+.m-macro-row .m-macro-chip:nth-child(3) {
+  background: color-mix(in srgb, var(--warning) 16%, transparent);
+  color: color-mix(in srgb, var(--warning) 62%, var(--text));
+}
+.m-macro-row .m-macro-chip:nth-child(4) {
+  background: color-mix(in srgb, #a855f7 14%, transparent);
+  color: color-mix(in srgb, #a855f7 68%, var(--text));
+}
+
+.m-diet-past { transition: border-color .15s ease, transform .15s ease; }
+.m-diet-past:hover { border-color: color-mix(in srgb, var(--primary) 40%, var(--divider)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .m-diet-stack .m-plan-card, .m-meal-group, .m-meal-item, .m-diet-past { transition: none; }
+  .m-diet-stack .m-plan-card:hover { transform: none; }
 }

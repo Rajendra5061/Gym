@@ -1,19 +1,17 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import { dashboardApi } from '@/api/endpoints/dashboard';
 import type { ChartSeries, DashboardDto } from '@/api/types';
 import { useAuth } from '@/auth/AuthContext';
-import {
-  EmptyState, ErrorAlert, Loading, PageCard, PageCardHeader, Pill, type PillTone,
-} from '@/components/ui';
+import { ErrorAlert, Loading, PageCard, PageCardHeader } from '@/components/ui';
 import {
   IconArrowRight, IconBox, IconCalendar, IconCard, IconChart, IconCheckSquare, IconClock, IconCrown,
-  IconMoney, IconPhone, IconPlus, IconRefresh, IconUser, IconUsers, IconWarning,
+  IconMoney, IconPlus, IconRefresh, IconUser, IconUsers, IconWarning,
 } from '@/components/icons';
-import { date, money, relativeTime } from '@/lib/format';
+import { money, relativeTime } from '@/lib/format';
 import './admin.css';
 
 /* The palette lives in tokens.css; these are only the fallbacks when the var is unreadable. */
@@ -62,47 +60,119 @@ function StatCard(
 }
 
 /**
- * A share-of-total breakdown as labelled bars. Replaces the donut and pie charts: with two or
- * three categories a pie is harder to read than the numbers themselves, and the percentage is
- * spelled out rather than left to be judged by eye.
+ * Part-to-whole as a single 100% stacked bar plus a labelled legend — the form the composition
+ * actually calls for, and not a pie: these breakdowns run to two or three close categories,
+ * which an eye reads badly as angles.
+ *
+ * The legend is load-bearing rather than decoration. Two slots of the palette (green and orange)
+ * sit in the 6–8 ΔE band under deuteranopia, and several sit under 3:1 against the card, so the
+ * validator only clears them alongside a second, non-colour channel: every segment is named and
+ * numbered here, so nothing is carried by hue alone.
  */
-function BarBreakdown(
-  { title, rows, colors }: { title: string; rows: ChartSeries[]; colors: string[] },
+function StackedShare(
+  { title, rows, colors, format }:
+  {
+    title: string; rows: ChartSeries[]; colors: string[];
+    /** Payment splits are money; plan counts are just counts. */
+    format?: (value: number) => string;
+  },
 ) {
   const total = rows.reduce((sum, row) => sum + Number(row.value || 0), 0);
+  const show = (value: number) => (format ? format(value) : String(value));
+
+  if (rows.length === 0 || total === 0) {
+    return (
+      <div className="share">
+        <div className="share-title">{title}</div>
+        <div className="dash-bars-empty">Nothing recorded yet.</div>
+      </div>
+    );
+  }
+
+  const parts = rows.map((row, i) => ({
+    label: row.label,
+    value: Number(row.value || 0),
+    color: colors[i % colors.length],
+    share: (Number(row.value || 0) / total) * 100,
+  }));
 
   return (
-    <div>
-      <div className="quick-title" style={{ fontSize: 'var(--fs-md)', marginBottom: 10 }}>{title}</div>
-      {rows.length === 0 || total === 0 ? (
-        <div className="dash-bars-empty">Nothing recorded yet.</div>
-      ) : (
-        <div className="dash-bars">
-          {rows.map((row, i) => {
-            const share = Math.round((Number(row.value) / total) * 100);
-            return (
-              <div className="dash-bar-row" key={row.label}>
-                <div className="dash-bar-head">
-                  {row.label}
-                  <b>{row.value}</b>
-                  <span className="pct">{share}%</span>
-                </div>
-                <div className="dash-bar">
-                  <div
-                    className="dash-bar-fill"
-                    style={{ width: `${share}%`, background: colors[i % colors.length] }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+    <div className="share">
+      <div className="share-head">
+        <span className="share-title">{title}</span>
+        <span className="share-total">{show(total)} total</span>
+      </div>
+      {/* One bar, read left to right. The 2px gaps are the surface doing the separating, so no
+          segment needs a stroke around it. */}
+      <div
+        className="share-bar"
+        role="img"
+        aria-label={parts.map((p) => `${p.label} ${show(p.value)}, ${Math.round(p.share)}%`).join('; ')}
+      >
+        {parts.map((part) => (
+          <span key={part.label} className="share-seg" style={{ width: `${part.share}%`, background: part.color }} />
+        ))}
+      </div>
+      <ul className="share-legend">
+        {parts.map((part) => (
+          <li key={part.label}>
+            <span className="share-dot" style={{ background: part.color }} />
+            <span className="share-label">{part.label}</span>
+            <b className="share-value">{show(part.value)}</b>
+            <span className="share-pct">{Math.round(part.share)}%</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 
-/** Two bar charts, deliberately: enough to see a trend without a wall of graphs to decode. */
+/**
+ * A single ratio against its total, which is a meter rather than a two-slice pie. The fill
+ * carries severity — the further collection slips, the hotter it reads.
+ */
+function CollectionMeter(
+  { collected, outstanding, currency }:
+  { collected: number; outstanding: number; currency: string },
+) {
+  const total = collected + outstanding;
+  if (total <= 0) return null;
+
+  const pct = Math.round((collected / total) * 100);
+  const tone = pct >= 80 ? 'good' : pct >= 50 ? 'warn' : 'bad';
+
+  return (
+    <div className={`meter meter-${tone}`}>
+      <div className="meter-head">
+        <span className="meter-label">Collected this month</span>
+        <b className="meter-value">{money(collected, currency)}</b>
+      </div>
+      <div className="meter-track" role="img" aria-label={`${pct}% of this month's billing collected`}>
+        <div className="meter-fill" style={{ width: `${pct}%` }} />
+      </div>
+      <div className="meter-foot">
+        <span>{pct}% collected</span>
+        <span>{money(outstanding, currency)} outstanding</span>
+      </div>
+    </div>
+  );
+}
+
+/** Themed tooltip. Recharts' default is a hardcoded white card, which goes blind in dark mode. */
+function ChartTooltip(
+  { active, payload, label, format }:
+  { active?: boolean; payload?: { value?: number | string }[]; label?: string; format: (value: number) => string },
+) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="chart-tip">
+      <div className="chart-tip-label">{label}</div>
+      <div className="chart-tip-value">{format(Number(payload[0]?.value ?? 0))}</div>
+    </div>
+  );
+}
+
+/** Two trend charts, deliberately: enough to see a shape without a wall of graphs to decode. */
 function ChartCard(
   { title, icon, action, hasData, children }:
   { title: string; icon: ReactNode; action?: ReactNode; hasData: boolean; children: ReactNode },
@@ -118,8 +188,12 @@ function ChartCard(
   );
 }
 
-const AXIS = { fontSize: 11, fill: '#8e97ab' };
-const GRID = '#e5e8f0';
+/* Only the type size lives here. The grid stroke and tick fill are painted from tokens in
+   admin.css — as literals they stayed light-mode grey and vanished against a dark card. */
+const AXIS = { fontSize: 11 };
+/* Room for the plot plus the x-axis band beneath it, so the labels are never the thing that
+   gets cropped when the card is short. */
+const CHART_HEIGHT = 236;
 
 /* ------------------------------------------------------------------------ page */
 
@@ -328,14 +402,38 @@ export default function DashboardPage() {
             </div>
           )}
         >
-          <ResponsiveContainer width="100%" height={230}>
-            <BarChart data={revenue} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
-              <CartesianGrid stroke={GRID} strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} />
+          {/* Money over time is a continuous quantity, so it reads as an area: the wash carries
+              the volume and the 2px line carries the shape. */}
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+            <AreaChart data={revenue} margin={{ top: 10, right: 12, left: 4, bottom: 0 }}>
+              <defs>
+                <linearGradient id="dash-revenue-fill" x1="0" y1="0" x2="0" y2="1">
+                  {/* A wash, not a slab — 18% at the crest, fading out entirely at the baseline. */}
+                  <stop offset="0%" stopColor={colors[0]} stopOpacity={0.18} />
+                  <stop offset="100%" stopColor={colors[0]} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid className="dash-grid" vertical={false} />
+              <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} minTickGap={18} />
               <YAxis tick={AXIS} axisLine={false} tickLine={false} width={62} />
-              <Tooltip formatter={(value) => money(Number(value), currency)} />
-              <Bar dataKey="value" fill={colors[0]} radius={[5, 5, 0, 0]} maxBarSize={34} />
-            </BarChart>
+              <Tooltip
+                cursor={{ stroke: colors[0], strokeWidth: 1 }}
+                content={<ChartTooltip format={(value) => money(value, currency)} />}
+              />
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke={colors[0]}
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="url(#dash-revenue-fill)"
+                /* Hidden until hovered, then an 8px dot ringed in the card colour so it stays
+                   legible where it sits on the line. */
+                dot={false}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--card)' }}
+              />
+            </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
 
@@ -344,14 +442,28 @@ export default function DashboardPage() {
           icon={<IconCalendar size={17} />}
           hasData={data.attendanceTrend.length > 0}
         >
-          <ResponsiveContainer width="100%" height={230}>
-            <BarChart data={data.attendanceTrend} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
-              <CartesianGrid stroke={GRID} strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} />
+          {/* A line rather than a second area, so the two cards do not read as the same chart
+              twice. Slot 4 (violet) also clears 3:1 against the card, which slot 5 does not. */}
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+            <LineChart data={data.attendanceTrend} margin={{ top: 10, right: 12, left: 4, bottom: 0 }}>
+              <CartesianGrid className="dash-grid" vertical={false} />
+              <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} minTickGap={18} />
               <YAxis tick={AXIS} axisLine={false} tickLine={false} width={34} allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="value" fill={colors[4]} radius={[5, 5, 0, 0]} maxBarSize={34} />
-            </BarChart>
+              <Tooltip
+                cursor={{ stroke: colors[3], strokeWidth: 1 }}
+                content={<ChartTooltip format={(value) => `${value} check-in${value === 1 ? '' : 's'}`} />}
+              />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={colors[3]}
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                dot={false}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--card)' }}
+              />
+            </LineChart>
           </ResponsiveContainer>
         </ChartCard>
       </div>
@@ -361,6 +473,11 @@ export default function DashboardPage() {
         <PageCard>
           <PageCardHeader icon={<IconWarning size={18} />} title="Needs your attention" />
           <div className="page-card-body">
+            <CollectionMeter
+              collected={s.monthRevenue}
+              outstanding={s.pendingPaymentsAmount}
+              currency={currency}
+            />
             {attention.length === 0 ? (
               <div className="dash-attn-clear">
                 <IconCheckSquare size={17} /> Nothing outstanding — the desk is clear.
@@ -393,85 +510,16 @@ export default function DashboardPage() {
             subtitle="Plans in use, and how people pay."
           />
           <div className="page-card-body">
-            <BarBreakdown title="Membership plans" rows={data.planDistribution} colors={colors} />
-            <div style={{ height: 18 }} />
-            <BarBreakdown title="Payment methods" rows={data.paymentMethodDistribution} colors={colors} />
+            <StackedShare title="Membership plans" rows={data.planDistribution} colors={colors} />
+            <StackedShare
+              title="Payment methods"
+              rows={data.paymentMethodDistribution}
+              colors={colors}
+              format={(value) => money(value, currency)}
+            />
           </div>
         </PageCard>
       </div>
-
-      {/* -------------------------------------------------------------- expiring soon */}
-      <PageCard>
-        <PageCardHeader
-          icon={<IconWarning size={18} />}
-          title="Expiring Soon"
-          subtitle="Memberships that need a renewal call."
-          actions={
-            <button className="btn btn-outline" onClick={() => navigate('/admin/members')}>
-              View all members
-            </button>
-          }
-        />
-        {data.expiringSoonMembers.length === 0 ? (
-          <EmptyState icon={<IconCheckSquare size={36} />} title="Nothing expiring soon" />
-        ) : (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th className="idx">#</th>
-                  <th>Member</th>
-                  <th>Phone</th>
-                  <th>Plan</th>
-                  <th>Ends</th>
-                  <th>Days left</th>
-                  <th className="num">Outstanding</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.expiringSoonMembers.map((member, i) => {
-                  const days = member.daysRemaining;
-                  const tone: PillTone = days === null || days === undefined
-                    ? 'neutral' : days < 0 ? 'danger' : days <= 7 ? 'warning' : 'success';
-                  return (
-                    <tr
-                      key={member.id}
-                      className="row-link"
-                      onDoubleClick={() => navigate(`/admin/members/${member.id}`)}
-                    >
-                      <td className="idx">{i + 1}</td>
-                      <td>
-                        <div className="cell-icon">
-                          <IconUser size={14} />
-                          <span className="cell-main">{member.fullName}</span>
-                        </div>
-                        <div className="cell-sub">{member.memberCode}</div>
-                      </td>
-                      <td><span className="cell-icon"><IconPhone size={13} />{member.phone}</span></td>
-                      <td>
-                        {member.currentPlanName
-                          ? <Pill tone="primary">{member.currentPlanName}</Pill>
-                          : <span className="muted">&mdash;</span>}
-                      </td>
-                      <td>
-                        <span className="cell-icon">
-                          <IconCalendar size={13} />{date(member.subscriptionEndDate)}
-                        </span>
-                      </td>
-                      <td>
-                        {days === null || days === undefined
-                          ? <span className="muted">&mdash;</span>
-                          : <Pill tone={tone}>{days < 0 ? `${Math.abs(days)} overdue` : `${days} days`}</Pill>}
-                      </td>
-                      <td className="num">{money(member.outstandingAmount, currency)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </PageCard>
 
       <div className="row" style={{ justifyContent: 'center' }}>
         <span className="muted" style={{ fontSize: 'var(--fs-sm)' }}>

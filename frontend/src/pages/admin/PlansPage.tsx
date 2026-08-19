@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { plansApi, type PlanInput, type PlanQuery } from '@/api/endpoints/plans';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { plansApi, type PlanQuery } from '@/api/endpoints/plans';
 import { useAuth } from '@/auth/AuthContext';
 import {
-  Alert, ConfirmModal, EmptyState, ErrorAlert, Field, FilterField, FilterMenu, FilterStrip,
-  Loading, Modal, PageCard, PageCardHeader, Pager, Pill, StatusPill,
+  Alert, ConfirmModal, EmptyState, ErrorAlert, FilterField, FilterMenu, FilterStrip,
+  Loading, PageCard, PageCardHeader, Pager, Pill, SearchField, StatusPill,
 } from '@/components/ui';
 import {
   IconCheck, IconCrown, IconDashboard, IconEdit, IconFilter, IconPlus, IconRefresh, IconTrash,
@@ -41,49 +42,10 @@ function featureList(features: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
-const BLANK_FORM: PlanInput = {
-  id: 0,
-  name: '',
-  description: '',
-  features: '',
-  durationType: PlanDurationType.Month,
-  durationValue: 1,
-  price: 0,
-  registrationFee: null,
-  taxPercent: 0,
-  maxDiscountPercent: 100,
-  gracePeriodDays: 0,
-  maxFreezeDays: 0,
-  sessionLimit: null,
-  trainerIncluded: false,
-  displayOrder: 0,
-  status: PlanStatus.Active,
-};
-
-function toForm(plan: MembershipPlanDto): PlanInput {
-  return {
-    id: plan.id,
-    name: plan.name,
-    description: plan.description ?? '',
-    features: plan.features ?? '',
-    durationType: plan.durationType,
-    durationValue: plan.durationValue,
-    price: plan.price,
-    registrationFee: plan.registrationFee ?? null,
-    taxPercent: plan.taxPercent,
-    maxDiscountPercent: plan.maxDiscountPercent,
-    gracePeriodDays: plan.gracePeriodDays,
-    maxFreezeDays: plan.maxFreezeDays,
-    sessionLimit: plan.sessionLimit ?? null,
-    trainerIncluded: plan.trainerIncluded,
-    displayOrder: plan.displayOrder,
-    status: plan.status,
-  };
-}
-
 /* ------------------------------------------------------------------- the page */
 
 export default function PlansPage() {
+  const navigate = useNavigate();
   const { can, currency } = useAuth();
   const mayManage = can('plans.manage');
 
@@ -98,10 +60,8 @@ export default function PlansPage() {
   const [error, setError] = useState<unknown>(null);
   const [notice, setNotice] = useState('');
 
-  const [editing, setEditing] = useState<PlanInput | null>(null);
   const [deleting, setDeleting] = useState<MembershipPlanDto | null>(null);
   const [busy, setBusy] = useState(false);
-  const [formError, setFormError] = useState<unknown>(null);
 
   const load = useCallback((signal: AbortSignal) => {
     setLoading(true);
@@ -133,31 +93,6 @@ export default function PlansPage() {
   function resetFilters() {
     setSearch(''); setStatus(''); setDurationType('');
     setQuery({ pageNumber: 1, pageSize: 25, sortBy: 'displayOrder' });
-  }
-
-  async function save() {
-    if (!editing) return;
-    setBusy(true);
-    setFormError(null);
-    try {
-      const payload: PlanInput = {
-        ...editing,
-        name: editing.name.trim(),
-        description: editing.description?.trim() || null,
-        features: editing.features?.trim() || null,
-        registrationFee: editing.registrationFee === null ? null : Number(editing.registrationFee),
-        sessionLimit: editing.sessionLimit === null ? null : Number(editing.sessionLimit),
-      };
-      if (payload.id > 0) await plansApi.update(payload.id, payload);
-      else await plansApi.create(payload);
-      setNotice(payload.id > 0 ? 'Membership plan updated.' : 'Membership plan created.');
-      setEditing(null);
-      reload();
-    } catch (err) {
-      setFormError(err);
-    } finally {
-      setBusy(false);
-    }
   }
 
   async function remove() {
@@ -231,7 +166,7 @@ export default function PlansPage() {
                 <IconRefresh size={15} />
               </button>
               {mayManage && (
-                <button className="btn btn-dark" onClick={() => { setFormError(null); setEditing({ ...BLANK_FORM }); }}>
+                <button className="btn btn-dark" onClick={() => navigate('/admin/plans/new')}>
                   <IconPlus size={15} /> Add Plan
                 </button>
               )}
@@ -242,15 +177,12 @@ export default function PlansPage() {
         {/* Only the search box stays in the open. Enter applies it; Status, Duration and the
             Apply / Clear all pair live in the header's Filters menu. */}
         <FilterStrip>
-          <FilterField label="Search">
-            <input
-              className="input"
-              placeholder="Plan name or code"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
-            />
-          </FilterField>
+          <SearchField
+            placeholder="Plan name or code"
+            value={search}
+            onChange={setSearch}
+            onSearch={applyFilters}
+          />
         </FilterStrip>
 
         {notice && <div className="section-pad" style={{ paddingBottom: 0 }}><Alert tone="success">{notice}</Alert></div>}
@@ -264,7 +196,7 @@ export default function PlansPage() {
             title="No membership plans yet"
             message="Create a plan so subscriptions have something to sell."
             action={mayManage
-              ? <button className="btn btn-dark" onClick={() => setEditing({ ...BLANK_FORM })}><IconPlus size={15} /> Add Plan</button>
+              ? <button className="btn btn-dark" onClick={() => navigate('/admin/plans/new')}><IconPlus size={15} /> Add Plan</button>
               : undefined}
           />
         ) : view === 'cards' ? (
@@ -275,7 +207,7 @@ export default function PlansPage() {
                 plan={plan}
                 currency={currency}
                 mayManage={mayManage}
-                onEdit={() => { setFormError(null); setEditing(toForm(plan)); }}
+                onEdit={() => navigate(`/admin/plans/${plan.id}/edit`)}
                 onDelete={() => setDeleting(plan)}
               />
             ))}
@@ -286,10 +218,10 @@ export default function PlansPage() {
               <thead>
                 <tr>
                   <th className="idx">#</th>
-                  <th>Plan Name</th>
-                  <th>Duration</th>
+                  <th className="wide">Plan Name</th>
+                  <th className="fit">Duration</th>
                   <th className="num">Fee</th>
-                  <th>Status</th>
+                  <th className="fit">Status</th>
                   <th className="actions">Actions</th>
                 </tr>
               </thead>
@@ -307,7 +239,7 @@ export default function PlansPage() {
                     <td className="actions">
                       {mayManage ? (
                         <>
-                          <button className="btn btn-edit" onClick={() => { setFormError(null); setEditing(toForm(plan)); }}>
+                          <button className="btn btn-edit" onClick={() => navigate(`/admin/plans/${plan.id}/edit`)}>
                             <IconEdit size={12} /> Edit
                           </button>
                           <button className="btn btn-del" onClick={() => setDeleting(plan)}>
@@ -333,18 +265,6 @@ export default function PlansPage() {
           />
         )}
       </PageCard>
-
-      {editing && (
-        <PlanFormModal
-          value={editing}
-          currency={currency}
-          busy={busy}
-          error={formError}
-          onChange={setEditing}
-          onSave={save}
-          onClose={() => setEditing(null)}
-        />
-      )}
 
       {deleting && (
         <ConfirmModal
@@ -437,169 +357,3 @@ function PlanTile(
   );
 }
 
-/* ------------------------------------------------------------------ form modal */
-
-function PlanFormModal(
-  { value, currency, busy, error, onChange, onSave, onClose }:
-  {
-    value: PlanInput; currency: string; busy: boolean; error: unknown;
-    onChange: (next: PlanInput) => void; onSave: () => void; onClose: () => void;
-  },
-) {
-  const set = <K extends keyof PlanInput>(key: K, next: PlanInput[K]) => onChange({ ...value, [key]: next });
-  const nameRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { nameRef.current?.focus(); }, []);
-
-  const previewFeatures = useMemo(() => featureList(value.features), [value.features]);
-
-  return (
-    <Modal
-      title={value.id > 0 ? 'Edit membership plan' : 'Add membership plan'}
-      icon={<IconCrown size={18} />}
-      onClose={onClose}
-      width={760}
-      footer={
-        <>
-          <button className="btn btn-outline" onClick={onClose} disabled={busy}>Cancel</button>
-          <button className="btn btn-dark" onClick={onSave} disabled={busy || !value.name.trim()}>
-            {busy ? 'Saving…' : 'Save Plan'}
-          </button>
-        </>
-      }
-    >
-      <div className="stack">
-        {error ? <ErrorAlert error={error} /> : null}
-
-        <div className="form-grid">
-          <Field label="Plan name" required>
-            <input
-              ref={nameRef}
-              className="input"
-              value={value.name}
-              maxLength={120}
-              onChange={(e) => set('name', e.target.value)}
-            />
-          </Field>
-          <Field label="Status">
-            <select className="select" value={value.status} onChange={(e) => set('status', Number(e.target.value) as PlanStatus)}>
-              <option value={PlanStatus.Active}>Active</option>
-              <option value={PlanStatus.Inactive}>Inactive</option>
-            </select>
-          </Field>
-          <Field label="Duration type">
-            <select
-              className="select"
-              value={value.durationType}
-              onChange={(e) => set('durationType', Number(e.target.value) as PlanDurationType)}
-            >
-              {Object.values(PlanDurationType)
-                .filter((v): v is PlanDurationType => typeof v === 'number')
-                .map((v) => <option key={v} value={v}>{words(PlanDurationType[v])}</option>)}
-            </select>
-          </Field>
-          <Field label="Duration value" help="1 to 3650. The server derives the term length from this.">
-            <input
-              className="input" type="number" min={1} max={3650}
-              value={value.durationValue}
-              onChange={(e) => set('durationValue', Number(e.target.value))}
-            />
-          </Field>
-          <Field label="Price" required help={`Charged per term, in ${currency}.`}>
-            <div className="input-group">
-              <span className="input-icon">{currency}</span>
-              <input
-                className="input" type="number" min={0} step="0.01"
-                value={value.price}
-                onChange={(e) => set('price', Number(e.target.value))}
-              />
-            </div>
-          </Field>
-          <Field label="Registration fee" help="Leave empty when the plan has no joining fee.">
-            <div className="input-group">
-              <span className="input-icon">{currency}</span>
-              <input
-                className="input" type="number" min={0} step="0.01"
-                value={value.registrationFee ?? ''}
-                onChange={(e) => set('registrationFee', e.target.value === '' ? null : Number(e.target.value))}
-              />
-            </div>
-          </Field>
-          <Field label="Tax percent">
-            <input
-              className="input" type="number" min={0} max={100} step="0.01"
-              value={value.taxPercent}
-              onChange={(e) => set('taxPercent', Number(e.target.value))}
-            />
-          </Field>
-          <Field label="Max discount percent" help="Caps the discount an operator may key in.">
-            <input
-              className="input" type="number" min={0} max={100} step="0.01"
-              value={value.maxDiscountPercent}
-              onChange={(e) => set('maxDiscountPercent', Number(e.target.value))}
-            />
-          </Field>
-          <Field label="Grace period (days)">
-            <input
-              className="input" type="number" min={0} max={90}
-              value={value.gracePeriodDays}
-              onChange={(e) => set('gracePeriodDays', Number(e.target.value))}
-            />
-          </Field>
-          <Field label="Max freeze days">
-            <input
-              className="input" type="number" min={0} max={365}
-              value={value.maxFreezeDays}
-              onChange={(e) => set('maxFreezeDays', Number(e.target.value))}
-            />
-          </Field>
-          <Field label="Session limit" help="Leave empty for unlimited sessions.">
-            <input
-              className="input" type="number" min={1}
-              value={value.sessionLimit ?? ''}
-              onChange={(e) => set('sessionLimit', e.target.value === '' ? null : Number(e.target.value))}
-            />
-          </Field>
-          <Field label="Display order">
-            <input
-              className="input" type="number" min={0}
-              value={value.displayOrder}
-              onChange={(e) => set('displayOrder', Number(e.target.value))}
-            />
-          </Field>
-        </div>
-
-        <label className="check-inline">
-          <input
-            type="checkbox"
-            checked={value.trainerIncluded}
-            onChange={(e) => set('trainerIncluded', e.target.checked)}
-          />
-          Personal trainer included in this plan
-        </label>
-
-        <Field label="Description">
-          <textarea
-            className="textarea" style={{ minHeight: 70 }}
-            value={value.description ?? ''}
-            onChange={(e) => set('description', e.target.value)}
-          />
-        </Field>
-
-        <Field label="Features" help="One feature per line. The plan card shows them as a ticked list.">
-          <textarea
-            className="textarea"
-            value={value.features ?? ''}
-            placeholder={'Unlimited gym access\nLocker included\n2 guest passes'}
-            onChange={(e) => set('features', e.target.value)}
-          />
-        </Field>
-
-        {previewFeatures.length > 0 && (
-          <ul className="plan-features">
-            {previewFeatures.map((feature, i) => <li key={i}><IconCheck size={14} /><span>{feature}</span></li>)}
-          </ul>
-        )}
-      </div>
-    </Modal>
-  );
-}

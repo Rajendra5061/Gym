@@ -138,15 +138,15 @@ export default function MyAttendancePage() {
               <thead>
                 <tr>
                   <th className="idx">#</th>
-                  <th>Date</th>
-                  <th>Time In</th>
+                  <th className="fit">Date</th>
+                  <th className="fit">Time In</th>
                 </tr>
               </thead>
               <tbody>
                 {pageRows.map((row, index) => (
                   <tr key={row.id}>
                     <td className="idx">{(pageNumber - 1) * pageSize + index + 1}</td>
-                    <td><span className="cell-icon"><IconCalendar size={14} />{date(row.attendanceDate)}</span></td>
+                    <td className="fit"><span className="cell-icon"><IconCalendar size={14} />{date(row.attendanceDate)}</span></td>
                     <td><Pill tone="success"><IconClock size={12} /> {time(row.checkInTime)}</Pill></td>
                   </tr>
                 ))}

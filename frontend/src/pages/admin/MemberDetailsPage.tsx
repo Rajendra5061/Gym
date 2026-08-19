@@ -316,14 +316,14 @@ export default function MemberDetailsPage() {
                 <thead>
                   <tr>
                     <th className="idx">#</th>
-                    <th>Plan</th>
-                    <th>Starts</th>
-                    <th>Ends</th>
-                    <th>Days left</th>
+                    <th className="wide">Plan</th>
+                    <th className="fit">Starts</th>
+                    <th className="fit">Ends</th>
+                    <th className="fit">Days left</th>
                     <th className="num">Final</th>
                     <th className="num">Paid</th>
                     <th className="num">Outstanding</th>
-                    <th>Status</th>
+                    <th className="fit">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -334,13 +334,13 @@ export default function MemberDetailsPage() {
                         <div className="cell-main">{s.planName}</div>
                         <div className="cell-sub">{s.subscriptionCode}</div>
                       </td>
-                      <td><span className="cell-icon"><IconCalendar size={13} />{date(s.startDate)}</span></td>
-                      <td><span className="cell-icon"><IconCalendar size={13} />{date(s.endDate)}</span></td>
-                      <td><DaysLeft days={s.daysRemaining} /></td>
+                      <td className="fit"><span className="cell-icon"><IconCalendar size={13} />{date(s.startDate)}</span></td>
+                      <td className="fit"><span className="cell-icon"><IconCalendar size={13} />{date(s.endDate)}</span></td>
+                      <td className="fit"><DaysLeft days={s.daysRemaining} /></td>
                       <td className="num">{money(s.finalAmount, currency)}</td>
                       <td className="num">{money(s.paidAmount, currency)}</td>
                       <td className="num">{money(s.outstandingAmount, currency)}</td>
-                      <td><StatusPill status={s.statusText} /></td>
+                      <td className="fit"><StatusPill status={s.statusText} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -358,12 +358,12 @@ export default function MemberDetailsPage() {
                 <thead>
                   <tr>
                     <th className="idx">#</th>
-                    <th>Receipt</th>
-                    <th>Date</th>
-                    <th>Plan</th>
-                    <th>Method</th>
+                    <th className="fit">Receipt</th>
+                    <th className="fit">Date</th>
+                    <th className="wide">Plan</th>
+                    <th className="fit">Method</th>
                     <th className="num">Amount</th>
-                    <th>Status</th>
+                    <th className="fit">Status</th>
                     <th className="actions">Actions</th>
                   </tr>
                 </thead>
@@ -371,12 +371,12 @@ export default function MemberDetailsPage() {
                   {history.payments.map((p, i) => (
                     <tr key={p.id}>
                       <td className="idx">{i + 1}</td>
-                      <td className="cell-main">{p.receiptNumber}</td>
-                      <td><span className="cell-icon"><IconCalendar size={13} />{date(p.paymentDate)}</span></td>
+                      <td className="cell-main fit">{p.receiptNumber}</td>
+                      <td className="fit"><span className="cell-icon"><IconCalendar size={13} />{date(p.paymentDate)}</span></td>
                       <td>{orDash(p.planName)}</td>
-                      <td><Pill tone="neutral">{p.paymentMethodName}</Pill></td>
+                      <td className="fit"><Pill tone="neutral">{p.paymentMethodName}</Pill></td>
                       <td className="num">{money(p.finalAmount, currency)}</td>
-                      <td><StatusPill status={p.statusText} /></td>
+                      <td className="fit"><StatusPill status={p.statusText} /></td>
                       <td className="actions">
                         <button
                           className="btn btn-outline btn-sm"
@@ -403,28 +403,28 @@ export default function MemberDetailsPage() {
                 <thead>
                   <tr>
                     <th className="idx">#</th>
-                    <th>Date</th>
-                    <th>Checked in</th>
-                    <th>Checked out</th>
+                    <th className="fit">Date</th>
+                    <th className="fit">Checked in</th>
+                    <th className="fit">Checked out</th>
                     <th className="num">Duration</th>
-                    <th>Method</th>
-                    <th>Status</th>
+                    <th className="fit">Method</th>
+                    <th className="fit">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {history.attendance.map((a, i) => (
                     <tr key={a.id}>
                       <td className="idx">{i + 1}</td>
-                      <td><span className="cell-icon"><IconCalendar size={13} />{date(a.attendanceDate)}</span></td>
-                      <td>{dateTime(a.checkInTime)}</td>
-                      <td>{a.checkOutTime ? dateTime(a.checkOutTime) : orDash(null)}</td>
+                      <td className="fit"><span className="cell-icon"><IconCalendar size={13} />{date(a.attendanceDate)}</span></td>
+                      <td className="fit">{dateTime(a.checkInTime)}</td>
+                      <td className="fit">{a.checkOutTime ? dateTime(a.checkOutTime) : orDash(null)}</td>
                       <td className="num">
                         {a.durationMinutes === null || a.durationMinutes === undefined
                           ? orDash(null)
                           : `${a.durationMinutes} min`}
                       </td>
-                      <td><Pill tone="neutral">{a.checkInMethod}</Pill></td>
-                      <td><StatusPill status={a.statusText} /></td>
+                      <td className="fit"><Pill tone="neutral">{a.checkInMethod}</Pill></td>
+                      <td className="fit"><StatusPill status={a.statusText} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -442,8 +442,8 @@ export default function MemberDetailsPage() {
                 <thead>
                   <tr>
                     <th className="idx">#</th>
-                    <th>Date</th>
-                    <th>Plan</th>
+                    <th className="fit">Date</th>
+                    <th className="wide">Plan</th>
                     <th>Trainer</th>
                     <th className="num">Duration</th>
                     <th className="num">Exercises</th>
@@ -455,7 +455,7 @@ export default function MemberDetailsPage() {
                   {history.workoutSessions.map((w, i) => (
                     <tr key={w.id}>
                       <td className="idx">{i + 1}</td>
-                      <td><span className="cell-icon"><IconCalendar size={13} />{date(w.sessionDate)}</span></td>
+                      <td className="fit"><span className="cell-icon"><IconCalendar size={13} />{date(w.sessionDate)}</span></td>
                       <td>{orDash(w.workoutPlanName)}</td>
                       <td>{orDash(w.trainerName)}</td>
                       <td className="num">
@@ -483,7 +483,7 @@ export default function MemberDetailsPage() {
                 <thead>
                   <tr>
                     <th className="idx">#</th>
-                    <th>Measured on</th>
+                    <th className="fit">Measured on</th>
                     <th className="num">Weight</th>
                     <th className="num">Height</th>
                     <th className="num">Body fat</th>
@@ -491,14 +491,14 @@ export default function MemberDetailsPage() {
                     <th className="num">Chest</th>
                     <th className="num">Waist</th>
                     <th className="num">BMI</th>
-                    <th>Recorded by</th>
+                    <th className="wide">Recorded by</th>
                   </tr>
                 </thead>
                 <tbody>
                   {history.measurements.map((m, i) => (
                     <tr key={m.id}>
                       <td className="idx">{i + 1}</td>
-                      <td><span className="cell-icon"><IconCalendar size={13} />{date(m.measuredOn)}</span></td>
+                      <td className="fit"><span className="cell-icon"><IconCalendar size={13} />{date(m.measuredOn)}</span></td>
                       <td className="num">{m.weightKg ? `${m.weightKg} kg` : orDash(null)}</td>
                       <td className="num">{m.heightCm ? `${m.heightCm} cm` : orDash(null)}</td>
                       <td className="num">{m.bodyFatPercent ? `${m.bodyFatPercent} %` : orDash(null)}</td>
@@ -524,10 +524,10 @@ export default function MemberDetailsPage() {
                 <thead>
                   <tr>
                     <th className="idx">#</th>
-                    <th>File</th>
-                    <th>Type</th>
+                    <th className="wide">File</th>
+                    <th className="fit">Type</th>
                     <th className="num">Size</th>
-                    <th>Uploaded</th>
+                    <th className="fit">Uploaded</th>
                     <th>Notes</th>
                     <th className="actions">Actions</th>
                   </tr>
@@ -542,9 +542,9 @@ export default function MemberDetailsPage() {
                           <span className="cell-main">{d.fileName}</span>
                         </div>
                       </td>
-                      <td><Pill tone="neutral">{d.documentType}</Pill></td>
+                      <td className="fit"><Pill tone="neutral">{d.documentType}</Pill></td>
                       <td className="num">{formatSize(d.fileSizeBytes)}</td>
-                      <td><span className="cell-icon"><IconCalendar size={13} />{date(d.createdAt)}</span></td>
+                      <td className="fit"><span className="cell-icon"><IconCalendar size={13} />{date(d.createdAt)}</span></td>
                       <td>{orDash(d.notes)}</td>
                       <td className="actions">
                         <button

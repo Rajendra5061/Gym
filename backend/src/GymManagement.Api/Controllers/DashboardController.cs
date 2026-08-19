@@ -34,6 +34,17 @@ public sealed class DashboardController : ApiControllerBase
         Success(await _dashboard.GetStatsAsync(ct));
 
     /// <summary>
+    /// The compact dashboard for the signed-in trainer, resolved from the JWT's trainer claim.
+    /// Answers 404 when the account has no trainer link.
+    /// </summary>
+    [HttpGet("trainer")]
+    [HasPermission(Permissions.DashboardView)]
+    [ProducesResponseType(typeof(ApiResponse<TrainerDashboardDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<TrainerDashboardDto>>> GetTrainerDashboard(CancellationToken ct) =>
+        Success(await _dashboard.GetTrainerDashboardAsync(ct));
+
+    /// <summary>
     /// The compact dashboard for one member. Callers who cannot view members generally — a member
     /// signed in to their own portal — may only request their own member id.
     /// </summary>

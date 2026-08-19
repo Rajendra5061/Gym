@@ -154,13 +154,13 @@ export default function MyMembershipPage() {
               <thead>
                 <tr>
                   <th className="idx">#</th>
-                  <th>Plan</th>
-                  <th>Start date</th>
-                  <th>End date</th>
-                  <th>Final amount</th>
-                  <th>Paid</th>
-                  <th>Outstanding</th>
-                  <th>Status</th>
+                  <th className="wide">Plan</th>
+                  <th className="fit">Start date</th>
+                  <th className="fit">End date</th>
+                  <th className="fit">Final amount</th>
+                  <th className="fit">Paid</th>
+                  <th className="fit">Outstanding</th>
+                  <th className="fit">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -171,12 +171,12 @@ export default function MyMembershipPage() {
                       <div className="cell-main">{row.planName}</div>
                       <div className="cell-sub">{row.subscriptionCode}</div>
                     </td>
-                    <td><span className="cell-icon"><IconCalendar size={14} />{date(row.startDate)}</span></td>
-                    <td><span className="cell-icon"><IconCalendar size={14} />{date(row.endDate)}</span></td>
-                    <td><span className="cell-icon"><IconMoney size={14} />{money(row.finalAmount, currency)}</span></td>
-                    <td>{money(row.paidAmount, currency)}</td>
-                    <td>{money(row.outstandingAmount, currency)}</td>
-                    <td><StatusPill status={row.statusText} /></td>
+                    <td className="fit"><span className="cell-icon"><IconCalendar size={14} />{date(row.startDate)}</span></td>
+                    <td className="fit"><span className="cell-icon"><IconCalendar size={14} />{date(row.endDate)}</span></td>
+                    <td className="fit"><span className="cell-icon"><IconMoney size={14} />{money(row.finalAmount, currency)}</span></td>
+                    <td className="fit">{money(row.paidAmount, currency)}</td>
+                    <td className="fit">{money(row.outstandingAmount, currency)}</td>
+                    <td className="fit"><StatusPill status={row.statusText} /></td>
                   </tr>
                 ))}
               </tbody>

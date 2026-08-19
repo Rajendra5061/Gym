@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Alert, ConfirmModal, EmptyState, ErrorAlert, FilterField, FilterMenu, FilterStrip, Loading,
-  PageCard, PageCardHeader, Pager, Pill,
+  PageCard, PageCardHeader, Pager, Pill, SearchField,
 } from '@/components/ui';
 import { IconCalendar, IconRefresh, IconTrash, IconUser } from '@/components/icons';
 import { PURGE_CONFIRMATION, recycleBinApi } from '@/api/endpoints/system';
@@ -154,15 +154,12 @@ export default function RecycleBinPage() {
 
         {/* Search and Reset stay in the open, since they are the two controls reached most often. */}
         <FilterStrip>
-          <FilterField label="Search">
-            <input
-              className="input"
-              placeholder="Name or details"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
-            />
-          </FilterField>
+          <SearchField
+            placeholder="Name or details"
+            value={search}
+            onChange={setSearch}
+            onSearch={applyFilters}
+          />
         </FilterStrip>
 
         {notice && <div style={{ padding: '16px 20px 0' }}><Alert tone="success">{notice}</Alert></div>}
@@ -180,10 +177,10 @@ export default function RecycleBinPage() {
               <thead>
                 <tr>
                   <th className="idx">#</th>
-                  <th>Entity</th>
-                  <th>Name</th>
+                  <th className="fit">Entity</th>
+                  <th className="wide">Name</th>
                   <th>Details</th>
-                  <th>Deleted at</th>
+                  <th className="fit">Deleted at</th>
                   <th>Deleted by</th>
                   <th className="actions">Actions</th>
                 </tr>
@@ -192,13 +189,13 @@ export default function RecycleBinPage() {
                 {rows.map((row, index) => (
                   <tr key={`${row.entityName}-${row.entityId}`}>
                     <td className="idx">{(pageNumber - 1) * pageSize + index + 1}</td>
-                    <td><Pill tone="neutral">{words(row.entityName)}</Pill></td>
+                    <td className="fit"><Pill tone="neutral">{words(row.entityName)}</Pill></td>
                     <td>
                       <div className="cell-main">{row.displayName}</div>
                       <div className="cell-sub">Id {row.entityId}</div>
                     </td>
                     <td style={{ maxWidth: 320 }}>{row.details || '—'}</td>
-                    <td><span className="cell-icon"><IconCalendar size={14} />{dateTime(row.deletedAt)}</span></td>
+                    <td className="fit"><span className="cell-icon"><IconCalendar size={14} />{dateTime(row.deletedAt)}</span></td>
                     <td><span className="cell-icon"><IconUser size={14} />{row.deletedByName || '—'}</span></td>
                     <td className="actions">
                       {mayRestore && (

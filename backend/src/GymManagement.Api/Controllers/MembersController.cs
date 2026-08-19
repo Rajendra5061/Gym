@@ -40,8 +40,8 @@ public sealed class MembersController : ApiControllerBase
     }
 
     /// <summary>
-    /// Returns the full detail of a single member. Callers who cannot view members generally — a
-    /// member signed in to their own portal — may only request their own member id.
+    /// Returns the full detail of a single member. Callers who cannot view members generally â a
+    /// member signed in to their own portal â may only request their own member id.
     /// </summary>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(ApiResponse<MemberDetailDto>), StatusCodes.Status200OK)]
@@ -220,35 +220,45 @@ public sealed class MembersController : ApiControllerBase
         return SuccessMessage("Document deleted.");
     }
 
-    /// <summary>Lists a member's recorded body measurements, newest first.</summary>
+    /// <summary>
+    /// Lists a member's recorded body measurements, newest first. A member signed in to their own
+    /// portal may only request their own measurements.
+    /// </summary>
     [HttpGet("{id:int}/measurements")]
-    [HasPermission(Permissions.MembersView)]
     [ProducesResponseType(typeof(ApiResponse<List<MemberMeasurementDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<List<MemberMeasurementDto>>>> GetMeasurements(
         int id, CancellationToken ct)
     {
+        MemberSelfAccess.EnsureCanRead(_currentUser, Permissions.MembersView, id, "measurements");
+
         var result = await _memberService.GetMeasurementsAsync(id, ct);
         return Success(result);
     }
 
     /// <summary>Creates or updates a body-measurement entry for the member.</summary>
-    [HttpPost("{id:int}/measurements")]
-    [HasPermission(Permissions.MembersEdit)]
+    /// <remarks>
+    /// The route parameter is deliberately NOT named <c>id</c>: with that name the framework
+    /// back-fills <c>dto.Id</c> from the route whenever the body omits it, and every create
+    /// then reads as an update of a measurement that may not exist — or worse, one that does.
+    /// <c>dto.Id</c> is the measurement id (0 to create); the member always comes from the route.
+    /// </remarks>
+    [HttpPost("{memberId:int}/measurements")]
+    [HasPermission(Permissions.MeasurementsManage)]
     [ProducesResponseType(typeof(ApiResponse<MemberMeasurementDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<MemberMeasurementDto>>> SaveMeasurement(
-        int id, [FromBody] MemberMeasurementDto dto, CancellationToken ct)
+        int memberId, [FromBody] MemberMeasurementDto dto, CancellationToken ct)
     {
-        dto.MemberId = id;
+        dto.MemberId = memberId;
         var result = await _memberService.SaveMeasurementAsync(dto, ct);
         return Success(result, "Measurement saved.");
     }
 
     /// <summary>Deletes a body-measurement entry.</summary>
     [HttpDelete("measurements/{measurementId:int}")]
-    [HasPermission(Permissions.MembersEdit)]
+    [HasPermission(Permissions.MeasurementsManage)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse>> DeleteMeasurement(
@@ -258,14 +268,18 @@ public sealed class MembersController : ApiControllerBase
         return SuccessMessage("Measurement deleted.");
     }
 
-    /// <summary>Returns the member's progress series (weight, body fat, BMI, volume, calories).</summary>
+    /// <summary>
+    /// Returns the member's progress series (weight, body fat, BMI, volume, calories). A member
+    /// signed in to their own portal may only request their own progress.
+    /// </summary>
     [HttpGet("{id:int}/progress")]
-    [HasPermission(Permissions.MembersView)]
     [ProducesResponseType(typeof(ApiResponse<MemberProgressDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<MemberProgressDto>>> GetProgress(
         int id, [FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct)
     {
+        MemberSelfAccess.EnsureCanRead(_currentUser, Permissions.MembersView, id, "progress");
+
         var result = await _memberService.GetProgressAsync(id, from, to, ct);
         return Success(result);
     }

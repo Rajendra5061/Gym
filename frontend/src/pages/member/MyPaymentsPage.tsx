@@ -117,12 +117,12 @@ export default function MyPaymentsPage() {
               <thead>
                 <tr>
                   <th className="idx">#</th>
-                  <th>Plan</th>
-                  <th>Amount</th>
-                  <th>Payment Date</th>
-                  <th>Mode</th>
-                  <th>Status</th>
-                  <th>Notes</th>
+                  <th className="fit">Plan</th>
+                  <th className="fit">Amount</th>
+                  <th className="fit">Payment Date</th>
+                  <th className="fit">Mode</th>
+                  <th className="fit">Status</th>
+                  <th className="wide">Notes</th>
                   <th className="actions">Receipt</th>
                 </tr>
               </thead>
@@ -130,14 +130,14 @@ export default function MyPaymentsPage() {
                 {pageRows.map((row, index) => (
                   <tr key={row.id}>
                     <td className="idx">{(pageNumber - 1) * pageSize + index + 1}</td>
-                    <td>
+                    <td className="fit">
                       <Pill tone="primary"><IconCrown size={12} /> {row.planName ?? 'General'}</Pill>
                       <div className="cell-sub">{row.receiptNumber}</div>
                     </td>
-                    <td><span className="cell-icon"><IconMoney size={14} />{money(row.finalAmount, currency)}</span></td>
-                    <td><span className="cell-icon"><IconCalendar size={14} />{date(row.paymentDate)}</span></td>
-                    <td><Pill tone="info">{row.paymentMethodName}</Pill></td>
-                    <td><StatusPill status={row.statusText} /></td>
+                    <td className="fit"><span className="cell-icon"><IconMoney size={14} />{money(row.finalAmount, currency)}</span></td>
+                    <td className="fit"><span className="cell-icon"><IconCalendar size={14} />{date(row.paymentDate)}</span></td>
+                    <td className="fit"><Pill tone="info">{row.paymentMethodName}</Pill></td>
+                    <td className="fit"><StatusPill status={row.statusText} /></td>
                     <td className="muted" style={{ maxWidth: 240 }}>{row.notes || '—'}</td>
                     <td className="actions">
                       <button

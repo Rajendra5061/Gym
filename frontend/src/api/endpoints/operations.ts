@@ -173,6 +173,9 @@ export interface EnquiryQuery {
 export const listEnquiries = (query: EnquiryQuery, signal?: AbortSignal) =>
   api.get<PagedResult<EnquiryDto>>('/api/enquiries', { ...query }, signal);
 
+export const getEnquiry = (id: number, signal?: AbortSignal) =>
+  api.get<EnquiryDto>(`/api/enquiries/${id}`, undefined, signal);
+
 export const saveEnquiry = (dto: Partial<EnquiryDto>) =>
   dto.id
     ? api.put<EnquiryDto>(`/api/enquiries/${dto.id}`, dto)

@@ -1,22 +1,24 @@
 /**
- * User accounts: search, create, edit, reset password, unlock and soft delete.
+ * User accounts: search, reset password, unlock and soft delete.
  *
  * Listing is server-side paged and filtered — the grid never receives more than one page.
- * A generated password is shown once, in a modal, because the API only ever returns it there.
+ * Creating and editing accounts live on the dedicated form page (/admin/users/new and
+ * /admin/users/:id/edit). A password reset still surfaces its generated password here, in a
+ * modal, because the API only ever returns it once.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Alert, ConfirmModal, ErrorAlert, Field, FilterField, FilterMenu, FilterStrip, Loading, Modal,
-  Pager, PageCard, PageCardHeader, Pill, StatusPill, EmptyState,
+  Alert, ConfirmModal, ErrorAlert, FilterField, FilterMenu, FilterStrip, Loading, Modal,
+  Pager, PageCard, PageCardHeader, Pill, SearchField, StatusPill, EmptyState,
 } from '@/components/ui';
 import {
   IconCheck, IconLock, IconMail, IconPlus, IconUser, IconUsers,
 } from '@/components/icons';
 import { usersApi, rolesApi } from '@/api/endpoints/system';
 import type {
-  CreateUserInput, RoleDto, TemporaryPasswordDto, UpdateUserInput, UserDetailDto, UserListDto,
-  UserQuery,
+  RoleDto, TemporaryPasswordDto, UserListDto, UserQuery,
 } from '@/api/endpoints/system';
 import type { PagedResult } from '@/api/types';
 import { UserStatus } from '@/api/types';
@@ -29,24 +31,9 @@ const STATUS_OPTIONS: { value: UserStatus; label: string }[] = [
   { value: UserStatus.Locked, label: 'Locked' },
 ];
 
-interface FormState {
-  id: number | null;
-  userName: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  status: UserStatus;
-  roleIds: number[];
-  mustChangePassword: boolean;
-}
-
-const emptyForm: FormState = {
-  id: null, userName: '', fullName: '', email: '', phone: '',
-  status: UserStatus.Active, roleIds: [], mustChangePassword: true,
-};
-
 export default function UsersPage() {
-  const { can, user: signedIn } = useAuth();
+  const navigate = useNavigate();
+  const { can } = useAuth();
   const mayManage = can('users.manage');
 
   /* -------------------------------------------------------------- filters */
@@ -102,9 +89,6 @@ export default function UsersPage() {
     }).length;
 
   /* --------------------------------------------------------------- modals */
-  const [form, setForm] = useState<FormState | null>(null);
-  const [formError, setFormError] = useState<unknown>(null);
-  const [saving, setSaving] = useState(false);
   const [tempPassword, setTempPassword] = useState<TemporaryPasswordDto | null>(null);
   const [copied, setCopied] = useState(false);
   const [confirm, setConfirm] = useState<
@@ -116,67 +100,6 @@ export default function UsersPage() {
   const rows = page?.items ?? [];
   const pageNumber = page?.pageNumber ?? query.pageNumber ?? 1;
   const pageSize = page?.pageSize ?? query.pageSize ?? 25;
-
-  const roleById = useMemo(() => new Map(roles.map((r) => [r.id, r])), [roles]);
-
-  async function openEdit(row: UserListDto) {
-    setFormError(null);
-    setForm({ ...emptyForm, id: row.id, userName: row.userName, fullName: row.fullName, email: row.email });
-    try {
-      const detail: UserDetailDto = await usersApi.byId(row.id);
-      setForm({
-        id: detail.id,
-        userName: detail.userName,
-        fullName: detail.fullName,
-        email: detail.email,
-        phone: detail.phone ?? '',
-        status: detail.status,
-        roleIds: detail.roleIds ?? [],
-        mustChangePassword: detail.mustChangePassword,
-      });
-    } catch (e) {
-      setFormError(e);
-    }
-  }
-
-  async function saveForm() {
-    if (!form) return;
-    setSaving(true);
-    setFormError(null);
-    try {
-      if (form.id === null) {
-        const body: CreateUserInput = {
-          userName: form.userName.trim(),
-          fullName: form.fullName.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim() || null,
-          mustChangePassword: form.mustChangePassword,
-          roleIds: form.roleIds,
-          status: form.status,
-        };
-        const created = await usersApi.create(body);
-        setForm(null);
-        setTempPassword(created);
-        setCopied(false);
-      } else {
-        const body: UpdateUserInput = {
-          fullName: form.fullName.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim() || null,
-          status: form.status,
-          roleIds: form.roleIds,
-        };
-        await usersApi.update(form.id, body);
-        setForm(null);
-        setNotice('User account updated.');
-      }
-      reload();
-    } catch (e) {
-      setFormError(e);
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function runConfirmed() {
     if (!confirm) return;
@@ -261,10 +184,7 @@ export default function UsersPage() {
               </FilterMenu>
 
               {mayManage ? (
-                <button
-                  className="btn btn-dark"
-                  onClick={() => { setFormError(null); setForm({ ...emptyForm }); }}
-                >
+                <button className="btn btn-dark" onClick={() => navigate('/admin/users/new')}>
                   <IconPlus size={15} /> New User
                 </button>
               ) : null}
@@ -274,15 +194,12 @@ export default function UsersPage() {
 
         {/* Search and Reset stay in the open, since they are the two controls reached most often. */}
         <FilterStrip>
-          <FilterField label="Search">
-            <input
-              className="input"
-              placeholder="Name, user name or e-mail"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
-            />
-          </FilterField>
+          <SearchField
+            placeholder="Name, user name or e-mail"
+            value={search}
+            onChange={setSearch}
+            onSearch={applyFilters}
+          />
         </FilterStrip>
 
         {notice && <div style={{ padding: '16px 20px 0' }}><Alert tone="success">{notice}</Alert></div>}
@@ -293,6 +210,11 @@ export default function UsersPage() {
             icon={<IconUser size={34} />}
             title="No user accounts found"
             message="Adjust the filters, or create the first account."
+            action={mayManage ? (
+              <button className="btn btn-dark" onClick={() => navigate('/admin/users/new')}>
+                <IconPlus size={15} /> New User
+              </button>
+            ) : null}
           />
         ) : (
           <div className="table-wrap">
@@ -301,11 +223,11 @@ export default function UsersPage() {
                 <tr>
                   <th className="idx">#</th>
                   <th>User name</th>
-                  <th>Full name</th>
+                  <th className="wide">Full name</th>
                   <th>E-mail</th>
-                  <th>Roles</th>
-                  <th>Status</th>
-                  <th className="center">Locked</th>
+                  <th className="fit">Roles</th>
+                  <th className="fit">Status</th>
+                  <th className="center fit">Locked</th>
                   <th className="actions">Actions</th>
                 </tr>
               </thead>
@@ -329,7 +251,7 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td><span className="cell-icon"><IconMail size={14} />{row.email || '—'}</span></td>
-                    <td>
+                    <td className="fit">
                       <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
                         {(row.roles ? row.roles.split(',') : []).map((name) => (
                           <Pill key={name} tone="primary">{name.trim()}</Pill>
@@ -337,14 +259,14 @@ export default function UsersPage() {
                         {!row.roles && <span className="muted">No role</span>}
                       </div>
                     </td>
-                    <td><StatusPill status={row.statusText} /></td>
-                    <td className="center">
+                    <td className="fit"><StatusPill status={row.statusText} /></td>
+                    <td className="center fit">
                       {row.isLockedOut ? <Pill tone="danger"><IconLock size={12} /> Locked</Pill> : <span className="muted">—</span>}
                     </td>
                     <td className="actions">
                       {mayManage ? (
                         <>
-                          <button className="btn btn-edit" onClick={() => void openEdit(row)}>Edit</button>
+                          <button className="btn btn-edit" onClick={() => navigate(`/admin/users/${row.id}/edit`)}>Edit</button>
                           <button
                             className="btn btn-outline btn-sm"
                             onClick={() => setConfirm({ kind: 'reset', row })}
@@ -375,103 +297,6 @@ export default function UsersPage() {
           />
         )}
       </PageCard>
-
-      {/* ------------------------------------------------------- add / edit */}
-      {form && (
-        <Modal
-          title={form.id === null ? 'New user account' : `Edit ${form.userName}`}
-          icon={<IconUser size={18} />}
-          onClose={() => setForm(null)}
-          footer={
-            <>
-              <button className="btn btn-outline" onClick={() => setForm(null)} disabled={saving}>Cancel</button>
-              <button className="btn btn-dark" onClick={() => void saveForm()} disabled={saving}>
-                {saving ? 'Saving…' : form.id === null ? 'Create account' : 'Save changes'}
-              </button>
-            </>
-          }
-        >
-          <div className="stack">
-            <ErrorAlert error={formError} />
-            {form.id !== null && signedIn?.id === form.id && (
-              <Alert tone="warning">
-                This is your own account. Removing your roles or deactivating it will end your access.
-              </Alert>
-            )}
-            <div className="form-grid">
-              <Field label="User name" required help={form.id === null ? 'Used to sign in. It cannot be changed later.' : undefined}>
-                <input
-                  className="input"
-                  value={form.userName}
-                  disabled={form.id !== null}
-                  onChange={(e) => setForm({ ...form, userName: e.target.value })}
-                />
-              </Field>
-              <Field label="Full name" required>
-                <input className="input" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
-              </Field>
-              <Field label="E-mail" required>
-                <input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-              </Field>
-              <Field label="Phone">
-                <input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-              </Field>
-              <Field label="Status">
-                <select
-                  className="select"
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: Number(e.target.value) as UserStatus })}
-                >
-                  {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </Field>
-              {form.id === null && (
-                <Field label="Password" help="A temporary password is generated and shown once the account is created.">
-                  <label className="row" style={{ height: 38, gap: 8 }}>
-                    <input
-                      type="checkbox"
-                      checked={form.mustChangePassword}
-                      onChange={(e) => setForm({ ...form, mustChangePassword: e.target.checked })}
-                    />
-                    <span style={{ fontSize: 13 }}>Must be changed at first sign-in</span>
-                  </label>
-                </Field>
-              )}
-            </div>
-
-            <Field label="Roles" help="Permissions come from the roles granted here.">
-              <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-                {roles.map((role) => {
-                  const checked = form.roleIds.includes(role.id);
-                  return (
-                    <label
-                      key={role.id}
-                      className="row"
-                      style={{
-                        gap: 8, padding: '8px 10px', border: '1px solid var(--divider)',
-                        borderRadius: 'var(--r-md)', background: checked ? 'var(--primary-soft)' : '#fff',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) => setForm({
-                          ...form,
-                          roleIds: e.target.checked
-                            ? [...form.roleIds, role.id]
-                            : form.roleIds.filter((id) => id !== role.id),
-                        })}
-                      />
-                      <span style={{ fontSize: 13, fontWeight: 600 }}>{role.name}</span>
-                      {roleById.get(role.id)?.isSystemRole ? <Pill tone="dark">Built-in</Pill> : null}
-                    </label>
-                  );
-                })}
-              </div>
-            </Field>
-          </div>
-        </Modal>
-      )}
 
       {/* ------------------------------------------------- temporary password */}
       {tempPassword && (

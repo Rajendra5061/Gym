@@ -8,6 +8,12 @@ public interface IDashboardService
     Task<DashboardDto> GetDashboardAsync(CancellationToken ct = default);
     Task<DashboardStatsDto> GetStatsAsync(CancellationToken ct = default);
     Task<MemberDashboardDto> GetMemberDashboardAsync(int memberId, CancellationToken ct = default);
+
+    /// <summary>
+    /// The compact dashboard for the signed-in trainer, resolved from the caller's trainer claim.
+    /// Throws NotFound when the account has no trainer link.
+    /// </summary>
+    Task<TrainerDashboardDto> GetTrainerDashboardAsync(CancellationToken ct = default);
 }
 
 public interface IReportService

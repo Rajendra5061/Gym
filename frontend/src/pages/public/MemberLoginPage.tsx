@@ -1,14 +1,21 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type CSSProperties, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/AuthContext';
 import { Alert, Field } from '@/components/ui';
 import {
   IconArrowLeft, IconCheck, IconDumbbell, IconEye, IconEyeOff,
-  IconInfo, IconLock, IconUser,
+  IconInfo, IconLock, IconShield, IconUser,
 } from '@/components/icons';
 import { PublicNav, dashboardPathFor, useGymSettings } from '@/components/PublicNav';
 import './public.css';
+
+/** What signing in actually gets a member — the pitch promises only what the portal shows. */
+const PITCH_POINTS = [
+  'Membership and expiry at a glance',
+  'Every check-in on record',
+  'A receipt for every rupee paid',
+];
 
 export default function MemberLoginPage() {
   const { user, signIn } = useAuth();
@@ -49,89 +56,111 @@ export default function MemberLoginPage() {
     <div className="pub-shell">
       <PublicNav gymName={gymName} />
 
-      <main className="pub-auth-wrap">
-        <div className="pub-auth-card pub-auth-card-reverse">
-          <aside className="pub-auth-side pub-auth-side-member">
-            <div className="pub-auth-side-brand">
-              <IconDumbbell size={20} /> {gymName}
-            </div>
-            <ul className="pub-auth-side-list">
-              <li><IconCheck size={15} /> Your membership and expiry date</li>
-              <li><IconCheck size={15} /> Attendance history and check-ins</li>
-              <li><IconCheck size={15} /> Payments, receipts and dues</li>
-              <li><IconCheck size={15} /> Workout plans from your trainer</li>
+      {/* Photo panel on the left carrying the pitch; the form on the right on a tokened surface.
+          The form column is built so nobody can mistake the page: a badge saying exactly what it
+          is, "Member Login" as the title, and the fields directly under it. */}
+      <main className="pub-auth-wrap2">
+        <div className="pub-auth-splitcard">
+        <aside
+          className="pub-auth-photoside"
+          style={{ '--pub-photo': "url('/images/gal-latbar.jpg')" } as CSSProperties}
+        >
+          <div className="pub-auth-photocopy">
+            <span className="pub-hero-eyebrow"><IconDumbbell size={13} /> {gymName}</span>
+            <h1 className="pub-auth-pitch-title">
+              You do the reps.
+              <span>We keep the score.</span>
+            </h1>
+            <ul className="pub-auth-pitch-list">
+              {PITCH_POINTS.map((point) => (
+                <li key={point}><IconCheck size={15} /> {point}</li>
+              ))}
             </ul>
-            <div className="pub-auth-side-caption">
-              <strong>Member Portal</strong>
-              Track your plan, attendance and payments in one place.
-            </div>
-          </aside>
+          </div>
+        </aside>
 
-          <section className="pub-auth-form">
-            <div className="pub-auth-head">
-              <span className="pub-auth-badge pub-badge-lavender"><IconUser size={24} /></span>
-              <div className="grow">
-                <div className="pub-auth-title">Member Login</div>
-                <div className="pub-auth-sub">Sign in to your dashboard and details.</div>
-              </div>
+        <section className="pub-auth-formside">
+          <div className="pub-auth-formwrap">
+            <div className="pub-auth-topbar">
+              <nav className="pub-auth-switch" aria-label="Sign-in type">
+                <Link to="/login" className="active" aria-current="page"><IconUser size={14} /> Member</Link>
+                <Link to="/admin-login"><IconShield size={14} /> Staff</Link>
+              </nav>
               <Link to="/" className="btn btn-outline btn-sm"><IconArrowLeft size={13} /> Home</Link>
             </div>
 
-            <form onSubmit={onSubmit} noValidate>
-              <div className="pub-auth-fields">
-                {error ? <Alert tone="error">{error}</Alert> : null}
-
-                <Field label="Username" required error={userError ?? undefined}>
-                  <div className="input-group">
-                    <span className="input-icon"><IconUser size={15} /></span>
-                    <input
-                      className={`input ${userError ? 'input-invalid' : ''}`}
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                      placeholder="Username or email"
-                      autoComplete="username"
-                      autoFocus
-                    />
-                  </div>
-                </Field>
-
-                <Field label="Password" required error={passwordError ?? undefined}>
-                  <div className="input-group">
-                    <span className="input-icon"><IconLock size={15} /></span>
-                    <input
-                      className={`input pub-input-has-suffix ${passwordError ? 'input-invalid' : ''}`}
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Password"
-                      autoComplete="current-password"
-                    />
-                    <span className="input-suffix">
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-icon btn-sm"
-                        onClick={() => setShowPassword((visible) => !visible)}
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      >
-                        {showPassword ? <IconEyeOff size={15} /> : <IconEye size={15} />}
-                      </button>
-                    </span>
-                  </div>
-                </Field>
-
-                <button type="submit" className="btn pub-btn-indigo btn-block" disabled={busy}>
-                  {busy ? 'Logging in…' : 'Login'}
-                </button>
+            <div className="pub-auth-formmain">
+              <div className="pub-auth-titlerow">
+                <span className="pub-auth-mark pub-auth-mark-member"><IconUser size={24} /></span>
+                <h2 className="pub-auth-bigtitle">Member Login</h2>
               </div>
-            </form>
+              <span className="pub-auth-title-accent" aria-hidden="true" />
+              <p className="pub-auth-bigsub">
+                Enter your username and password to open your member dashboard.
+              </p>
 
-            <Link to="/forgot-password" className="pub-auth-link">Forgot password?</Link>
+              <form onSubmit={onSubmit} noValidate>
+                <div className="pub-auth-fields">
+                  {error ? <Alert tone="error">{error}</Alert> : null}
+
+                  <Field label="Username" required error={userError ?? undefined}>
+                    <div className="input-group">
+                      <span className="input-icon"><IconUser size={16} /></span>
+                      <input
+                        className={`input ${userError ? 'input-invalid' : ''}`}
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        placeholder="Username or email"
+                        autoComplete="username"
+                        autoFocus
+                      />
+                    </div>
+                  </Field>
+
+                  <Field label="Password" required error={passwordError ?? undefined}>
+                    <div className="input-group">
+                      <span className="input-icon"><IconLock size={16} /></span>
+                      <input
+                        className={`input pub-input-has-suffix ${passwordError ? 'input-invalid' : ''}`}
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Password"
+                        autoComplete="current-password"
+                      />
+                      <span className="input-suffix">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-icon btn-sm"
+                          onClick={() => setShowPassword((visible) => !visible)}
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <IconEyeOff size={15} /> : <IconEye size={15} />}
+                        </button>
+                      </span>
+                    </div>
+                  </Field>
+
+                  <button type="submit" className="btn pub-btn-glow btn-block" disabled={busy}>
+                    {busy ? 'Logging in…' : 'Login to my account'}
+                  </button>
+                </div>
+              </form>
+
+              <div className="pub-auth-underform">
+                <Link to="/forgot-password" className="pub-auth-link">Forgot password?</Link>
+                <span className="pub-auth-underform-alt">
+                  Gym staff? <Link to="/admin-login">Sign in here</Link>
+                </span>
+              </div>
+            </div>
 
             <div className="pub-auth-foot">
               <IconInfo size={14} />
               If you face issues, contact the gym admin to reset your password.
             </div>
-          </section>
+          </div>
+        </section>
         </div>
       </main>
     </div>

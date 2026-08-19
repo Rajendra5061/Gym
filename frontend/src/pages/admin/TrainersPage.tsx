@@ -7,10 +7,10 @@ import { TrainerStatus, type PagedResult, type TrainerListDto } from '@/api/type
 import { useAuth } from '@/auth/AuthContext';
 import {
   Alert, ConfirmModal, EmptyState, ErrorAlert, FilterField, FilterMenu, FilterStrip,
-  Loading, PageCard, PageCardHeader, Pager, Pill, StatusPill,
+  Loading, PageCard, PageCardHeader, Pager, Pill, SearchField, StatusPill,
 } from '@/components/ui';
 import {
-  IconCalendar, IconPhone, IconPlus, IconSearch, IconUser,
+  IconCalendar, IconPhone, IconPlus, IconUser,
 } from '@/components/icons';
 import { date } from '@/lib/format';
 import './admin.css';
@@ -96,10 +96,10 @@ export default function TrainersPage() {
     }
   }
 
-  function SortHeader({ column, label }: { column: string; label: string }) {
+  function SortHeader({ column, label, className }: { column: string; label: string; className?: string }) {
     const active = sortBy === column;
     return (
-      <th className={`sortable ${active ? 'sorted' : ''}`} onClick={() => toggleSort(column)}>
+      <th className={`${className ?? ''} sortable ${active ? 'sorted' : ''}`} onClick={() => toggleSort(column)}>
         {label}
         <span className="sort-caret">{active ? (sortDesc ? '▼' : '▲') : '⇅'}</span>
       </th>
@@ -158,18 +158,12 @@ export default function TrainersPage() {
 
         {/* Search and Reset stay in the open, since they are the two controls reached most often. */}
         <FilterStrip>
-          <FilterField label="Search">
-            <div className="input-group">
-              <span className="input-icon"><IconSearch size={15} /></span>
-              <input
-                className="input"
-                placeholder="Name, code, phone or email"
-                value={draft.search}
-                onChange={(e) => setDraft({ ...draft, search: e.target.value })}
-                onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
-              />
-            </div>
-          </FilterField>
+          <SearchField
+            placeholder="Name, code, phone or email"
+            value={draft.search}
+            onChange={(value) => setDraft({ ...draft, search: value })}
+            onSearch={applyFilters}
+          />
         </FilterStrip>
 
         {(error || notice) && (
@@ -188,13 +182,13 @@ export default function TrainersPage() {
                 <thead>
                   <tr>
                     <th className="idx">#</th>
-                    <SortHeader column="fullName" label="Name" />
-                    <th>Mobile</th>
+                    <SortHeader column="fullName" label="Name" className="wide" />
+                    <th className="fit">Mobile</th>
                     <th>Specialization</th>
-                    <th>Experience</th>
-                    <SortHeader column="joiningDate" label="Joining date" />
-                    <th className="center">Members</th>
-                    <SortHeader column="status" label="Status" />
+                    <th className="fit">Experience</th>
+                    <SortHeader column="joiningDate" label="Joining date" className="fit" />
+                    <th className="center fit">Members</th>
+                    <SortHeader column="status" label="Status" className="fit" />
                     <th className="actions">Actions</th>
                   </tr>
                 </thead>
@@ -215,12 +209,12 @@ export default function TrainersPage() {
                           ? <Pill tone="info">{trainer.specialization}</Pill>
                           : <span className="muted">&mdash;</span>}
                       </td>
-                      <td>
+                      <td className="fit">
                         {trainer.experienceYears === null || trainer.experienceYears === undefined
                           ? <span className="muted">&mdash;</span>
                           : `${trainer.experienceYears} yr${trainer.experienceYears === 1 ? '' : 's'}`}
                       </td>
-                      <td>
+                      <td className="fit">
                         <span className="cell-icon">
                           <IconCalendar size={13} />{date(trainer.joiningDate)}
                         </span>

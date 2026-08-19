@@ -132,6 +132,11 @@ public class GymBrandingDto
     /// <summary>Front-desk e-mail address, already published on the anonymous landing page.</summary>
     public string? Email { get; set; }
 
+    /// <summary>Street address and city, for the landing page footer. Public by nature: it is
+    /// what the gym prints on its receipts and tells every caller who asks where to come.</summary>
+    public string? Address { get; set; }
+    public string? City { get; set; }
+
     /// <summary>
     /// Narrows a full profile down to the branding slice. The single place the allow-list is
     /// applied, so reviewing what a member can read means reading this method.
@@ -146,7 +151,9 @@ public class GymBrandingDto
             CurrencyCode = gym.CurrencyCode,
             CurrencySymbol = gym.CurrencySymbol,
             Phone = gym.Phone,
-            Email = gym.Email
+            Email = gym.Email,
+            Address = gym.Address,
+            City = gym.City
         };
     }
 }

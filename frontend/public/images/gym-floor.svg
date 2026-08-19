@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700">
+  <!--
+    Member login panel: the gym floor after hours. Dumbbell rack, flat bench, kettlebell and a
+    loaded barbell in the foreground, lit from two tall windows.
+
+    Drawn dark on purpose: the panel it fills keeps a caption in white over its lower third, and
+    the page lays a darkening scrim there — so the art holds its detail in the upper two thirds
+    and stays calm at the bottom. Anything essential sits inside x 60..840, because the panel
+    crops roughly that much when it runs taller than the artwork's aspect.
+  -->
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#20243a"/>
+      <stop offset="1" stop-color="#14161f"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#191c29"/>
+      <stop offset="1" stop-color="#0b0c12"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8b7bf0" stop-opacity=".55"/>
+      <stop offset=".6" stop-color="#4a3f8f" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#221d3d" stop-opacity=".12"/>
+    </linearGradient>
+    <radialGradient id="vign" cx=".5" cy=".42" r=".75">
+      <stop offset=".55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".42"/>
+    </radialGradient>
+  </defs>
+
+  <!-- room -->
+  <rect width="900" height="450" fill="url(#wall)"/>
+  <rect y="442" width="900" height="10" fill="#0d0f17"/>
+  <rect y="450" width="900" height="250" fill="url(#floor)"/>
+
+  <!-- windows -->
+  <g>
+    <rect x="72" y="62" width="266" height="296" rx="10" fill="#0b0d15"/>
+    <rect x="80" y="70" width="250" height="280" rx="6" fill="url(#glass)"/>
+    <circle cx="150" cy="140" r="18" fill="#ffffff" opacity=".10"/>
+    <circle cx="262" cy="172" r="12" fill="#ffffff" opacity=".07"/>
+    <circle cx="122" cy="252" r="10" fill="#ffffff" opacity=".06"/>
+    <rect x="200" y="70" width="10" height="280" fill="#0b0d15"/>
+    <rect x="80" y="205" width="250" height="10" fill="#0b0d15"/>
+  </g>
+  <g>
+    <rect x="552" y="62" width="266" height="296" rx="10" fill="#0b0d15"/>
+    <rect x="560" y="70" width="250" height="280" rx="6" fill="url(#glass)"/>
+    <circle cx="640" cy="150" r="15" fill="#ffffff" opacity=".08"/>
+    <circle cx="742" cy="120" r="10" fill="#ffffff" opacity=".06"/>
+    <rect x="680" y="70" width="10" height="280" fill="#0b0d15"/>
+    <rect x="560" y="205" width="250" height="10" fill="#0b0d15"/>
+  </g>
+
+  <!-- neon wall strips between the windows -->
+  <rect x="392" y="176" width="116" height="20" rx="10" fill="#7c5cff" opacity=".10"/>
+  <rect x="399" y="183" width="102" height="6" rx="3" fill="#8f74ff" opacity=".45"/>
+  <rect x="416" y="205" width="68" height="5" rx="2.5" fill="#8f74ff" opacity=".25"/>
+
+  <!-- light shafts -->
+  <polygon points="80,70 330,70 240,700 -30,700" fill="#ffffff" opacity=".045"/>
+  <polygon points="560,70 810,70 900,560 720,700" fill="#ffffff" opacity=".03"/>
+
+  <!-- floor seams, converging gently -->
+  <g stroke="#ffffff" stroke-width="1.5" opacity=".05">
+    <line x1="450" y1="452" x2="60" y2="700"/>
+    <line x1="450" y1="452" x2="255" y2="700"/>
+    <line x1="450" y1="452" x2="450" y2="700"/>
+    <line x1="450" y1="452" x2="645" y2="700"/>
+    <line x1="450" y1="452" x2="840" y2="700"/>
+  </g>
+  <g stroke="#ffffff" stroke-width="1.5" opacity=".04">
+    <line x1="0" y1="520" x2="900" y2="520"/>
+    <line x1="0" y1="595" x2="900" y2="595"/>
+  </g>
+
+  <!-- dumbbell rack -->
+  <g>
+    <rect x="72" y="498" width="12" height="146" fill="#191d2c"/>
+    <rect x="286" y="480" width="12" height="146" fill="#191d2c"/>
+    <path d="M75 505 295 485l0 17L75 522Z" fill="#232739"/>
+    <path d="M75 505 295 485" stroke="#ffffff" stroke-width="2" opacity=".08"/>
+    <path d="M75 567 295 547l0 17L75 584Z" fill="#1e2233"/>
+    <!-- dumbbells: handle plus hex ends, tilted with the rail -->
+    <g fill="#10131e">
+      <g transform="rotate(-5 120 492)">
+        <rect x="103" y="489" width="34" height="7" rx="3" fill="#3a405a"/>
+        <rect x="94" y="479" width="14" height="27" rx="4"/><rect x="132" y="479" width="14" height="27" rx="4"/>
+      </g>
+      <g transform="rotate(-5 185 486)">
+        <rect x="168" y="483" width="34" height="7" rx="3" fill="#3a405a"/>
+        <rect x="159" y="473" width="14" height="27" rx="4"/><rect x="197" y="473" width="14" height="27" rx="4"/>
+      </g>
+      <g transform="rotate(-5 250 480)">
+        <rect x="233" y="477" width="34" height="7" rx="3" fill="#3a405a"/>
+        <rect x="224" y="467" width="14" height="27" rx="4"/><rect x="262" y="467" width="14" height="27" rx="4"/>
+      </g>
+      <g transform="rotate(-5 120 554)">
+        <rect x="102" y="551" width="36" height="8" rx="4" fill="#3a405a"/>
+        <rect x="92" y="540" width="16" height="31" rx="5"/><rect x="132" y="540" width="16" height="31" rx="5"/>
+      </g>
+      <g transform="rotate(-5 187 548)">
+        <rect x="169" y="545" width="36" height="8" rx="4" fill="#3a405a"/>
+        <rect x="159" y="534" width="16" height="31" rx="5"/><rect x="199" y="534" width="16" height="31" rx="5"/>
+      </g>
+      <g transform="rotate(-5 252 542)">
+        <rect x="234" y="539" width="36" height="8" rx="4" fill="#3a405a"/>
+        <rect x="224" y="528" width="16" height="31" rx="5"/><rect x="264" y="528" width="16" height="31" rx="5"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- flat bench -->
+  <g>
+    <ellipse cx="470" cy="612" rx="112" ry="14" fill="#000000" opacity=".35"/>
+    <rect x="424" y="540" width="14" height="68" fill="#12151f"/>
+    <rect x="524" y="538" width="13" height="60" fill="#12151f"/>
+    <rect x="404" y="600" width="52" height="9" rx="4" fill="#171b29"/>
+    <rect x="506" y="590" width="48" height="9" rx="4" fill="#171b29"/>
+    <g transform="rotate(-2 470 530)">
+      <rect x="382" y="514" width="200" height="30" rx="15" fill="#2b3047"/>
+      <rect x="390" y="517" width="184" height="6" rx="3" fill="#ffffff" opacity=".10"/>
+    </g>
+  </g>
+
+  <!-- kettlebell -->
+  <g>
+    <ellipse cx="637" cy="620" rx="34" ry="8" fill="#000000" opacity=".3"/>
+    <path d="M617 566a20 16 0 0 1 40 0" fill="none" stroke="#262c40" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="637" cy="593" r="27" fill="#1d2233"/>
+    <path d="M618 580a26 26 0 0 1 20 -13" fill="none" stroke="#ffffff" stroke-width="3" opacity=".08"/>
+  </g>
+
+  <!-- loaded barbell, foreground -->
+  <g>
+    <rect x="172" y="668" width="576" height="8" rx="4" fill="#000000" opacity=".3"/>
+    <rect x="150" y="641" width="600" height="9" rx="4.5" fill="#4a516d"/>
+    <rect x="150" y="641" width="600" height="2.5" rx="1" fill="#ffffff" opacity=".16"/>
+    <rect x="287" y="635" width="10" height="21" rx="3" fill="#5a6284"/>
+    <rect x="603" y="635" width="10" height="21" rx="3" fill="#5a6284"/>
+    <!-- inner plates first, outer plates over them -->
+    <g>
+      <circle cx="315" cy="645" r="37" fill="#3e6fd9"/>
+      <circle cx="315" cy="645" r="37" fill="none" stroke="#ffffff" stroke-width="2.5" opacity=".10"/>
+      <circle cx="315" cy="645" r="10" fill="#0d0f16"/>
+      <circle cx="585" cy="645" r="37" fill="#e09b3d"/>
+      <circle cx="585" cy="645" r="37" fill="none" stroke="#ffffff" stroke-width="2.5" opacity=".10"/>
+      <circle cx="585" cy="645" r="10" fill="#0d0f16"/>
+      <circle cx="250" cy="645" r="46" fill="#d3484f"/>
+      <circle cx="250" cy="645" r="46" fill="none" stroke="#ffffff" stroke-width="3" opacity=".12"/>
+      <circle cx="250" cy="645" r="28" fill="none" stroke="#000000" stroke-width="5" opacity=".28"/>
+      <circle cx="250" cy="645" r="12" fill="#0d0f16"/>
+      <circle cx="650" cy="645" r="46" fill="#3fa860"/>
+      <circle cx="650" cy="645" r="46" fill="none" stroke="#ffffff" stroke-width="3" opacity=".12"/>
+      <circle cx="650" cy="645" r="28" fill="none" stroke="#000000" stroke-width="5" opacity=".28"/>
+      <circle cx="650" cy="645" r="12" fill="#0d0f16"/>
+    </g>
+  </g>
+
+  <!-- ambient glow and vignette -->
+  <circle cx="450" cy="160" r="380" fill="#8f7ff5" opacity=".07"/>
+  <rect width="900" height="700" fill="url(#vign)"/>
+</svg>
