@@ -43,3 +43,6 @@ secrets.json
 # --------------------------------------------------------------------- misc
 Thumbs.db
 .DS_Store
+
+# Demo video output — regenerable, keep the repo lean
+demo/

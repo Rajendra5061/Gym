@@ -61,7 +61,7 @@
      into the page. A translucent-white hairline separates them without showing up as a
      bright line under the bar in light mode. */
   border-bottom: 1px solid #ffffff17;
-  height: 78px;
+  height: 94px;
   display: flex;
   align-items: center;
   padding: 0 var(--sp-6);
@@ -77,10 +77,10 @@
   align-items: center;
   gap: var(--sp-4);
 }
-.pub-brand { display: flex; align-items: center; gap: 11px; color: var(--on-dark); font-size: 20px; font-weight: 700; min-width: 0; }
+.pub-brand { display: flex; align-items: center; gap: 12px; color: var(--on-dark); font-size: 22px; font-weight: 700; min-width: 0; }
 .pub-brand:hover { text-decoration: none; color: var(--on-dark); }
 .pub-brand-mark {
-  width: 40px; height: 40px; border-radius: 11px; flex: none;
+  width: 46px; height: 46px; border-radius: 13px; flex: none;
   display: grid; place-items: center; color: var(--on-dark); background: var(--grad-hero);
 }
 .pub-brand-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1314,7 +1314,7 @@ a.pub-footer3-line:hover { color: #fff; text-decoration: none; }
   width: 100%; max-width: 1180px;
   /* Fits the viewport under the nav so the page never grows a scrollbar; on a generous screen
      it stops at its natural 620px. */
-  min-height: min(620px, calc(100dvh - 138px));
+  min-height: min(620px, calc(100dvh - 154px));
   display: grid; grid-template-columns: 1.1fr minmax(400px, 46%);
   border-radius: 20px;
   overflow: hidden;

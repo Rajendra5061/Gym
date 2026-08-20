@@ -100,7 +100,8 @@ export interface AttendanceDto {
 
 export interface DashboardStats {
   totalMembers: number; activeMembers: number; inactiveMembers: number; expiredMemberships: number;
-  expiringSoon: number; todayAttendance: number; currentlyInGym: number;
+  expiringSoon: number; expiringInEmailWindow: number; expiryEmailWindowDays: number;
+  todayAttendance: number; currentlyInGym: number;
   todayRevenue: number; monthRevenue: number; yearRevenue: number; monthExpenses: number;
   monthNetIncome: number; pendingPaymentsAmount: number; pendingPaymentsCount: number;
   activeSubscriptions: number; frozenSubscriptions: number; newMembersThisMonth: number;

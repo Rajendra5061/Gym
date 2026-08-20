@@ -51,7 +51,7 @@ HTML
 PROFILE="$(mktemp -d)"
 trap 'rm -f "$BOOT"; rm -rf "$PROFILE"' EXIT
 
-"$CHROME" --headless=new --disable-gpu --hide-scrollbars --no-first-run \
+"$CHROME" --headless=new --disable-gpu --hide-scrollbars --no-first-run --force-device-scale-factor="${SCALE:-1}" \
   --user-data-dir="$PROFILE" --window-size="$W,$H" --virtual-time-budget=15000 \
   --screenshot="$(cygpath -w "$OUT")" \
   "http://localhost:5173/_shot.html#to=$ROUTE&u=$U&p=$P&set=$EXTRA" 2>/dev/null

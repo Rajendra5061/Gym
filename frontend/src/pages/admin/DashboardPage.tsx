@@ -9,7 +9,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { ErrorAlert, Loading, PageCard, PageCardHeader } from '@/components/ui';
 import {
   IconArrowRight, IconBox, IconCalendar, IconCard, IconChart, IconCheckSquare, IconClock, IconCrown,
-  IconMoney, IconPlus, IconRefresh, IconUser, IconUsers, IconWarning,
+  IconMail, IconMoney, IconPlus, IconRefresh, IconUser, IconUsers, IconWarning,
 } from '@/components/icons';
 import { money, relativeTime } from '@/lib/format';
 import './admin.css';
@@ -322,6 +322,14 @@ export default function DashboardPage() {
           icon={<IconWarning size={22} />}
           gradient="var(--grad-orange)"
           action={{ label: 'View', to: '/admin/subscriptions' }}
+        />
+        <StatCard
+          title={`Renewals due ≤${s.expiryEmailWindowDays ?? 3}d`}
+          value={s.expiringInEmailWindow ?? 0}
+          caption="reminder emails go out daily"
+          icon={<IconMail size={22} />}
+          gradient="var(--grad-hero)"
+          action={{ label: 'View', to: `/admin/subscriptions?endsWithinDays=${s.expiryEmailWindowDays ?? 3}` }}
         />
         <StatCard
           title="Today's Revenue"

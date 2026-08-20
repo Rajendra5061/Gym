@@ -24,6 +24,12 @@ public class DashboardStatsDto
     public int InactiveMembers { get; set; }
     public int ExpiredMemberships { get; set; }
     public int ExpiringSoon { get; set; }
+
+    /// <summary>Active memberships inside the renewal-email window  14 the members being emailed daily.</summary>
+    public int ExpiringInEmailWindow { get; set; }
+
+    /// <summary>The window in days, so the dashboard can label the count honestly.</summary>
+    public int ExpiryEmailWindowDays { get; set; }
     public int TodayAttendance { get; set; }
     public int CurrentlyInGym { get; set; }
     public decimal TodayRevenue { get; set; }

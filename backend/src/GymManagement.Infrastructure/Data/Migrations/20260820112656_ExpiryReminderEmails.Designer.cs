@@ -4,6 +4,7 @@ using GymManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GymManagement.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(GymDbContext))]
-    partial class GymDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260820112656_ExpiryReminderEmails")]
+    partial class ExpiryReminderEmails
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -728,11 +731,6 @@ namespace GymManagement.Infrastructure.Data.Migrations
                     b.Property<int>("DaysLeftAtSend")
                         .HasColumnType("int");
 
-                    b.Property<bool>("EmailSent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
                     b.Property<DateTime>("EndDateAtSend")
                         .HasColumnType("date");
 
@@ -741,11 +739,6 @@ namespace GymManagement.Infrastructure.Data.Migrations
 
                     b.Property<DateTime>("SentOnDate")
                         .HasColumnType("date");
-
-                    b.Property<bool>("SmsSent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
 
                     b.Property<int>("SubscriptionId")
                         .HasColumnType("int");

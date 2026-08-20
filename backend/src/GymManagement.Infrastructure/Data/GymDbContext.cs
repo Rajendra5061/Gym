@@ -67,6 +67,7 @@ public class GymDbContext : DbContext
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
     public DbSet<SalaryPayment> SalaryPayments => Set<SalaryPayment>();
+    public DbSet<ExpiryReminderEmail> ExpiryReminderEmails => Set<ExpiryReminderEmail>();
 
     // Operations
     public DbSet<Equipment> Equipment => Set<Equipment>();

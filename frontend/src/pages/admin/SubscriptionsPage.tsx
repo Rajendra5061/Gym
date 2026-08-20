@@ -1,6 +1,7 @@
 import {
   useCallback, useEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   lookupMembers, subscriptionsApi,
   type CollectPaymentInline, type QuoteRequest, type SubscriptionHistoryDto, type SubscriptionQuery,
@@ -469,21 +470,60 @@ export function PaymentBlock(
 
 /* -------------------------------------------------------------- overflow menu */
 
+/**
+ * The row's ⋯ menu. Painted with `position: fixed` at coordinates read off the trigger when it
+ * opens — absolute positioning kept the panel inside the table's horizontally-scrolling wrapper,
+ * which clipped it at the card edge. Fixed coordinates go stale the moment anything scrolls, so
+ * any scroll or resize dismisses the menu rather than letting it float away from its row.
+ */
 function OverflowMenu({ label = '⋯', children }: { label?: string; children: (close: () => void) => ReactNode }) {
-  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number; up: boolean } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const open = pos !== null;
 
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setPos(null); };
+    const onAway = () => setPos(null);
     document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
+    window.addEventListener('scroll', onAway, true);
+    window.addEventListener('resize', onAway);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', onAway, true);
+      window.removeEventListener('resize', onAway);
+    };
   }, [open]);
+
+  function toggle(e: React.MouseEvent<HTMLButtonElement>) {
+    if (open) { setPos(null); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const width = 210;
+    // Open upward when the trigger sits in the bottom stretch of the viewport, so the last
+    // rows' menus never run off the bottom edge.
+    const up = window.innerHeight - rect.bottom < 280;
+    setPos({
+      top: up ? rect.top - 6 : rect.bottom + 6,
+      left: Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8)),
+      up,
+    });
+  }
 
   return (
     <div className="bill-menu-wrap" ref={ref}>
-      <button className="btn btn-outline btn-sm" onClick={() => setOpen((o) => !o)} aria-label="More actions">{label}</button>
-      {open && <div className="bill-menu">{children(() => setOpen(false))}</div>}
+      <button className="btn btn-outline btn-sm" onClick={toggle} aria-label="More actions">{label}</button>
+      {open && (
+        <div
+          className="bill-menu"
+          style={{
+            top: pos.top,
+            left: pos.left,
+            transform: pos.up ? 'translateY(-100%)' : undefined,
+          }}
+        >
+          {children(() => setPos(null))}
+        </div>
+      )}
     </div>
   );
 }
@@ -503,16 +543,39 @@ export default function SubscriptionsPage() {
   const [methods, setMethods] = useState<PaymentMethodDto[]>([]);
   const [trainers, setTrainers] = useState<Lookup[]>([]);
 
+  // Deep link from the dashboard's renewal tile: ?endsWithinDays=N preloads the exact window the
+  // reminder emails use, so the count on the tile and the rows on this list name the same members.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialWindow = (() => {
+    const raw = Number(searchParams.get('endsWithinDays'));
+    return Number.isInteger(raw) && raw >= 0 && raw <= 60 ? raw : null;
+  })();
+  const [endWindowDays, setEndWindowDays] = useState<number | null>(initialWindow);
+
   const [search, setSearch] = useState('');
   const [planId, setPlanId] = useState<number | ''>('');
-  const [status, setStatus] = useState<SubscriptionStatus | ''>('');
+  const [status, setStatus] = useState<SubscriptionStatus | ''>(
+    initialWindow !== null ? SubscriptionStatus.Active : '');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | ''>('');
   const [startFrom, setStartFrom] = useState('');
   const [startTo, setStartTo] = useState('');
   const [expiringSoon, setExpiringSoon] = useState(false);
   const [withOutstanding, setWithOutstanding] = useState(false);
 
-  const [query, setQuery] = useState<SubscriptionQuery>({ pageNumber: 1, pageSize: 25 });
+  const [query, setQuery] = useState<SubscriptionQuery>(() => {
+    if (initialWindow === null) return { pageNumber: 1, pageSize: 25 };
+    const local = (x: Date) =>
+      `${x.getFullYear()}-${`${x.getMonth() + 1}`.padStart(2, '0')}-${`${x.getDate()}`.padStart(2, '0')}`;
+    const from = new Date();
+    const to = new Date();
+    to.setDate(to.getDate() + initialWindow);
+    return {
+      pageNumber: 1, pageSize: 25,
+      status: SubscriptionStatus.Active,
+      endFrom: local(from), endTo: local(to),
+      excludeRenewed: true,
+    };
+  });
   const [data, setData] = useState<PagedResult<SubscriptionDto> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
@@ -580,6 +643,8 @@ export default function SubscriptionsPage() {
   function resetFilters() {
     setSearch(''); setPlanId(''); setStatus(''); setPaymentStatus('');
     setStartFrom(''); setStartTo(''); setExpiringSoon(false); setWithOutstanding(false);
+    setEndWindowDays(null);
+    if (searchParams.has('endsWithinDays')) setSearchParams({}, { replace: true });
     setQuery({ pageNumber: 1, pageSize: 25 });
   }
 
@@ -711,6 +776,22 @@ export default function SubscriptionsPage() {
         {(notice || expiryResult) && (
           <div className="section-pad" style={{ paddingBottom: 0 }}>
             <Alert tone="success">{notice || expiryResult}</Alert>
+          </div>
+        )}
+        {endWindowDays !== null && (
+          <div className="section-pad" style={{ paddingBottom: 0 }}>
+            <Alert tone="info">
+              Showing active memberships ending within {endWindowDays} day{endWindowDays === 1 ? '' : 's'} —
+              the members receiving daily renewal reminder emails.
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                style={{ marginLeft: 12 }}
+                onClick={resetFilters}
+              >
+                Show all
+              </button>
+            </Alert>
           </div>
         )}
         {error ? <div className="section-pad"><ErrorAlert error={error} /></div> : null}

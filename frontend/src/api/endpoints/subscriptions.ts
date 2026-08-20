@@ -157,6 +157,7 @@ export interface SubscriptionQuery {
   onlyExpiringSoon?: boolean | '';
   expiringWithinDays?: number;
   onlyWithOutstanding?: boolean | '';
+  excludeRenewed?: boolean | '';
 }
 
 export const subscriptionsApi = {

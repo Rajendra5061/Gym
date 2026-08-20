@@ -11,8 +11,13 @@ namespace GymManagement.Api.Controllers;
 public sealed class NotificationsController : ApiControllerBase
 {
     private readonly INotificationService _notifications;
+    private readonly IExpiryReminderMailer _expiryMailer;
 
-    public NotificationsController(INotificationService notifications) => _notifications = notifications;
+    public NotificationsController(INotificationService notifications, IExpiryReminderMailer expiryMailer)
+    {
+        _notifications = notifications;
+        _expiryMailer = expiryMailer;
+    }
 
     /// <summary>Returns a filtered, paged list of notifications.</summary>
     [HttpGet]
@@ -78,4 +83,19 @@ public sealed class NotificationsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<int>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<int>>> GenerateSystemAlerts(CancellationToken ct) =>
         Success(await _notifications.GenerateSystemAlertsAsync(ct), "System alerts generated.");
+
+    /// <summary>
+    /// Sends the renewal-reminder emails that are due today, exactly as the daily scheduler
+    /// would. Idempotent per member per day — running it after the scheduled pass sends nothing.
+    /// </summary>
+    [HttpPost("send-expiry-emails")]
+    [HasPermission(Permissions.NotificationsManage)]
+    [ProducesResponseType(typeof(ApiResponse<int>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<int>>> SendExpiryEmails(CancellationToken ct)
+    {
+        var sent = await _expiryMailer.SendDueRemindersAsync(ct);
+        return Success(sent, sent > 0
+            ? $"Renewal reminders emailed to {sent} member(s)."
+            : "Nothing due — every member in the window was already reminded today, or none qualify.");
+    }
 }

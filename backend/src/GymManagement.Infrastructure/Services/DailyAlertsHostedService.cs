@@ -78,16 +78,36 @@ public sealed class DailyAlertsHostedService : BackgroundService
         }
     }
 
-    /// <summary>One generation pass. Every failure is logged and swallowed: the timer must survive.</summary>
+    /// <summary>
+    /// One generation pass: in-app alerts first, then the renewal-reminder emails. The two halves
+    /// fail independently — a broken mail provider must not stop alerts, and vice versa — and
+    /// every failure is logged and swallowed: the timer must survive.
+    /// </summary>
     private async Task RunOnceAsync(CancellationToken ct)
     {
+        using var scope = _scopeFactory.CreateScope();
+
         try
         {
-            using var scope = _scopeFactory.CreateScope();
             var notifications = scope.ServiceProvider.GetRequiredService<INotificationService>();
-
             var created = await notifications.GenerateSystemAlertsAsync(ct).ConfigureAwait(false);
             _logger.LogInformation("Daily alert run finished; {Count} notification(s) raised.", created);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return; // Host is shutting down mid-run; nothing to report.
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Daily alert generation failed; it will be retried at the next scheduled run.");
+        }
+
+        try
+        {
+            var reminders = scope.ServiceProvider.GetRequiredService<IExpiryReminderMailer>();
+            var sent = await reminders.SendDueRemindersAsync(ct).ConfigureAwait(false);
+            if (sent > 0)
+                _logger.LogInformation("Renewal reminder emails sent to {Count} member(s).", sent);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -95,7 +115,7 @@ public sealed class DailyAlertsHostedService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Daily alert generation failed; it will be retried at the next scheduled run.");
+            _logger.LogError(ex, "Renewal reminder emails failed; they will be retried at the next scheduled run.");
         }
     }
 }

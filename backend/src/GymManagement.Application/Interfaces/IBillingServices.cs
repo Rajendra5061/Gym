@@ -116,6 +116,21 @@ public interface IPaymentReceiptMailer
     Task<ReceiptEmailOutcome> SendReceiptAsync(int paymentId, CancellationToken ct = default);
 }
 
+/// <summary>
+/// Emails renewal reminders to members whose active subscription ends within the configured
+/// window (default three days), one email per member per day.
+///
+/// Runs from the daily scheduler and from an admin-triggered endpoint, so it must be safe to
+/// call any number of times: the send log's unique (member, day) row is claimed before each
+/// message goes out, and a member with no address, or whose reminder already went today, is
+/// skipped silently. Never throws for a mail failure; each member is attempted independently.
+/// </summary>
+public interface IExpiryReminderMailer
+{
+    /// <summary>Sends what is due today. Returns how many emails actually went out.</summary>
+    Task<int> SendDueRemindersAsync(CancellationToken ct = default);
+}
+
 public interface IExpenseService
 {
     Task<PagedResult<ExpenseDto>> GetPagedAsync(ExpenseQueryDto query, CancellationToken ct = default);

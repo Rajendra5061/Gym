@@ -877,6 +877,17 @@ public sealed class SubscriptionService : ISubscriptionService
 
         if (query.OnlyRenewals == true) q = q.Where(s => s.IsRenewal);
 
+        // The set the renewal-reminder emails target: expiring rows whose member holds no later
+        // Active/Pending term. Matches the mailer's own exclusion word for word.
+        if (query.ExcludeRenewed == true)
+        {
+            q = q.Where(s => !_db.Subscriptions.Any(o =>
+                o.MemberId == s.MemberId
+                && o.Id != s.Id
+                && (o.Status == SubscriptionStatus.Active || o.Status == SubscriptionStatus.Pending)
+                && o.EndDate > s.EndDate));
+        }
+
         if (query.OnlyExpiringSoon == true)
         {
             var horizon = today.AddDays(Math.Max(0, query.ExpiringWithinDays));

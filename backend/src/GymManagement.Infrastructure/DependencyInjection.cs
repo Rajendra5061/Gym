@@ -73,6 +73,14 @@ public static class InfrastructureServiceCollectionExtensions
             sp.GetRequiredService<ILoggerFactory>(),
             isDevelopment));
 
+        // Outbound SMS, same rules as email: provider from configuration, credentials never in
+        // the database, off by default, misconfiguration degrades to the null sender.
+        services.Configure<SmsOptions>(configuration.GetSection(SmsOptions.SectionName));
+        services.AddSingleton<ISmsSender>(sp => SmsSenderFactory.CreateFromOptionsAccessor(
+            () => sp.GetRequiredService<IOptions<SmsOptions>>().Value,
+            sp.GetRequiredService<ILoggerFactory>(),
+            isDevelopment));
+
         services.AddScoped<ICodeGeneratorService, CodeGeneratorService>();
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<ISettingsService, SettingsService>();
@@ -99,6 +107,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<IPaymentReceiptMailer, PaymentReceiptMailer>();
+        services.AddScoped<IExpiryReminderMailer, ExpiryReminderMailer>();
 
         // Automatic payment reconciliation. Off unless Payments:Gateway says otherwise, and the
         // signing secret is bound from configuration/environment only — never from the gym settings

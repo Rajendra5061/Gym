@@ -7,6 +7,7 @@ using GymManagement.Domain.Entities;
 using GymManagement.Domain.Enums;
 using GymManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace GymManagement.Infrastructure.Services;
@@ -142,15 +143,19 @@ public sealed class DashboardService : IDashboardService
     private readonly IAuditQueryService _auditQuery;
     private readonly ILogger<DashboardService> _logger;
 
+    private readonly IConfiguration _configuration;
+
     public DashboardService(
         GymDbContext db,
         IDateTimeProvider clock,
         ICurrentUserService currentUser,
         ISettingsService settings,
         IAuditQueryService auditQuery,
+        IConfiguration configuration,
         ILogger<DashboardService> logger)
     {
         _db = db;
+        _configuration = configuration;
         _clock = clock;
         _currentUser = currentUser;
         _settings = settings;
@@ -210,6 +215,25 @@ public sealed class DashboardService : IDashboardService
             .CountAsync(s => s.Status == SubscriptionStatus.Active
                              && s.EndDate >= today
                              && s.EndDate <= soonLimit, ct)
+            .ConfigureAwait(false);
+
+        // The email-window count uses the SAME window the reminder mailer reads, so the tile on
+        // the dashboard and the emails that went out this morning can never disagree.
+        var emailWindowDays = ExpiryReminderMailer.WindowDays(_configuration);
+        stats.ExpiryEmailWindowDays = emailWindowDays;
+        // Members with a later term already booked are covered, not due — the same exclusion
+        // the reminder mailer applies, so this tile always equals the emails that go out.
+        var windowEnd = today.AddDays(emailWindowDays);
+        stats.ExpiringInEmailWindow = await _db.Subscriptions.AsNoTracking()
+            .CountAsync(s => s.Status == SubscriptionStatus.Active
+                             && s.EndDate >= today
+                             && s.EndDate <= windowEnd
+                             && !_db.Subscriptions.Any(o =>
+                                 o.MemberId == s.MemberId
+                                 && o.Id != s.Id
+                                 && (o.Status == SubscriptionStatus.Active
+                                     || o.Status == SubscriptionStatus.Pending)
+                                 && o.EndDate > s.EndDate), ct)
             .ConfigureAwait(false);
 
         var attendanceToday = await _db.Attendance.AsNoTracking()
@@ -581,7 +605,7 @@ public sealed class DashboardService : IDashboardService
         }).ToList();
 
         // "Current" subscription = the active one with the latest end date, else the most recent
-        // by end date — the same rule the member list uses.
+        // by end date â the same rule the member list uses.
         var roster = await _db.Members.AsNoTracking()
             .Where(m => m.AssignedTrainerId == trainerId)
             .OrderBy(m => m.FullName).ThenBy(m => m.Id)

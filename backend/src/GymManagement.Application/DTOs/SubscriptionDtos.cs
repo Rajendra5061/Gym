@@ -161,6 +161,10 @@ public class SubscriptionQueryDto : PagedRequest
     public bool? OnlyExpiringSoon { get; set; }
     public int ExpiringWithinDays { get; set; } = 7;
     public bool? OnlyWithOutstanding { get; set; }
+
+    /// <summary>Drops rows whose member already holds a later Active/Pending term — i.e. shows
+    /// only memberships that will actually lapse, the set the renewal-reminder emails target.</summary>
+    public bool? ExcludeRenewed { get; set; }
     public bool IncludeDeleted { get; set; }
 }
 
