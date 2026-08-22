@@ -103,9 +103,43 @@ internal static class ReceiptPresentation
         return ("PAID IN FULL", "No balance is outstanding on this membership. Thank you.");
     }
 
+    /// <summary>
+    /// How the verdict should be coloured. Deliberately separate from <see cref="Status"/>, which
+    /// already spells the verdict out in words: this only decides a tint. Nothing may depend on it
+    /// being visible, because the printed receipt still has to survive a greyscale printer.
+    /// </summary>
+    public static ReceiptTone Tone(PaymentReceiptDto receipt)
+    {
+        var status = (receipt.StatusText ?? string.Empty).Trim();
+
+        if (status.Equals("Refunded", StringComparison.OrdinalIgnoreCase)
+            || status.Equals("PartiallyRefunded", StringComparison.OrdinalIgnoreCase))
+            return ReceiptTone.Refunded;
+
+        if (!status.Equals("Paid", StringComparison.OrdinalIgnoreCase))
+            return ReceiptTone.Pending;
+
+        return receipt.OutstandingAmount > 0m ? ReceiptTone.Pending : ReceiptTone.Paid;
+    }
+
     /// <summary>Joins the parts that are actually present, so no separator is ever left dangling.</summary>
     public static string Join(string separator, params string?[] parts) =>
         string.Join(separator, parts.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p!.Trim()));
 
     public static string OrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "—" : value.Trim();
+}
+
+/// <summary>
+/// Which of the three verdicts a receipt carries, for tinting only. The words always say it too.
+/// </summary>
+internal enum ReceiptTone
+{
+    /// <summary>Settled in full.</summary>
+    Paid = 0,
+
+    /// <summary>A balance remains, or the payment is not yet confirmed.</summary>
+    Pending = 1,
+
+    /// <summary>Refunded in whole or in part.</summary>
+    Refunded = 2,
 }

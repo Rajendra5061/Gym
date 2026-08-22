@@ -17,9 +17,24 @@ import {
 import { memberApi, optional } from '@/api/endpoints/member';
 import type { MemberDetailDto } from '@/api/endpoints/member';
 import { useAuth } from '@/auth/AuthContext';
+import { QrCode } from '@/components/QrCode';
 import { date, initials } from '@/lib/format';
 import { Gender, MemberStatus } from '@/api/types';
 import './member.css';
+
+/**
+ * MECARD so a phone scan saves the member as a contact; the member code rides in the note, which
+ * is the part the front desk actually reads off the screen. Separator characters are stripped
+ * rather than escaped — a stray semicolon would end the field early and truncate the card.
+ */
+function memberPayload(code: string, fullName: string, phone?: string | null, org?: string | null) {
+  const clean = (value: string) => value.replace(/[;\\]/g, ' ').trim();
+  const parts = [`N:${clean(fullName)};`];
+  if (phone) parts.push(`TEL:${clean(phone)};`);
+  if (org) parts.push(`ORG:${clean(org)};`);
+  parts.push(`NOTE:Member ${clean(code)};`);
+  return `MECARD:${parts.join('')};`;
+}
 
 const GENDERS: Record<number, string> = {
   [Gender.Unspecified]: 'Not specified',
@@ -45,7 +60,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export default function MyProfilePage() {
-  const { user } = useAuth();
+  const { user, gym } = useAuth();
   const memberId = user?.memberId ?? null;
 
   const [member, setMember] = useState<MemberDetailDto | null>(null);
@@ -136,11 +151,29 @@ export default function MyProfilePage() {
             <EmptyState icon={<IconUser size={34} />} title="Profile unavailable" />
           ) : (
             <div className="member-panes">
+
               {/* ------------------------------------------------- summary */}
               <div className="page-card profile-summary" style={{ marginTop: 0 }}>
                 <div className="m-avatar-xl">{initials(member.fullName)}</div>
                 <div className="profile-name">{member.fullName}</div>
                 <div className="profile-username">@{user?.userName}</div>
+
+                <div className="prof-chips">
+                  <span className="prof-chip">{member.memberCode}</span>
+                  <span className="prof-chip">{STATUSES[member.status] ?? "Member"}</span>
+                </div>
+
+                {/* The membership QR, centred under the name: this card is the member's ID, and
+                    the code is the thing they hold up at the desk. */}
+                <div className="prof-qr">
+                  <div className="prof-qr-tile">
+                    <QrCode
+                      text={memberPayload(member.memberCode, member.fullName, member.phone, gym?.gymName)}
+                      title={`Membership QR code for ${member.fullName}`}
+                    />
+                  </div>
+                  <div className="prof-qr-hint">Show this at the front desk</div>
+                </div>
 
                 <div className="m-quick-info">
                   <div className="m-quick-info-heading">Quick Info</div>

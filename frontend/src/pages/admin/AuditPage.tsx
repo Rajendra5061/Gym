@@ -335,7 +335,7 @@ export default function AuditPage() {
                     <td><StatusPill status={row.resultText} /></td>
                     <td>{row.failureReason || '—'}</td>
                     <td className="muted">{row.ipAddress || '—'}</td>
-                    <td className="muted" style={{ maxWidth: 280 }}>{row.deviceInfo || '—'}</td>
+                    <td className="muted"><span className="cell-clip" style={{ maxWidth: 280 }}>{row.deviceInfo || '—'}</span></td>
                   </tr>
                 ))}
               </tbody>

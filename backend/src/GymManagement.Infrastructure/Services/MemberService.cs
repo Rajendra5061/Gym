@@ -178,6 +178,8 @@ public sealed class MemberService : IMemberService
             m.JoiningDate,
             m.Status,
             m.ProfilePhotoPath,
+            m.WishesOptOut,
+            m.WhatsAppOptOut,
             TrainerName = m.AssignedTrainer != null ? m.AssignedTrainer.FullName : null,
             CurrentPlanName = m.Subscriptions
                 .OrderByDescending(s => s.Status == SubscriptionStatus.Active)
@@ -238,6 +240,8 @@ public sealed class MemberService : IMemberService
                 JoiningDate = x.JoiningDate,
                 Status = x.Status,
                 ProfilePhotoPath = x.ProfilePhotoPath,
+                WishesOptOut = x.WishesOptOut,
+                WhatsAppOptOut = x.WhatsAppOptOut,
                 AssignedTrainerName = x.TrainerName,
                 CurrentPlanName = x.CurrentPlanName,
                 SubscriptionEndDate = x.CurrentEndDate,
@@ -441,7 +445,9 @@ public sealed class MemberService : IMemberService
             WeightKg = dto.WeightKg,
             Status = MemberStatus.Active,
             Notes = dto.Notes,
-            AssignedTrainerId = dto.AssignedTrainerId
+            AssignedTrainerId = dto.AssignedTrainerId,
+            WishesOptOut = dto.WishesOptOut,
+            WhatsAppOptOut = dto.WhatsAppOptOut
         };
 
         TemporaryPasswordDto? account = null;
@@ -548,6 +554,8 @@ public sealed class MemberService : IMemberService
         member.Status = dto.Status;
         member.Notes = dto.Notes;
         member.AssignedTrainerId = dto.AssignedTrainerId;
+        member.WishesOptOut = dto.WishesOptOut;
+        member.WhatsAppOptOut = dto.WhatsAppOptOut;
 
         await _db.SaveChangesAsync(ct).ConfigureAwait(false);
 
@@ -1141,6 +1149,8 @@ public sealed class MemberService : IMemberService
             AssignedTrainerId = m.AssignedTrainerId,
             AssignedTrainerName = row.TrainerName,
             HasUserAccount = row.HasUserAccount,
+            WishesOptOut = m.WishesOptOut,
+            WhatsAppOptOut = m.WhatsAppOptOut,
             CreatedAt = m.CreatedAt,
             UpdatedAt = m.UpdatedAt,
             ActiveSubscription = active,
@@ -1328,6 +1338,8 @@ public sealed class MemberService : IMemberService
         m.WeightKg,
         m.Status,
         m.Notes,
-        m.AssignedTrainerId
+        m.AssignedTrainerId,
+        m.WishesOptOut,
+        m.WhatsAppOptOut
     };
 }

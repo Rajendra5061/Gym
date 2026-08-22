@@ -448,6 +448,8 @@ public sealed class DashboardService : IDashboardService
             LastVisit = row.LastVisit
         };
 
+        dto.AttendanceInsights = await LoadAttendanceInsightsAsync(memberId, today, ct).ConfigureAwait(false);
+
         dto.RecentAttendance = await _db.Attendance.AsNoTracking()
             .Where(a => a.MemberId == memberId)
             .OrderByDescending(a => a.CheckInTime).ThenByDescending(a => a.Id)
@@ -474,6 +476,70 @@ public sealed class DashboardService : IDashboardService
         dto.AttendanceTrend = await AttendanceTrendAsync(memberId, today, tomorrow, ct).ConfigureAwait(false);
 
         return dto;
+    }
+
+    /// <summary>Five sessions a week: the common "weekday training" cadence the goal ring shows.</summary>
+    private const int WeeklyTargetDays = 5;
+
+    private async Task<AttendanceInsightsDto> LoadAttendanceInsightsAsync(
+        int memberId, DateTime today, CancellationToken ct)
+    {
+        // Distinct calendar days only — a triple check-in day is still one training day.
+        var allDays = await _db.Attendance.AsNoTracking()
+            .Where(a => a.MemberId == memberId)
+            .Select(a => a.AttendanceDate.Date)
+            .Distinct()
+            .OrderBy(d => d)
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        var (current, best) = ComputeStreaks(allDays, today);
+
+        // Monday-based week, matching how training plans are written.
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        var monthAgo = today.AddDays(-29);
+        var stripStart = today.AddDays(-83); // 12 weeks including today
+
+        return new AttendanceInsightsDto
+        {
+            CurrentStreakDays = current,
+            BestStreakDays = best,
+            VisitsThisWeek = allDays.Count(d => d >= weekStart && d <= today),
+            WeeklyTargetDays = WeeklyTargetDays,
+            ActiveDaysLast30 = allDays.Count(d => d >= monthAgo && d <= today),
+            ActiveDays = allDays.Where(d => d >= stripStart && d <= today).ToList(),
+        };
+    }
+
+    /// <summary>
+    /// Streaks over a sorted list of distinct visit dates. The current streak runs through
+    /// today or through yesterday — today only breaks it once it has fully passed without a
+    /// visit, so a member who trains in the evening is not told at breakfast they lost it.
+    /// </summary>
+    public static (int Current, int Best) ComputeStreaks(IReadOnlyList<DateTime> sortedDays, DateTime today)
+    {
+        if (sortedDays.Count == 0) return (0, 0);
+
+        var best = 1;
+        var run = 1;
+        for (var i = 1; i < sortedDays.Count; i++)
+        {
+            run = (sortedDays[i] - sortedDays[i - 1]).Days == 1 ? run + 1 : 1;
+            if (run > best) best = run;
+        }
+
+        var last = sortedDays[^1];
+        var current = 0;
+        if (last == today.Date || last == today.Date.AddDays(-1))
+        {
+            current = 1;
+            for (var i = sortedDays.Count - 1; i > 0; i--)
+            {
+                if ((sortedDays[i] - sortedDays[i - 1]).Days != 1) break;
+                current++;
+            }
+        }
+
+        return (current, best);
     }
 
     private async Task<MemberWorkoutPlanDto?> LoadActiveWorkoutPlanAsync(int memberId, CancellationToken ct)

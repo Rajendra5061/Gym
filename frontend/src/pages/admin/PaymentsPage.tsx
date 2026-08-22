@@ -257,7 +257,12 @@ function PaymentsTab(
                   <td className="fit"><StatusPill status={row.statusText} /></td>
                   <td>
                     {row.notes
-                      ? <span className="cell-icon"><IconMessage size={14} />{row.notes}</span>
+                      ? (
+                        <span className="cell-icon" title={row.notes}>
+                          <IconMessage size={14} />
+                          <span className="cell-clip" style={{ maxWidth: 260 }}>{row.notes}</span>
+                        </span>
+                      )
                       : <span className="muted">—</span>}
                   </td>
                   <td className="actions">

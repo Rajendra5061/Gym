@@ -22,6 +22,7 @@ import {
 } from '@/api/endpoints/members';
 import type { MemberListDto, PagedResult } from '@/api/types';
 import { date, isoDate } from '@/lib/format';
+import { prefersReducedMotion } from '@/lib/motion';
 import './trainer.css';
 
 /* ------------------------------------------------------------- measurement modal */
@@ -159,7 +160,7 @@ function ProgressChart({ title, points, color }: {
                 borderRadius: 8, fontSize: 13, color: 'var(--text)',
               }}
             />
-            <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} dot={{ r: 3 }} />
+            <Line isAnimationActive={!prefersReducedMotion} type="monotone" dataKey="value" stroke={color} strokeWidth={2} dot={{ r: 3 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>

@@ -79,9 +79,10 @@ public sealed class DailyAlertsHostedService : BackgroundService
     }
 
     /// <summary>
-    /// One generation pass: in-app alerts first, then the renewal-reminder emails. The two halves
-    /// fail independently — a broken mail provider must not stop alerts, and vice versa — and
-    /// every failure is logged and swallowed: the timer must survive.
+    /// One generation pass: in-app alerts, then the renewal-reminder emails, then the day's
+    /// birthday and festival wishes. The halves fail independently — a broken mail provider must
+    /// not stop alerts, and vice versa — and every failure is logged and swallowed: the timer
+    /// must survive.
     /// </summary>
     private async Task RunOnceAsync(CancellationToken ct)
     {
@@ -116,6 +117,22 @@ public sealed class DailyAlertsHostedService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Renewal reminder emails failed; they will be retried at the next scheduled run.");
+        }
+
+        try
+        {
+            var wishes = scope.ServiceProvider.GetRequiredService<IWishesDispatcher>();
+            var wished = await wishes.SendTodaysWishesAsync(ct).ConfigureAwait(false);
+            if (wished > 0)
+                _logger.LogInformation("Birthday/festival wishes sent to {Count} member(s).", wished);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Host is shutting down mid-run; nothing to report.
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Birthday/festival wishes failed; they will be retried at the next scheduled run.");
         }
     }
 }

@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Net;
+using System.Security.Cryptography;
 using GymManagement.Application.Common;
 using GymManagement.Application.Interfaces;
 using GymManagement.Domain.Entities;
@@ -94,7 +96,9 @@ public sealed class ExpiryReminderMailer : IExpiryReminderMailer
                 .Select(s => new DueRow(
                     s.MemberId, s.Id, s.Member!.FullName, s.Member.Email, s.Member.Phone,
                     s.MembershipPlan != null ? s.MembershipPlan.Name : "membership",
-                    s.EndDate))
+                    s.EndDate,
+                    s.MembershipPlan != null ? s.MembershipPlan.Price : 0m,
+                    s.FinalAmount - s.PaidAmount))
                 .ToListAsync(ct)
                 .ConfigureAwait(false);
         }
@@ -114,6 +118,21 @@ public sealed class ExpiryReminderMailer : IExpiryReminderMailer
         var sentToday = alreadySent.ToHashSet();
 
         var gymName = await ResolveGymNameAsync(ct).ConfigureAwait(false);
+
+        // When the gym has a UPI id, every reminder carries a personal tap-to-pay link, so
+        // the member can renew from the message itself instead of walking to the front desk.
+        var upiReady = false;
+        try
+        {
+            var gym = await _settings.GetGymSettingsAsync(ct).ConfigureAwait(false);
+            upiReady = !string.IsNullOrWhiteSpace(gym.UpiId);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogDebug(ex, "Gym settings unavailable; reminders go out without pay links.");
+        }
+        var payBaseUrl = (_configuration["App:PublicBaseUrl"] ?? "http://localhost:5175").TrimEnd('/');
+
         var sent = 0;
 
         foreach (var row in due)
@@ -124,18 +143,32 @@ public sealed class ExpiryReminderMailer : IExpiryReminderMailer
 
             try
             {
+                var payLink = upiReady
+                    ? await TryCreatePayLinkAsync(row, payBaseUrl, ct).ConfigureAwait(false)
+                    : null;
+
                 // Each channel is attempted independently; either one succeeding claims the
                 // member's day so tomorrow brings the next reminder, not a repeat of today's.
                 var emailed = false;
                 if (_email.IsEnabled && !string.IsNullOrWhiteSpace(row.Email))
                 {
-                    var result = await _email
-                        .SendAsync(BuildMessage(row, gymName, daysLeft), ct)
-                        .ConfigureAwait(false);
-                    emailed = result.WasSent;
-                    if (!emailed)
-                        _logger.LogDebug("Reminder email for member {MemberId} skipped: {Reason}",
-                            row.MemberId, result.Detail);
+                    try
+                    {
+                        var result = await _email
+                            .SendAsync(BuildMessage(row, gymName, daysLeft, payLink), ct)
+                            .ConfigureAwait(false);
+                        emailed = result.WasSent;
+                        if (!emailed)
+                            _logger.LogDebug("Reminder email for member {MemberId} skipped: {Reason}",
+                                row.MemberId, result.Detail);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        // A relay that rejects this address must not cost the member their SMS —
+                        // the channels fail independently, in both directions.
+                        _logger.LogWarning(ex,
+                            "Reminder email to member {MemberId} failed; trying SMS.", row.MemberId);
+                    }
                 }
 
                 var texted = false;
@@ -144,7 +177,7 @@ public sealed class ExpiryReminderMailer : IExpiryReminderMailer
                     try
                     {
                         var result = await _sms
-                            .SendAsync(BuildSms(row, gymName, daysLeft), ct)
+                            .SendAsync(BuildSms(row, gymName, daysLeft, payLink), ct)
                             .ConfigureAwait(false);
                         texted = result.WasSent;
                         if (!texted)
@@ -216,11 +249,58 @@ public sealed class ExpiryReminderMailer : IExpiryReminderMailer
         }
     }
 
+    /// <summary>How long a reminder's tap-to-pay link keeps working — the whole final window and then some.</summary>
+    private const int PayLinkValidDays = 7;
+
+    /// <summary>
+    /// Creates this member's personal pay link for the day: the renewal price of the expiring
+    /// plan, or the subscription's own unpaid balance when one exists. Never throws — a failed
+    /// link just means the reminder goes out the way it always did, front-desk wording and all.
+    /// </summary>
+    private async Task<string?> TryCreatePayLinkAsync(DueRow row, string baseUrl, CancellationToken ct)
+    {
+        try
+        {
+            var dueBalance = Math.Max(0m, row.Outstanding);
+            var amount = dueBalance > 0m ? dueBalance : row.PlanPrice;
+            if (amount <= 0m) return null;
+
+            var token = string.Create(16, RandomNumberGenerator.GetBytes(16), static (span, bytes) =>
+            {
+                const string alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
+                for (var i = 0; i < span.Length; i++) span[i] = alphabet[bytes[i] % alphabet.Length];
+            });
+
+            _db.PaymentRequests.Add(new PaymentRequest
+            {
+                Token = token,
+                MemberId = row.MemberId,
+                // A due balance binds to its subscription; a renewal is a fresh term, so it doesn't.
+                SubscriptionId = dueBalance > 0m ? row.SubscriptionId : null,
+                Amount = decimal.Round(amount, 2, MidpointRounding.AwayFromZero),
+                Note = dueBalance > 0m ? $"{row.PlanName} payment due" : $"{row.PlanName} renewal",
+                Reference = $"UPI{DateTime.UtcNow:yyyyMMddHHmmss}" +
+                            RandomNumberGenerator.GetInt32(0, 10_000).ToString("0000", CultureInfo.InvariantCulture),
+                ExpiresAtUtc = DateTime.UtcNow.AddDays(PayLinkValidDays),
+            });
+            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+            return $"{baseUrl}/pay/{token}";
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Pay link for member {MemberId} could not be created; reminding without it.",
+                row.MemberId);
+            _db.ChangeTracker.Clear();
+            return null;
+        }
+    }
+
     /// <summary>
     /// The text message: one SMS segment's worth, no marketing. Gateways bill per 160-character
     /// segment and clip long bodies, so the essentials only — who, what ends, when, what to do.
     /// </summary>
-    private static SmsMessage BuildSms(DueRow row, string gymName, int daysLeft)
+    private static SmsMessage BuildSms(DueRow row, string gymName, int daysLeft, string? payLink)
     {
         var when = daysLeft switch
         {
@@ -229,11 +309,15 @@ public sealed class ExpiryReminderMailer : IExpiryReminderMailer
             _ => $"in {daysLeft} days",
         };
 
+        var action = payLink is null
+            ? "Renew at the front desk to keep training."
+            : $"Tap to renew & pay by UPI: {payLink}";
+
         return new SmsMessage
         {
             To = row.Phone!,
             Text = $"Hi {FirstWord(row.MemberName)}, your {row.PlanName} membership at {gymName} " +
-                   $"ends {when} ({row.EndDate:dd MMM}). Renew at the front desk to keep training. " +
+                   $"ends {when} ({row.EndDate:dd MMM}). {action} " +
                    $"- {gymName}",
         };
     }
@@ -246,7 +330,7 @@ public sealed class ExpiryReminderMailer : IExpiryReminderMailer
         return space < 0 ? trimmed : trimmed[..space];
     }
 
-    private static EmailMessage BuildMessage(DueRow row, string gymName, int daysLeft)
+    private static EmailMessage BuildMessage(DueRow row, string gymName, int daysLeft, string? payLink)
     {
         var when = daysLeft switch
         {
@@ -259,17 +343,30 @@ public sealed class ExpiryReminderMailer : IExpiryReminderMailer
 
         string E(string? v) => WebUtility.HtmlEncode(v ?? string.Empty);
 
+        var payHtml = payLink is null
+            ? "<p style=\"margin:0 0 14px\">Renew at the front desk before it lapses and your training " +
+              "carries straight on — no rejoining, no new paperwork.</p>"
+            : $"<p style=\"margin:0 0 18px\"><a href=\"{payLink}\" style=\"display:inline-block;" +
+              "background:#4f46e5;color:#ffffff;font-weight:600;text-decoration:none;" +
+              "padding:12px 26px;border-radius:10px\">Renew &amp; pay by UPI</a></p>" +
+              "<p style=\"margin:0 0 14px;color:#6b7280;font-size:13px\">The link opens on your phone and " +
+              "hands the payment to PhonePe, Google Pay, Paytm or any UPI app you choose. " +
+              $"If the button does not work: {payLink}</p>";
+
         var html =
             "<div style=\"font-family:Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;" +
             "color:#1f2933;max-width:560px\">" +
             $"<p style=\"margin:0 0 14px;font-size:17px;font-weight:600\">Hi {E(row.MemberName)},</p>" +
             $"<p style=\"margin:0 0 14px\">Your <strong>{E(row.PlanName)}</strong> membership at {E(gymName)} " +
             $"ends <strong>{E(when)}</strong>, on {E(endText)}.</p>" +
-            "<p style=\"margin:0 0 14px\">Renew at the front desk before it lapses and your training " +
-            "carries straight on — no rejoining, no new paperwork.</p>" +
+            payHtml +
             $"<p style=\"margin:0;color:#6b7280;font-size:13px\">{E(gymName)} · This reminder is sent daily " +
             "over the final days of a membership.</p>" +
             "</div>";
+
+        var payText = payLink is null
+            ? "Renew at the front desk before it lapses and your training carries straight on —\nno rejoining, no new paperwork."
+            : $"Renew & pay by UPI (opens PhonePe / Google Pay / Paytm or any UPI app):\n{payLink}";
 
         var text = string.Join('\n', new[]
         {
@@ -277,15 +374,14 @@ public sealed class ExpiryReminderMailer : IExpiryReminderMailer
             "",
             $"Your {row.PlanName} membership at {gymName} ends {when}, on {endText}.",
             "",
-            "Renew at the front desk before it lapses and your training carries straight on —",
-            "no rejoining, no new paperwork.",
+            payText,
             "",
             $"{gymName} · This reminder is sent daily over the final days of a membership.",
         });
 
         return new EmailMessage
         {
-            To = { row.Email },
+            To = { row.Email! },
             Subject = subject,
             HtmlBody = html,
             TextBody = text,
@@ -294,5 +390,5 @@ public sealed class ExpiryReminderMailer : IExpiryReminderMailer
 
     private sealed record DueRow(
         int MemberId, int SubscriptionId, string MemberName, string? Email, string? Phone,
-        string PlanName, DateTime EndDate);
+        string PlanName, DateTime EndDate, decimal PlanPrice, decimal Outstanding);
 }

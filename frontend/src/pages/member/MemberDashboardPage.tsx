@@ -15,14 +15,237 @@ import {
 } from '@/components/ui';
 import {
   IconBell, IconCalendar, IconCard, IconChart, IconCheckSquare, IconCrown, IconDumbbell,
-  IconMoney, IconUser, IconWarning,
+  IconFlame, IconMoney, IconUser, IconWarning,
 } from '@/components/icons';
 import { memberApi, optional } from '@/api/endpoints/member';
 import type { MemberDashboardDto } from '@/api/endpoints/member';
 import { severityKey } from '@/api/endpoints/notifications';
 import { useAuth } from '@/auth/AuthContext';
 import { date, initials, money, relativeTime, time } from '@/lib/format';
+import { prefersReducedMotion } from '@/lib/motion';
 import './member.css';
+
+/** Midnight-normalised ISO key, so a Set of visit days can be probed per calendar date. */
+function dayKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+/**
+ * Training consistency: the streak, the week's goal and a 12-week activity strip. All of it
+ * reads from the day-level insights the dashboard endpoint computes — one visit per day
+ * counts, however many times the member passed the front desk.
+ */
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function ConsistencyCard({ insights }: { insights: MemberDashboardDto['attendanceInsights'] }) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const visited = useMemo(
+    () => new Set(insights.activeDays.map((d) => dayKey(new Date(d)))),
+    [insights.activeDays],
+  );
+
+  // The strip: 12 columns of Monday-first weeks, the rightmost being the CURRENT week —
+  // anchored on this week's Monday and walked back 11 weeks, so today is always on screen.
+  const stripStart = useMemo(() => {
+    const start = new Date(today);
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7) - 77);
+    return start;
+  }, [today]);
+
+  const weeks = useMemo(() => Array.from({ length: 12 }, (_, w) =>
+    Array.from({ length: 7 }, (_, r) => {
+      const d = new Date(stripStart);
+      d.setDate(d.getDate() + w * 7 + r);
+      return d;
+    })), [stripStart]);
+
+  // This week's Monday-first day dots.
+  const weekDays = useMemo(() => {
+    const monday = new Date(today);
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  }, [today]);
+
+  const goalDone = Math.min(insights.visitsThisWeek, insights.weeklyTargetDays);
+  // ~5 sessions a week over 30 days is 21 training days — the consistency yardstick.
+  const monthTarget = Math.round((insights.weeklyTargetDays / 7) * 30);
+  const consistency = Math.min(100, Math.round((insights.activeDaysLast30 / monthTarget) * 100));
+  const streak = insights.currentStreakDays;
+  const streakAlive = streak > 0;
+  const visitedToday = visited.has(dayKey(today));
+  const weekLeft = insights.weeklyTargetDays - goalDone;
+
+  // The coach line: always encouraging, always about the very next step.
+  const coach = !streakAlive
+    ? 'No streak right now — and today is the perfect day to start one. One check-in lights the flame.'
+    : visitedToday
+      ? `${streak} day${streak === 1 ? '' : 's'} straight — brilliant work. Come back tomorrow and the flame keeps burning.`
+      : `Your ${streak}-day streak is still alive. Check in today to keep it burning!`;
+
+  // Distinct training days inside the strip window — the headline number above the grid.
+  const countDays = (cols: Date[][]) =>
+    cols.flat().filter((d) => d <= today && visited.has(dayKey(d))).length;
+  const stripDays = useMemo(() => countDays(weeks), [weeks, visited, today]);
+  /* A phone only draws the last six columns, so it needs its own total — quoting the 12-week
+     figure over a 6-week grid would have the header contradicting the picture under it. */
+  const stripDaysShort = useMemo(() => countDays(weeks.slice(6)), [weeks, visited, today]);
+
+  // Streak badges: reached ones glow, the next one shows how close it is.
+  const MILESTONES = [3, 7, 14, 30, 60];
+  const nextMilestone = MILESTONES.find((m) => m > streak);
+
+  return (
+    <PageCard>
+      <PageCardHeader
+        icon={<IconFlame size={20} />}
+        title="Consistency & Streaks"
+        subtitle="Show up, keep the chain alive — one visit a day is all it takes."
+      />
+      <div className="page-card-body">
+        {/* ------------------------------------------------------ the coach */}
+        <div className={`m-coach ${streakAlive ? 'alive' : ''}`}>
+          <span className="m-coach-icon"><IconFlame size={17} /></span>
+          <span>{coach}</span>
+        </div>
+
+        <div className="m-streak-grid">
+          {/* --------------------------------------------------- the streak */}
+          <div className={`m-streak-hero ${streakAlive ? 'alive' : ''}`}>
+            <div className="m-streak-flame"><IconFlame size={30} /></div>
+            <div className="m-streak-count">{streak}</div>
+            <div className="m-streak-label">day streak</div>
+            <div className="m-streak-best">
+              {streakAlive
+                ? <>Best ever: <b>{insights.bestStreakDays}</b> day{insights.bestStreakDays === 1 ? '' : 's'}</>
+                : 'Visit today to light it'}
+            </div>
+          </div>
+
+          {/* ------------------------------------------------- weekly goal */}
+          <div className="m-streak-panel">
+            <div className="m-streak-panel-title">Your week</div>
+            <div className="m-week-dots">
+              {weekDays.map((d) => {
+                const done = visited.has(dayKey(d));
+                const isToday = dayKey(d) === dayKey(today);
+                const future = d > today;
+                return (
+                  <span key={d.toISOString()} className={`m-week-dot ${done ? 'done' : ''} ${isToday ? 'today' : ''} ${future ? 'future' : ''}`}>
+                    {'MTWTFSS'[(d.getDay() + 6) % 7]}
+                  </span>
+                );
+              })}
+            </div>
+            <div className="m-streak-panel-value">
+              {goalDone} <span>of {insights.weeklyTargetDays} sessions</span>
+            </div>
+            <div className="m-goal-track" role="img"
+              aria-label={`${goalDone} of ${insights.weeklyTargetDays} sessions this week`}>
+              <div className="m-goal-fill" style={{ width: `${(goalDone / insights.weeklyTargetDays) * 100}%` }} />
+            </div>
+            <div className={`m-streak-panel-sub ${weekLeft <= 0 ? 'm-goal-met' : ''}`}>
+              {weekLeft <= 0
+                ? 'Weekly goal smashed — strong week!'
+                : `${weekLeft} more session${weekLeft === 1 ? '' : 's'} to hit your week.`}
+            </div>
+          </div>
+
+          {/* ------------------------------------------------- performance */}
+          <div className="m-streak-panel">
+            <div className="m-streak-panel-title">Last 30 days</div>
+            <div className="m-streak-panel-value">
+              {consistency}% <span>consistency</span>
+            </div>
+            <div className="m-streak-panel-sub">
+              {insights.activeDaysLast30} training day{insights.activeDaysLast30 === 1 ? '' : 's'} of a {monthTarget}-day goal
+            </div>
+            <div className="m-goal-track" role="img" aria-label={`${consistency}% consistency`}>
+              <div className="m-goal-fill" style={{ width: `${consistency}%` }} />
+            </div>
+          </div>
+        </div>
+
+        {/* ------------------------------------------------ streak badges */}
+        <div className="m-badges">
+          {MILESTONES.map((m) => {
+            const earned = insights.bestStreakDays >= m;
+            const isNext = m === nextMilestone;
+            return (
+              <span key={m} className={`m-badge ${earned ? 'earned' : ''} ${isNext ? 'next' : ''}`}>
+                <IconFlame size={13} /> {m}-day
+                {isNext && <em>{m - streak} to go</em>}
+              </span>
+            );
+          })}
+        </div>
+
+        {/* ------------------------------------------------ 12-week strip */}
+        <div className="m-heat">
+          <div className="m-heat-head">
+            <span className="m-heat-title">
+                <span className="m-heat-full">Last 12 weeks</span>
+                <span className="m-heat-short">Last 6 weeks</span>
+              </span>
+            <span className="m-heat-count">
+              <b><span className="m-heat-full">{stripDays}</span><span className="m-heat-short">{stripDaysShort}</span></b> gym days
+            </span>
+          </div>
+
+          <div className="m-heat-frame">
+            {/* Month labels ride above the column their month starts in, so twelve weeks of
+                squares still say when. */}
+            <div className="m-heat-months" aria-hidden="true">
+              <span className="m-heat-daygutter" />
+              {weeks.map((week, i) => {
+                const prev = i === 0 ? null : weeks[i - 1][0];
+                const showLabel = !prev || prev.getMonth() !== week[0].getMonth();
+                return (
+                  <span className="m-heat-month" key={week[0].toISOString()}>
+                    {showLabel ? MONTHS[week[0].getMonth()] : ''}
+                  </span>
+                );
+              })}
+            </div>
+
+            <div className="m-heat-grid" role="img" aria-label={`Training days over the last 12 weeks: ${stripDays} gym days`}>
+              <div className="m-heat-days" aria-hidden="true">
+                {['M', '', 'W', '', 'F', '', 'S'].map((l, i) => <span key={i}>{l}</span>)}
+              </div>
+              {weeks.map((week) => (
+                <div key={week[0].toISOString()} className="m-heat-col">
+                  {week.map((d) => {
+                    const future = d > today;
+                    const done = visited.has(dayKey(d));
+                    const isToday = dayKey(d) === dayKey(today);
+                    return (
+                      <span
+                        key={d.toISOString()}
+                        title={`${date(d.toISOString())}${done ? ' — trained' : future ? '' : ' — rest day'}`}
+                        className={`m-heat-cell ${done ? 'done' : ''} ${isToday ? 'today' : ''} ${future ? 'future' : ''}`}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="m-heat-legend">
+            <span><span className="m-heat-full">12 weeks ago</span><span className="m-heat-short">6 weeks ago</span></span>
+            <span className="m-heat-key"><i className="m-heat-cell" /> rest <i className="m-heat-cell done" /> gym day</span>
+            <span>today</span>
+          </div>
+        </div>
+      </div>
+    </PageCard>
+  );
+}
 
 export default function MemberDashboardPage() {
   const { user, currency } = useAuth();
@@ -154,6 +377,9 @@ export default function MemberDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ------------------------------------------------ streaks & goals */}
+      <ConsistencyCard insights={data.attendanceInsights} />
 
       {/* ----------------------------------------------------- quick actions */}
       <PageCard>
@@ -321,6 +547,7 @@ export default function MemberDashboardPage() {
                     formatter={(value: number) => [`${value} visit${value === 1 ? '' : 's'}`, 'Visits']}
                   />
                   <Line
+                    isAnimationActive={!prefersReducedMotion}
                     type="monotone"
                     dataKey="visits"
                     stroke="var(--chart-1)"

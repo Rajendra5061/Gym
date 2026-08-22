@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Linq.Expressions;
 using System.Security.Cryptography;
 using GymManagement.Application.Common;
@@ -11,6 +12,7 @@ using GymManagement.Infrastructure.Common;
 using GymManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace GymManagement.Infrastructure.Services;
@@ -73,6 +75,21 @@ public sealed class PaymentService : IPaymentService
     /// </summary>
     private readonly IPaymentGatewayConfiguration? _gateway;
 
+    /// <summary>Optional for the same reason as the gateway: tests construct the service without
+    /// them, and a null degrades to "the operator shares the link by hand".</summary>
+    private readonly ISmsSender? _sms;
+    private readonly IEmailSender? _email;
+    private readonly IConfiguration? _configuration;
+    private readonly IMemberNotifier? _memberNotifier;
+
+    /// <summary>Optional like the rest. A null (or disabled) client means no gateway order is
+    /// created and a pay link degrades to the static UPI collection it always was.</summary>
+    private readonly IPaymentGatewayClient? _gatewayClient;
+
+    /// <summary>Optional: settling a RENEWAL pay link needs to sell the next term. A null leaves
+    /// the settled money Paid-but-unattached, loudly logged for staff to apply by hand.</summary>
+    private readonly ISubscriptionService? _subscriptions;
+
     public PaymentService(
         GymDbContext db,
         ICodeGeneratorService codes,
@@ -84,9 +101,21 @@ public sealed class PaymentService : IPaymentService
         IPdfExportService pdf,
         IPaymentReceiptMailer receiptMailer,
         ILogger<PaymentService> logger,
-        IPaymentGatewayConfiguration? gateway = null)
+        IPaymentGatewayConfiguration? gateway = null,
+        ISmsSender? sms = null,
+        IConfiguration? configuration = null,
+        IEmailSender? email = null,
+        IMemberNotifier? memberNotifier = null,
+        IPaymentGatewayClient? gatewayClient = null,
+        ISubscriptionService? subscriptions = null)
     {
         _gateway = gateway;
+        _sms = sms;
+        _email = email;
+        _configuration = configuration;
+        _memberNotifier = memberNotifier;
+        _gatewayClient = gatewayClient;
+        _subscriptions = subscriptions;
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _codes = codes ?? throw new ArgumentNullException(nameof(codes));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
@@ -442,6 +471,21 @@ public sealed class PaymentService : IPaymentService
     /// </summary>
     private async Task<DateTime?> SendReceiptEmailAsync(int paymentId, CancellationToken ct)
     {
+        // The direct member message (WhatsApp welcome/renewal confirmation) rides the same
+        // after-commit moment as the receipt email. Both promise never to throw, and both are
+        // wrapped anyway — a successful collection must never come back as a failed request.
+        if (_memberNotifier is not null)
+        {
+            try
+            {
+                await _memberNotifier.NotifyPaymentAsync(paymentId, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Member payment notification for payment {PaymentId} failed.", paymentId);
+            }
+        }
+
         try
         {
             var outcome = await _receiptMailer.SendReceiptAsync(paymentId, ct).ConfigureAwait(false);
@@ -761,6 +805,11 @@ public sealed class PaymentService : IPaymentService
         // payment — the send-once guard makes a later manual confirmation a no-op.
         await SendReceiptEmailAsync(payment.Id, ct).ConfigureAwait(false);
 
+        // The pay-by-link after-story: mark the request the reference came from and, when it was
+        // selling a renewal, sell the term. Fenced off in its own catch — the money above is
+        // settled, receipted and audited, and nothing in here may un-settle it.
+        await CompletePaymentRequestAfterSettlementAsync(payment, dto.Provider, ct).ConfigureAwait(false);
+
         return new GatewaySettlementResultDto
         {
             Status = GatewaySettlementStatus.Settled,
@@ -769,6 +818,149 @@ public sealed class PaymentService : IPaymentService
             ExpectedAmount = expected,
             Detail = $"Payment {payment.ReceiptNumber} settled by {dto.Provider}."
         };
+    }
+
+    /// <summary>
+    /// Finishes the pay-by-link story once <see cref="SettleFromGatewayAsync"/> has settled the
+    /// money. Finds the request whose reference the gateway quoted and marks it Paid — or Expired
+    /// when the member paid a link that had already lapsed, in which case the settlement stands
+    /// (the amount gate passed) but the membership is deliberately NOT extended: staff decide
+    /// between a refund and applying it by hand, and the audit trail says so in those words.
+    ///
+    /// A renewal request — one carrying a MembershipPlanId — then sells the next term through
+    /// <see cref="ISubscriptionService.RenewAsync"/> with no StartDate, so the calendar rule
+    /// ("an active membership continues the day after its expiry; a lapsed one starts today")
+    /// keeps its one home in the subscription service and is never re-derived here.
+    ///
+    /// Every failure in here is an ERROR log and nothing more: the settlement is committed, and
+    /// no bookkeeping mishap may answer the gateway with anything that looks like the money did
+    /// not arrive.
+    /// </summary>
+    private async Task CompletePaymentRequestAfterSettlementAsync(
+        Payment payment, string provider, CancellationToken ct)
+    {
+        try
+        {
+            var request = await _db.PaymentRequests
+                .FirstOrDefaultAsync(r => r.Reference == payment.TransactionReference, ct)
+                .ConfigureAwait(false);
+
+            // No request: an operator-collected UPI payment without a pay link. Already Paid: a
+            // redelivered webhook whose first delivery finished this work.
+            if (request is null || request.Status == PaymentRequestStatus.Paid) return;
+
+            if (DateTime.UtcNow > request.ExpiresAtUtc)
+            {
+                request.Status = PaymentRequestStatus.Expired;
+                await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+                await _audit.LogForUserAsync(
+                    userId: null,
+                    userName: $"gateway:{provider}",
+                    action: "PaymentRequestExpired",
+                    entityName: nameof(PaymentRequest),
+                    entityId: request.Id,
+                    oldValues: null,
+                    newValues: new
+                    {
+                        request.Reference, request.MemberId, request.MembershipPlanId,
+                        payment.ReceiptNumber, payment.FinalAmount
+                    },
+                    description:
+                    $"Payment {payment.ReceiptNumber} settled AFTER pay link {request.Reference} expired — " +
+                    "membership NOT extended; refund or apply manually.",
+                    ipAddress: null,
+                    deviceInfo: $"webhook:{provider}",
+                    ct: ct).ConfigureAwait(false);
+
+                _logger.LogError(
+                    "Payment {Receipt} settled after pay link {Reference} expired. The membership was NOT " +
+                    "extended — refund member {MemberId} or apply the amount by hand.",
+                    payment.ReceiptNumber, request.Reference, request.MemberId);
+                return;
+            }
+
+            request.Status = PaymentRequestStatus.Paid;
+            request.PaidAtUtc = _clock.UtcNow;
+            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+            // Due-balance requests are already fully credited by the settle path above. Only a
+            // renewal request — a plan with no subscription attached to the money yet — sells one.
+            if (request.MembershipPlanId is null || payment.SubscriptionId is not null) return;
+
+            if (_subscriptions is null)
+            {
+                _logger.LogError(
+                    "Pay link {Reference} sold plan {PlanId} but no subscription service is wired; payment " +
+                    "{Receipt} is settled and unattached. Renew member {MemberId}'s membership by hand.",
+                    request.Reference, request.MembershipPlanId, payment.ReceiptNumber, request.MemberId);
+                return;
+            }
+
+            try
+            {
+                var renewed = await _subscriptions.RenewAsync(new RenewSubscriptionDto
+                {
+                    MemberId = request.MemberId,
+                    MembershipPlanId = request.MembershipPlanId,
+                    // StartDate stays null on purpose — RenewAsync owns the calendar rule.
+                }, ct).ConfigureAwait(false);
+
+                payment.SubscriptionId = renewed.Id;
+                await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+                var subscription = await _db.Subscriptions
+                    .FirstOrDefaultAsync(s => s.Id == renewed.Id, ct)
+                    .ConfigureAwait(false);
+
+                if (subscription is not null)
+                {
+                    await RecalculateSubscriptionAsync(
+                        subscription,
+                        SubscriptionActionType.PaymentReceived,
+                        payment.FinalAmount,
+                        $"Payment {payment.ReceiptNumber} settled by {provider} paid for this renewal.",
+                        ct).ConfigureAwait(false);
+                }
+
+                // Attributed to the gateway, same idiom as the settle audit: no member of staff
+                // renewed this membership, and the money trail must not say one did.
+                await _audit.LogForUserAsync(
+                    userId: null,
+                    userName: $"gateway:{provider}",
+                    action: AuditActions.SubscriptionRenewed,
+                    entityName: nameof(Subscription),
+                    entityId: renewed.Id,
+                    oldValues: null,
+                    newValues: new
+                    {
+                        renewed.SubscriptionCode, renewed.StartDate, renewed.EndDate,
+                        request.MembershipPlanId, payment.ReceiptNumber, payment.FinalAmount
+                    },
+                    description:
+                    $"Membership renewed automatically: payment {payment.ReceiptNumber} settled by " +
+                    $"{provider} against pay link {request.Reference}.",
+                    ipAddress: null,
+                    deviceInfo: $"webhook:{provider}",
+                    ct: ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex,
+                    "Payment {Receipt} settled for pay link {Reference} but renewing on plan {PlanId} " +
+                    "failed. The money IS settled: renew member {MemberId}'s membership by hand and attach " +
+                    "payment {PaymentId} to the new subscription.",
+                    payment.ReceiptNumber, request.Reference, request.MembershipPlanId,
+                    request.MemberId, payment.Id);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex,
+                "Post-settlement bookkeeping for payment {Receipt} (reference {Reference}) failed. The " +
+                "settlement itself is committed and stands.",
+                payment.ReceiptNumber, payment.TransactionReference);
+        }
     }
 
     // ---------------------------------------------------------------------------------------
@@ -970,6 +1162,506 @@ public sealed class PaymentService : IPaymentService
             RequiresManualVerification = !gatewayConfigured,
             Instructions = gatewayConfigured ? UpiGatewayInstructions : UpiInstructions
         };
+    }
+
+    /// <summary>How long a texted pay link keeps working. Generous: the member may open it days later.</summary>
+    private const int PaymentRequestValidDays = 7;
+
+    public async Task<PaymentRequestCreatedDto> CreatePaymentRequestAsync(
+        CreatePaymentRequestDto dto, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+
+        // A RENEWAL request sells the member's NEXT term, whose subscription does not exist yet,
+        // so it must not bind to (or be capped by) the current one. The amount falls back to the
+        // plan's price so the operator can send a renewal link without retyping what the plan
+        // already knows.
+        MembershipPlan? renewalPlan = null;
+        var subscriptionId = dto.SubscriptionId;
+        var requestedAmount = dto.Amount;
+
+        if (dto.MembershipPlanId is > 0)
+        {
+            renewalPlan = await _db.MembershipPlans
+                              .AsNoTracking()
+                              .FirstOrDefaultAsync(p => p.Id == dto.MembershipPlanId, ct)
+                              .ConfigureAwait(false)
+                          ?? throw new NotFoundAppException("MembershipPlan", dto.MembershipPlanId.Value);
+
+            if (renewalPlan.Status != PlanStatus.Active)
+                throw new BusinessRuleAppException(
+                    $"Plan '{renewalPlan.Name}' is inactive and cannot be sold through a pay link.");
+
+            subscriptionId = null;
+            if (requestedAmount <= 0m) requestedAmount = renewalPlan.Price;
+        }
+
+        var note = Normalize(dto.Note) ?? (renewalPlan is null ? null : $"{renewalPlan.Name} renewal");
+
+        // Reuse the intent builder's validation wholesale: member exists, amount is positive and
+        // within the subscription's outstanding balance, and the gym has a UPI id configured.
+        var intent = await CreateUpiIntentAsync(new UpiPaymentRequestDto
+        {
+            MemberId = dto.MemberId,
+            SubscriptionId = subscriptionId,
+            Amount = requestedAmount,
+            Notes = note,
+        }, ct).ConfigureAwait(false);
+
+        var member = await _db.Members.AsNoTracking()
+            .Where(m => m.Id == dto.MemberId)
+            .Select(m => new { m.FullName, m.Phone, m.Email })
+            .FirstAsync(ct).ConfigureAwait(false);
+
+        // URL-safe token; 16 chars of base32-ish alphabet is far beyond guessable.
+        var token = string.Create(16, RandomNumberGenerator.GetBytes(16), static (span, bytes) =>
+        {
+            const string alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
+            for (var i = 0; i < span.Length; i++) span[i] = alphabet[bytes[i] % alphabet.Length];
+        });
+
+        var row = new PaymentRequest
+        {
+            Token = token,
+            MemberId = dto.MemberId,
+            SubscriptionId = subscriptionId,
+            MembershipPlanId = renewalPlan?.Id,
+            Amount = intent.Amount,
+            Note = note,
+            Reference = intent.PaymentReference ?? string.Empty,
+            ExpiresAtUtc = DateTime.UtcNow.AddDays(PaymentRequestValidDays),
+        };
+
+        var gymName = intent.PayeeName;
+
+        // The pending payment is the half the webhook settles: same reference, same amount,
+        // created AwaitingConfirmation exactly as the operator's UPI flow records one — but with
+        // no receipt and no member message, both of which belong to settlement.
+        row.PaymentId = await CreateAwaitingGatewayPaymentAsync(
+            dto.MemberId, subscriptionId, renewalPlan?.Id, intent.Amount, row.Reference, ct)
+            .ConfigureAwait(false);
+
+        // The gateway order upgrades the link from "static QR the front desk verifies" to "order
+        // the gateway watches". Its failure must never cost the operator the send: the link still
+        // works as a plain UPI collection, so a gateway hiccup is a warning, not an error.
+        if (_gatewayClient is { IsEnabled: true })
+        {
+            try
+            {
+                var order = await _gatewayClient.CreateOrderAsync(new GatewayOrderRequest(
+                    row.Reference,
+                    intent.Amount,
+                    "INR",
+                    $"{gymName} — {note ?? "Membership payment"}",
+                    member.FullName,
+                    member.Phone,
+                    row.ExpiresAtUtc), ct).ConfigureAwait(false);
+
+                if (order.Created)
+                {
+                    row.OrderId = order.OrderId;
+                    row.QrData = order.QrData;
+                    row.PaymentUrl = order.PaymentUrl;
+                    row.GatewayProvider = _gatewayClient.Provider;
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Gateway {Provider} did not create an order for payment request {Reference}: {Detail}. " +
+                        "The link will work as a plain UPI collection.",
+                        _gatewayClient.Provider, row.Reference, order.Detail ?? "no detail given");
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex,
+                    "Creating a gateway order for payment request {Reference} failed. The link still works " +
+                    "as a plain UPI collection.", row.Reference);
+            }
+        }
+
+        var baseUrl = (_configuration?["App:PublicBaseUrl"] ?? "http://localhost:5175").TrimEnd('/');
+        var link = $"{baseUrl}/pay/{token}";
+
+        // Both channels are attempted independently — the same rule as the renewal reminders:
+        // whichever one reaches the member is enough, and neither failure blocks the other.
+        var firstName = FirstWord(member.FullName);
+        var amountText = intent.Amount.ToString("0.##", CultureInfo.InvariantCulture);
+        var messageText = $"Hi {firstName}, {gymName}: please pay {amountText} INR" +
+                          (string.IsNullOrWhiteSpace(row.Note) ? "" : $" for {row.Note}") +
+                          $". Tap to pay by UPI: {link}";
+
+        var smsSent = false;
+        if (!string.IsNullOrWhiteSpace(member.Phone) && _sms is { IsEnabled: true })
+        {
+            try
+            {
+                var result = await _sms.SendAsync(new SmsMessage { To = member.Phone!, Text = messageText }, ct)
+                    .ConfigureAwait(false);
+                smsSent = result.WasSent;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Payment request SMS to member {MemberId} failed.", dto.MemberId);
+            }
+        }
+
+        var emailSent = false;
+        if (!string.IsNullOrWhiteSpace(member.Email) && _email is { IsEnabled: true })
+        {
+            try
+            {
+                var noteLine = Normalize(row.Note) ?? "Membership payment";
+                var html =
+                    "<div style=\"font-family:Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;" +
+                    "line-height:1.6;color:#1f2933;max-width:520px\">" +
+                    $"<p style=\"margin:0 0 14px;font-size:17px;font-weight:600\">Hi {WebUtility.HtmlEncode(firstName)},</p>" +
+                    $"<p style=\"margin:0 0 16px\">{WebUtility.HtmlEncode(gymName)} requests a payment of " +
+                    $"<strong>₹{WebUtility.HtmlEncode(amountText)}</strong> for {WebUtility.HtmlEncode(noteLine)}.</p>" +
+                    $"<p style=\"margin:0 0 18px\"><a href=\"{link}\" style=\"display:inline-block;" +
+                    "background:#4f46e5;color:#ffffff;font-weight:600;text-decoration:none;" +
+                    "padding:12px 26px;border-radius:10px\">Pay by UPI</a></p>" +
+                    "<p style=\"margin:0 0 6px;color:#6b7280;font-size:13px\">The link opens on your phone and " +
+                    "hands the payment to PhonePe, Google Pay, Paytm or any UPI app you choose.</p>" +
+                    $"<p style=\"margin:0;color:#6b7280;font-size:13px\">If the button does not work: {link}</p>" +
+                    "</div>";
+                var text = $"{messageText}\n\nThe link opens on your phone and hands the payment to " +
+                           "PhonePe, Google Pay, Paytm or any UPI app you choose.";
+                var result = await _email.SendAsync(new EmailMessage
+                {
+                    To = { member.Email! },
+                    Subject = $"Payment request — ₹{amountText} · {gymName}",
+                    HtmlBody = html,
+                    TextBody = text,
+                }, ct).ConfigureAwait(false);
+                emailSent = result.WasSent;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Payment request email to member {MemberId} failed.", dto.MemberId);
+            }
+        }
+
+        var channels = new List<string>();
+        if (smsSent) channels.Add($"SMS to {member.Phone}");
+        if (emailSent) channels.Add($"email to {member.Email}");
+        var detail = channels.Count > 0
+            ? $"Sent by {string.Join(" and ", channels)}."
+            : "No channel could deliver it automatically — share the link by WhatsApp or by hand.";
+
+        row.SmsSent = smsSent;
+        _db.PaymentRequests.Add(row);
+        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        await _audit.LogAsync("PaymentRequestSent", nameof(PaymentRequest), row.Id,
+            null,
+            new
+            {
+                row.MemberId, row.SubscriptionId, row.MembershipPlanId, row.Amount, row.SmsSent,
+                EmailSent = emailSent, row.PaymentId, row.OrderId, row.GatewayProvider
+            },
+            $"Pay-by-UPI link for member {dto.MemberId}, amount {intent.Amount:0.00}. {detail}", ct)
+            .ConfigureAwait(false);
+
+        return new PaymentRequestCreatedDto
+        {
+            Token = token,
+            Link = link,
+            SmsSent = smsSent,
+            EmailSent = emailSent,
+            Detail = detail,
+            MemberPhone = Normalize(member.Phone),
+            MemberEmail = Normalize(member.Email),
+            MessageText = messageText,
+        };
+    }
+
+    public async Task<PublicPaymentRequestDto> GetPaymentRequestAsync(
+        string token, CancellationToken ct = default)
+    {
+        var normalized = (token ?? string.Empty).Trim().ToLowerInvariant();
+        if (normalized.Length is < 8 or > 24)
+            throw new NotFoundAppException("Payment request", token ?? string.Empty);
+
+        // Tracked on purpose: this read is where lazily-detected status flips (Expired, Failed)
+        // get persisted, so the admin list agrees with what the member's phone was shown.
+        var row = await _db.PaymentRequests
+                      .FirstOrDefaultAsync(r => r.Token == normalized, ct).ConfigureAwait(false)
+                  ?? throw new NotFoundAppException("Payment request", normalized);
+
+        var names = await _db.PaymentRequests.AsNoTracking()
+            .Where(r => r.Id == row.Id)
+            .Select(r => new
+            {
+                MemberName = r.Member!.FullName,
+                // A renewal request names the plan it sells; a due-balance request names the
+                // plan of the subscription it is against.
+                PlanName = r.MembershipPlan != null
+                    ? r.MembershipPlan.Name
+                    : r.Subscription != null && r.Subscription.MembershipPlan != null
+                        ? r.Subscription.MembershipPlan.Name : null,
+            })
+            .FirstAsync(ct).ConfigureAwait(false);
+
+        var effective = await ResolveEffectiveStatusAsync(row, ct).ConfigureAwait(false);
+
+        if (effective != row.Status)
+        {
+            // Best-effort: the flip is bookkeeping, and the page must render whether or not the
+            // write sticks (two phones opening the same lapsed link race here harmlessly).
+            try
+            {
+                row.Status = effective;
+                if (effective == PaymentRequestStatus.Paid && row.PaidAtUtc is null)
+                    row.PaidAtUtc = _clock.UtcNow;
+                await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex,
+                    "Could not persist the {Status} flip for payment request {Reference}.",
+                    effective, row.Reference);
+            }
+        }
+
+        var gym = await _settings.GetGymSettingsAsync(ct).ConfigureAwait(false);
+        var upiId = Normalize(gym.UpiId)
+                    ?? throw new BusinessRuleAppException("This gym has not configured UPI payments.");
+        var payeeName = Normalize(gym.UpiPayeeName) ?? Normalize(gym.GymName) ?? "Gym";
+
+        var note = Normalize(row.Note) ?? "Membership payment";
+        var deepLink =
+            $"upi://pay?pa={Uri.EscapeDataString(upiId)}" +
+            $"&pn={Uri.EscapeDataString(payeeName)}" +
+            $"&am={row.Amount.ToString("F2", CultureInfo.InvariantCulture)}" +
+            "&cu=INR" +
+            $"&tn={Uri.EscapeDataString(note)}" +
+            $"&tr={Uri.EscapeDataString(row.Reference)}";
+
+        return new PublicPaymentRequestDto
+        {
+            GymName = Normalize(gym.GymName) ?? payeeName,
+            MemberFirstName = FirstWord(names.MemberName),
+            PlanName = names.PlanName,
+            Amount = row.Amount,
+            CurrencySymbol = string.IsNullOrWhiteSpace(gym.CurrencySymbol) ? "₹" : gym.CurrencySymbol,
+            Note = row.Note,
+            UpiId = upiId,
+            PayeeName = payeeName,
+            UpiDeepLink = deepLink,
+            Expired = effective is PaymentRequestStatus.Expired or PaymentRequestStatus.Cancelled,
+            Status = PublicStatusText(effective),
+            OrderId = row.OrderId,
+            QrData = row.QrData,
+            PaymentUrl = row.PaymentUrl,
+            GatewayEnabled = _gatewayClient?.IsEnabled == true || row.OrderId is not null,
+            PaymentCode = row.Reference,
+        };
+    }
+
+    public async Task<PublicPaymentRequestStatusDto> GetPaymentRequestStatusAsync(
+        string token, CancellationToken ct = default)
+    {
+        var normalized = (token ?? string.Empty).Trim().ToLowerInvariant();
+        if (normalized.Length is < 8 or > 24)
+            throw new NotFoundAppException("Payment request", token ?? string.Empty);
+
+        // Deliberately thin: the pay page polls this every few seconds, so it reads exactly what
+        // it needs and writes nothing. The flips it detects are persisted by the full read above
+        // and by the settlement path — never from a poll.
+        var row = await _db.PaymentRequests.AsNoTracking()
+                      .Where(r => r.Token == normalized)
+                      .Select(r => new
+                      {
+                          r.Status, r.Reference, r.ExpiresAtUtc, r.PaidAtUtc, r.PaymentId,
+                          ReceiptNumber = r.Payment != null ? r.Payment.ReceiptNumber : null,
+                          ValidUntil = r.Payment != null && r.Payment.Subscription != null
+                              ? (DateTime?)r.Payment.Subscription.EndDate : null,
+                      })
+                      .FirstOrDefaultAsync(ct).ConfigureAwait(false)
+                  ?? throw new NotFoundAppException("Payment request", normalized);
+
+        var effective = row.Status == PaymentRequestStatus.Pending
+            ? await ResolveLivePendingStatusAsync(row.Reference, row.ExpiresAtUtc, row.PaymentId, ct)
+                .ConfigureAwait(false)
+            : row.Status;
+
+        var paid = effective == PaymentRequestStatus.Paid;
+
+        return new PublicPaymentRequestStatusDto
+        {
+            Status = PublicStatusText(effective),
+            ReceiptNumber = paid ? row.ReceiptNumber : null,
+            GatewayTransactionId = paid
+                ? await LatestGatewayTransactionIdAsync(row.Reference, ct).ConfigureAwait(false)
+                : null,
+            PaidAtUtc = row.PaidAtUtc,
+            ValidUntil = paid ? row.ValidUntil : null,
+        };
+    }
+
+    /// <summary>The pay page's whole status vocabulary. A cancelled link is dead to the member
+    /// for the same reason an expired one is, so the public word for both is "expired".</summary>
+    private static string PublicStatusText(PaymentRequestStatus status) => status switch
+    {
+        PaymentRequestStatus.Paid => "paid",
+        PaymentRequestStatus.Failed => "failed",
+        PaymentRequestStatus.Expired or PaymentRequestStatus.Cancelled => "expired",
+        _ => "pending",
+    };
+
+    /// <summary>
+    /// The status a request row is effectively in, folding in what the row cannot know by
+    /// itself. Anything already final is final; only Pending is re-derived.
+    /// </summary>
+    private async Task<PaymentRequestStatus> ResolveEffectiveStatusAsync(
+        PaymentRequest row, CancellationToken ct) =>
+        row.Status == PaymentRequestStatus.Pending
+            ? await ResolveLivePendingStatusAsync(row.Reference, row.ExpiresAtUtc, row.PaymentId, ct)
+                .ConfigureAwait(false)
+            : row.Status;
+
+    /// <summary>
+    /// What a Pending request really is right now. Time decides first: a link past its window is
+    /// Expired no matter what else happened. Then the linked payment: settlement marks the
+    /// request Paid in the same webhook turn, but a crash between the two writes must not leave
+    /// the page saying "pending" about money that arrived — the payment is the authority. Last,
+    /// the gateway's failure notices: the webhook flow records those in the events ledger without
+    /// touching this table, so the latest word recorded for the reference decides. A failed
+    /// attempt the member retries lands as a later Settled event and the settle path marks the
+    /// request Paid, so Failed can never stick wrongly.
+    /// </summary>
+    private async Task<PaymentRequestStatus> ResolveLivePendingStatusAsync(
+        string reference, DateTime expiresAtUtc, int? paymentId, CancellationToken ct)
+    {
+        if (DateTime.UtcNow > expiresAtUtc) return PaymentRequestStatus.Expired;
+
+        if (paymentId is not null)
+        {
+            var settled = await _db.Payments
+                .AsNoTracking()
+                .AnyAsync(p => p.Id == paymentId && SettledStatuses.Contains(p.Status), ct)
+                .ConfigureAwait(false);
+
+            if (settled) return PaymentRequestStatus.Paid;
+        }
+
+        var latestOutcome = await _db.PaymentGatewayEvents
+            .AsNoTracking()
+            .Where(e => e.PaymentReference == reference)
+            .OrderByDescending(e => e.Id)
+            .Select(e => (PaymentGatewayEventOutcome?)e.Outcome)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
+        return latestOutcome == PaymentGatewayEventOutcome.FailureRecorded
+            ? PaymentRequestStatus.Failed
+            : PaymentRequestStatus.Pending;
+    }
+
+    /// <summary>The gateway's transaction id / UTR for a reference, from the webhook events
+    /// ledger — the settle path always writes the row there, so no note-parsing fallback.</summary>
+    private async Task<string?> LatestGatewayTransactionIdAsync(string reference, CancellationToken ct) =>
+        await _db.PaymentGatewayEvents
+            .AsNoTracking()
+            .Where(e => e.PaymentReference == reference && e.GatewayTransactionId != null)
+            .OrderByDescending(e => e.Id)
+            .Select(e => e.GatewayTransactionId)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
+    /// <summary>
+    /// Records the pending payment behind a pay link: the row the gateway webhook settles.
+    ///
+    /// This is <see cref="CreateAsync"/>'s construction with the after-care deliberately left
+    /// out. The operator flow raises a staff notification and hands the new id to the receipt and
+    /// member mailers; for money that has not moved yet all of that is noise at best and a lie at
+    /// worst, and settlement — which <see cref="SettleFromGatewayAsync"/> already owns — is the
+    /// moment the member hears about this payment. No subscription recalculation either: an
+    /// AwaitingConfirmation payment contributes nothing to PaidAmount, so there is nothing to say.
+    ///
+    /// Returns null instead of throwing: the request must still go out as a static UPI link when
+    /// this cannot be recorded (no UPI method configured, receipt numbering hiccup), it just
+    /// cannot settle automatically — which is exactly what the flow did before gateways existed.
+    /// </summary>
+    private async Task<int?> CreateAwaitingGatewayPaymentAsync(
+        int memberId, int? subscriptionId, int? membershipPlanId, decimal amount, string reference,
+        CancellationToken ct)
+    {
+        try
+        {
+            // Resolved by code, never by a hardcoded id: seeded ids are not a contract.
+            var upiMethodId = await _db.PaymentMethods
+                .AsNoTracking()
+                .Where(m => m.Code == "UPI")
+                .Select(m => (int?)m.Id)
+                .FirstOrDefaultAsync(ct)
+                .ConfigureAwait(false);
+
+            if (upiMethodId is null)
+            {
+                _logger.LogWarning(
+                    "No payment method with code 'UPI' exists; payment request {Reference} goes out " +
+                    "without a pending payment and the gateway cannot settle it automatically.",
+                    reference);
+                return null;
+            }
+
+            var payment = new Payment
+            {
+                ReceiptNumber = await _codes.NextReceiptNumberAsync(ct).ConfigureAwait(false),
+                MemberId = memberId,
+                SubscriptionId = subscriptionId,
+                MembershipPlanId = membershipPlanId,
+                Amount = amount,
+                DiscountAmount = 0m,
+                TaxAmount = 0m,
+                FinalAmount = amount,
+                RefundedAmount = 0m,
+                PaymentMethodId = upiMethodId.Value,
+                TransactionReference = reference,
+                PaymentDate = _clock.Now,
+                CollectedByUserId = _currentUser.UserId,
+                Notes = "Awaiting the payment gateway: settles automatically when the member pays the link.",
+                Status = PaymentStatus.AwaitingConfirmation
+            };
+
+            _db.Payments.Add(payment);
+            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+            await _audit.LogAsync(AuditActions.PaymentCreated, nameof(Payment), payment.Id,
+                null,
+                new
+                {
+                    payment.ReceiptNumber,
+                    payment.MemberId,
+                    payment.SubscriptionId,
+                    payment.FinalAmount,
+                    payment.PaymentMethodId,
+                    payment.Status,
+                    payment.TransactionReference
+                },
+                $"Payment {payment.ReceiptNumber} of {amount:0.00} created for pay link {reference}, " +
+                "awaiting the gateway.",
+                ct).ConfigureAwait(false);
+
+            return payment.Id;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "Could not record the pending payment for pay link {Reference}. The link goes out as a " +
+                "static UPI collection instead.", reference);
+            return null;
+        }
+    }
+
+    /// <summary>First name only — a payment SMS greeting with the full formal name reads like a bill.</summary>
+    private static string FirstWord(string value)
+    {
+        var trimmed = value.Trim();
+        var space = trimmed.IndexOf(' ');
+        return space < 0 ? trimmed : trimmed[..space];
     }
 
     /// <summary>Allocates a collection token that is not already recorded against a payment.</summary>

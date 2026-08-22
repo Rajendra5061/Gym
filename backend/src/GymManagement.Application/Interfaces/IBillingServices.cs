@@ -71,6 +71,18 @@ public interface IPaymentService
 
     Task<UpiPaymentIntentDto> CreateUpiIntentAsync(UpiPaymentRequestDto request, CancellationToken ct = default);
 
+    /// <summary>Creates a pay-by-UPI request and texts the link to the member's phone.</summary>
+    Task<PaymentRequestCreatedDto> CreatePaymentRequestAsync(CreatePaymentRequestDto dto, CancellationToken ct = default);
+
+    /// <summary>Resolves a public pay link's token into what the pay page renders. Anonymous.</summary>
+    Task<PublicPaymentRequestDto> GetPaymentRequestAsync(string token, CancellationToken ct = default);
+
+    /// <summary>
+    /// Live outcome of a pay link — polled by the anonymous pay page every few seconds while it
+    /// waits for the gateway, so it reads exactly what it needs and writes nothing.
+    /// </summary>
+    Task<PublicPaymentRequestStatusDto> GetPaymentRequestStatusAsync(string token, CancellationToken ct = default);
+
     Task<PaymentRefundDto> CreateRefundAsync(CreateRefundDto dto, CancellationToken ct = default);
     Task<PaymentRefundDto> ApproveRefundAsync(ApproveRefundDto dto, CancellationToken ct = default);
     Task<PagedResult<PaymentRefundDto>> GetRefundsAsync(PagedRequest query, CancellationToken ct = default);

@@ -180,16 +180,54 @@ public sealed class PdfExportService : IPdfExportService
 
     // ---------------------------------------------------------------- receipt
 
+    /// <summary>Horizontal inset for every section. The header band bleeds past it on purpose.</summary>
+    private const float ReceiptPad = 32;
+
+    /// <summary>
+    /// The receipt palette.
+    ///
+    /// Colour is layered on top of the monochrome structure, never in place of it. Every
+    /// distinction the receipt makes is still carried by weight, rule and wording — the verdict is
+    /// the words "PAID IN FULL", not a green box — so a black and white print says exactly what a
+    /// colour one does. The tints are chosen dark enough to stay distinguishable once a printer
+    /// has flattened them to grey.
+    /// </summary>
+    private static readonly Color BrandDeep = Color.FromHex("#312E81");
+    private static readonly Color Brand = Color.FromHex("#4F46E5");
+    private static readonly Color BrandSoft = Color.FromHex("#EEF2FF");
+    private static readonly Color OnBrandMuted = Color.FromHex("#C7D2FE");
+    private static readonly Color Ink = Color.FromHex("#111827");
+    private static readonly Color InkMuted = Color.FromHex("#6B7280");
+    private static readonly Color Hairline = Color.FromHex("#E5E7EB");
+    private static readonly Color ZebraTint = Color.FromHex("#FAFAFB");
+    private static readonly Color PaidInk = Color.FromHex("#166534");
+    private static readonly Color PaidSoft = Color.FromHex("#ECFDF5");
+    private static readonly Color PendingInk = Color.FromHex("#92400E");
+    private static readonly Color PendingSoft = Color.FromHex("#FFFBEB");
+    private static readonly Color RefundInk = Color.FromHex("#991B1B");
+    private static readonly Color RefundSoft = Color.FromHex("#FEF2F2");
+
     /// <summary>
     /// A4 portrait receipt.
     ///
-    /// Designed for a black and white office printer: every distinction is carried by rules,
-    /// weight, borders and wording, never by colour alone. The paid / outstanding verdict is a
-    /// bordered box containing the words "PAID IN FULL" or "PART PAYMENT RECEIVED", so a greyscale
-    /// print says exactly what a colour one does. Money is right-aligned in a fixed column, and the
-    /// breakdown is written so that the arithmetic is visible: amount, less discount, add tax, total.
+    /// The order is: a brand masthead, then the one figure the member is looking for — what they
+    /// paid, and whether anything is still owed — then who and what it was for, then the itemised
+    /// arithmetic, then how it was paid.
+    ///
+    /// Still designed to survive a black and white office printer. Colour reinforces the hierarchy
+    /// but never carries a fact on its own: the paid / outstanding verdict is spelled out in words
+    /// inside a bordered box, money is right-aligned in a fixed column, and the breakdown reads
+    /// amount, less discount, add tax, total, so the arithmetic can be followed either way.
     /// </summary>
-    public byte[] ExportReceipt(PaymentReceiptDto receipt)
+    public byte[] ExportReceipt(PaymentReceiptDto receipt) =>
+        BuildReceiptDocument(receipt).GeneratePdf();
+
+    /// <summary>
+    /// Composes the receipt without committing to an output format. Kept separate from
+    /// <see cref="ExportReceipt"/> so the same layout can be rendered to a raster image — which is
+    /// how the design is proof-read — without a second copy of it drifting out of step.
+    /// </summary>
+    private static IDocument BuildReceiptDocument(PaymentReceiptDto receipt)
     {
         var model = receipt ?? new PaymentReceiptDto();
         var currency = model.CurrencySymbol ?? string.Empty;
@@ -200,33 +238,44 @@ public sealed class PdfExportService : IPdfExportService
             document.Page(page =>
             {
                 page.Size(PageSizes.A4.Portrait());
-                page.Margin(32);
+
+                // No page margin: the masthead and the footer rule run edge to edge, and every
+                // other section supplies its own inset. A band held off the paper by a margin
+                // reads as a box that failed to line up rather than as a masthead.
+                page.Margin(0);
+
                 // QuestPDF 2024.3+ resolves a missing glyph against the installed fonts on its own,
                 // which is what carries the currency symbol: the bundled default face has no Rupee
-                // sign, and without that fallback every amount would print with a tofu box.
-                page.DefaultTextStyle(t => t.FontSize(10).FontColor(Colors.Black));
+                // sign, and without that fallback every amount would print with a tofu box. It is
+                // also why no font family is named here — naming one would lose that fallback.
+                page.DefaultTextStyle(t => t.FontSize(10).FontColor(Ink));
 
                 page.Header().Element(container => ComposeReceiptHeader(container, model, logo));
-                page.Content().PaddingTop(14)
+                page.Content().PaddingHorizontal(ReceiptPad).PaddingTop(16)
                     .Element(container => ComposeReceiptBody(container, model, currency));
                 page.Footer().Element(container => ComposeReceiptFooter(container, model));
             });
-        }).GeneratePdf();
+        });
     }
 
+    /// <summary>
+    /// The masthead: gym identity reversed out of a deep brand band, with the receipt number and
+    /// date in a white card on top of it. Those two are what somebody looks for first, so they sit
+    /// in the highest-contrast element on the page.
+    /// </summary>
     private static void ComposeReceiptHeader(IContainer container, PaymentReceiptDto model, byte[]? logo)
     {
-        container.Column(header =>
-        {
-            header.Item().Row(row =>
+        container.Background(BrandDeep)
+            .PaddingHorizontal(ReceiptPad).PaddingVertical(20)
+            .Row(row =>
             {
-                row.Spacing(12);
+                row.Spacing(14);
 
                 if (logo is not null)
                 {
                     try
                     {
-                        row.ConstantItem(64).Height(52).AlignMiddle().Image(logo).FitArea();
+                        row.ConstantItem(50).Height(50).AlignMiddle().Image(logo).FitArea();
                     }
                     catch
                     {
@@ -234,68 +283,108 @@ public sealed class PdfExportService : IPdfExportService
                     }
                 }
 
-                row.RelativeItem().Column(gym =>
+                row.RelativeItem().AlignMiddle().Column(gym =>
                 {
-                    gym.Item().Text(string.IsNullOrWhiteSpace(model.GymName) ? "Gym" : model.GymName)
-                        .FontSize(19).Bold();
+                    gym.Item()
+                        .Text(string.IsNullOrWhiteSpace(model.GymName) ? "Gym" : model.GymName)
+                        .FontSize(20).Bold().FontColor(Colors.White);
 
                     if (!string.IsNullOrWhiteSpace(model.GymAddress))
-                        gym.Item().PaddingTop(3).Text(model.GymAddress!)
-                            .FontSize(8.5f).FontColor(Colors.Grey.Darken2);
+                        gym.Item().PaddingTop(4).Text(model.GymAddress!)
+                            .FontSize(8.5f).FontColor(OnBrandMuted);
 
                     var contact = JoinNonEmpty("   ·   ",
-                        string.IsNullOrWhiteSpace(model.GymPhone) ? null : $"Phone: {model.GymPhone}",
-                        string.IsNullOrWhiteSpace(model.GymEmail) ? null : $"Email: {model.GymEmail}",
+                        string.IsNullOrWhiteSpace(model.GymPhone) ? null : model.GymPhone,
+                        string.IsNullOrWhiteSpace(model.GymEmail) ? null : model.GymEmail,
                         string.IsNullOrWhiteSpace(model.TaxNumber) ? null : $"Tax No: {model.TaxNumber}");
 
                     if (contact.Length > 0)
                         gym.Item().PaddingTop(2).Text(contact)
-                            .FontSize(8.5f).FontColor(Colors.Grey.Darken2);
+                            .FontSize(8.5f).FontColor(OnBrandMuted);
                 });
 
-                // The receipt number and date are what somebody looks for first, so they get their
-                // own bordered block in the top right rather than being buried in a run of text.
-                row.ConstantItem(186).Border(1).BorderColor(Colors.Black).Column(stamp =>
+                row.ConstantItem(176).AlignMiddle().Background(Colors.White).Column(stamp =>
                 {
-                    stamp.Item().Background(Colors.Grey.Lighten2).PaddingVertical(4).PaddingHorizontal(8)
-                        .Text("PAYMENT RECEIPT").FontSize(10).Bold().LetterSpacing(0.12f);
+                    stamp.Item().Background(BrandSoft)
+                        .BorderBottom(1).BorderColor(Brand)
+                        .PaddingVertical(4).PaddingHorizontal(10)
+                        .Text("PAYMENT RECEIPT")
+                        .FontSize(9).Bold().LetterSpacing(0.14f).FontColor(BrandDeep);
 
-                    stamp.Item().PaddingHorizontal(8).PaddingVertical(6).Column(detail =>
+                    stamp.Item().PaddingHorizontal(10).PaddingVertical(7).Column(detail =>
                     {
                         detail.Item().Element(c => StampLine(c, "Receipt No",
                             ReceiptPresentation.OrDash(model.ReceiptNumber), bold: true));
 
-                        detail.Item().PaddingTop(3).Element(c => StampLine(c, "Date",
+                        detail.Item().PaddingTop(4).Element(c => StampLine(c, "Date",
                             ReceiptPresentation.DateTimeStamp(model.PaymentDate), bold: false));
                     });
                 });
             });
-
-            header.Item().PaddingTop(10).LineHorizontal(1.6f).LineColor(Colors.Black);
-        });
     }
 
     private static void StampLine(IContainer container, string label, string value, bool bold)
     {
         container.Column(column =>
         {
-            column.Item().Text(label).FontSize(7.5f).FontColor(Colors.Grey.Darken2).LetterSpacing(0.08f);
+            column.Item().Text(label.ToUpperInvariant())
+                .FontSize(6.5f).SemiBold().FontColor(InkMuted).LetterSpacing(0.12f);
 
-            var text = column.Item().Text(value).FontSize(bold ? 11 : 9.5f);
-            if (bold) text.Bold();
+            var text = column.Item().PaddingTop(1).Text(value).FontSize(bold ? 12 : 9.5f);
+            if (bold) text.Bold().FontColor(BrandDeep);
         });
     }
 
     private static void ComposeReceiptBody(IContainer container, PaymentReceiptDto model, string currency)
     {
+        var (headline, detail) = ReceiptPresentation.Status(model);
+        var (statusInk, statusSoft) = ReceiptPresentation.Tone(model) switch
+        {
+            ReceiptTone.Paid => (PaidInk, PaidSoft),
+            ReceiptTone.Refunded => (RefundInk, RefundSoft),
+            _ => (PendingInk, PendingSoft),
+        };
+
         container.Column(body =>
         {
-            body.Spacing(12);
+            body.Spacing(11);
+
+            // ---- the headline figure and the verdict, side by side
+            // A receipt answers two questions: how much, and is anything still owed. Both used to
+            // be findable only by reading a row of the breakdown table, so they now lead the page.
+            body.Item().Border(1).BorderColor(Hairline).Row(row =>
+            {
+                row.RelativeItem().Background(BrandSoft)
+                    .PaddingVertical(13).PaddingHorizontal(15).Column(amount =>
+                    {
+                        amount.Item().Text("AMOUNT PAID")
+                            .FontSize(7).Bold().LetterSpacing(0.14f).FontColor(Brand);
+
+                        amount.Item().PaddingTop(3)
+                            .Text(ReceiptPresentation.Money(model.FinalAmount, currency))
+                            .FontSize(25).Bold().FontColor(BrandDeep);
+
+                        amount.Item().PaddingTop(2)
+                            .Text(ReceiptPresentation.LineItemDescription(model))
+                            .FontSize(8.5f).FontColor(InkMuted);
+                    });
+
+                row.ConstantItem(232).Background(statusSoft)
+                    .BorderLeft(1).BorderColor(Hairline)
+                    .PaddingVertical(13).PaddingHorizontal(15).Column(status =>
+                    {
+                        status.Item().Text(headline)
+                            .FontSize(12).Bold().LetterSpacing(0.08f).FontColor(statusInk);
+
+                        status.Item().PaddingTop(4).Text(detail)
+                            .FontSize(8.5f).LineHeight(1.35f).FontColor(Ink);
+                    });
+            });
 
             // ---- who paid, and what for
             body.Item().Row(row =>
             {
-                row.Spacing(12);
+                row.Spacing(11);
 
                 row.RelativeItem().Element(c => Panel(c, "Received from", new[]
                 {
@@ -318,7 +407,7 @@ public sealed class PdfExportService : IPdfExportService
             });
 
             // ---- the itemised breakdown, written so the arithmetic is followable
-            body.Item().Table(table =>
+            body.Item().Border(1).BorderColor(Hairline).Table(table =>
             {
                 table.ColumnsDefinition(definition =>
                 {
@@ -329,112 +418,117 @@ public sealed class PdfExportService : IPdfExportService
                 table.Header(header =>
                 {
                     header.Cell().Element(ItemHeaderCell).Text("DESCRIPTION")
-                        .FontSize(8).Bold().LetterSpacing(0.1f);
+                        .FontSize(7.5f).Bold().LetterSpacing(0.12f).FontColor(Colors.White);
                     header.Cell().Element(ItemHeaderCell).AlignRight().Text("AMOUNT")
-                        .FontSize(8).Bold().LetterSpacing(0.1f);
+                        .FontSize(7.5f).Bold().LetterSpacing(0.12f).FontColor(Colors.White);
                 });
 
+                var zebra = false;
+
                 ItemRow(table, ReceiptPresentation.LineItemDescription(model),
-                    ReceiptPresentation.Money(model.Amount, currency));
+                    ReceiptPresentation.Money(model.Amount, currency), shaded: Alternate(ref zebra));
 
                 if (model.DiscountAmount > 0m)
                     ItemRow(table, "Less: discount",
-                        ReceiptPresentation.MoneyDeducted(model.DiscountAmount, currency));
+                        ReceiptPresentation.MoneyDeducted(model.DiscountAmount, currency),
+                        shaded: Alternate(ref zebra));
 
                 if (model.TaxAmount > 0m)
                     ItemRow(table, "Add: tax",
-                        ReceiptPresentation.MoneyAdded(model.TaxAmount, currency));
+                        ReceiptPresentation.MoneyAdded(model.TaxAmount, currency),
+                        shaded: Alternate(ref zebra));
 
                 ItemRow(table, "TOTAL PAYABLE",
                     ReceiptPresentation.Money(model.FinalAmount, currency), emphasise: true);
 
+                // The zebra restarts below the total: the two halves of the table are separate
+                // statements — what was charged, and what has been settled against it.
+                zebra = false;
+
                 ItemRow(table, "Amount paid — this receipt",
-                    ReceiptPresentation.Money(model.FinalAmount, currency));
+                    ReceiptPresentation.Money(model.FinalAmount, currency), shaded: Alternate(ref zebra));
 
                 if (model.PaidAmount != model.FinalAmount)
                     ItemRow(table, "Paid to date",
-                        ReceiptPresentation.Money(model.PaidAmount, currency));
+                        ReceiptPresentation.Money(model.PaidAmount, currency), shaded: Alternate(ref zebra));
 
                 ItemRow(table, "Balance outstanding",
                     ReceiptPresentation.Money(model.OutstandingAmount, currency),
-                    emphasise: model.OutstandingAmount > 0m);
+                    emphasise: model.OutstandingAmount > 0m,
+                    shaded: Alternate(ref zebra));
             });
 
             // ---- amount in words
             if (!string.IsNullOrWhiteSpace(model.AmountInWords))
             {
-                body.Item().Border(0.8f).BorderColor(Colors.Grey.Darken1)
-                    .PaddingVertical(6).PaddingHorizontal(9).Text(text =>
+                body.Item().Background(ZebraTint)
+                    .BorderLeft(3).BorderColor(Brand)
+                    .PaddingVertical(7).PaddingHorizontal(11).Text(text =>
                     {
-                        text.Span("Amount in words:  ").FontSize(9).FontColor(Colors.Grey.Darken2);
-                        text.Span(model.AmountInWords).FontSize(9.5f).SemiBold();
+                        text.Span("Amount in words:  ")
+                            .FontSize(8.5f).SemiBold().FontColor(InkMuted);
+                        text.Span(model.AmountInWords).FontSize(9.5f).SemiBold().FontColor(Ink);
                     });
             }
 
-            // ---- how it was paid, and where that leaves the member
-            body.Item().Row(row =>
+            // ---- how it was paid
+            body.Item().Element(c => WidePanel(c, "Payment details", new[]
             {
-                row.Spacing(12);
-
-                row.RelativeItem().Element(c => Panel(c, "Payment details", new[]
-                {
-                    ("Method", ReceiptPresentation.OrDash(model.PaymentMethodName)),
-                    ("Reference", ReceiptPresentation.OrDash(model.TransactionReference)),
-                    ("Recorded as", ReceiptPresentation.Humanise(model.StatusText))
-                }));
-
-                var (headline, detail) = ReceiptPresentation.Status(model);
-
-                // Two-point border and the verdict spelled out: this has to survive a monochrome
-                // printer, so nothing here depends on a colour being visible.
-                row.RelativeItem().Border(2).BorderColor(Colors.Black)
-                    .PaddingVertical(8).PaddingHorizontal(10).Column(status =>
-                    {
-                        status.Item().Text(headline).FontSize(12).Bold().LetterSpacing(0.1f);
-                        status.Item().PaddingTop(3).Text(detail)
-                            .FontSize(8.5f).FontColor(Colors.Grey.Darken3);
-                    });
-            });
+                ("Method", ReceiptPresentation.OrDash(model.PaymentMethodName)),
+                ("Reference", ReceiptPresentation.OrDash(model.TransactionReference)),
+                ("Recorded as", ReceiptPresentation.Humanise(model.StatusText))
+            }));
 
             if (!string.IsNullOrWhiteSpace(model.Notes))
                 body.Item().Text(text =>
                 {
-                    text.Span("Notes:  ").FontSize(8.5f).SemiBold().FontColor(Colors.Grey.Darken2);
-                    text.Span(model.Notes!).FontSize(8.5f).FontColor(Colors.Grey.Darken2);
+                    text.Span("Notes:  ").FontSize(8.5f).SemiBold().FontColor(InkMuted);
+                    text.Span(model.Notes!).FontSize(8.5f).FontColor(InkMuted);
                 });
 
             // ---- signature
-            body.Item().PaddingTop(26).Row(row =>
+            body.Item().PaddingTop(22).Row(row =>
             {
                 row.RelativeItem().AlignBottom()
-                    .Text("Received with thanks.").FontSize(9).Italic().FontColor(Colors.Grey.Darken2);
+                    .Text("Received with thanks.")
+                    .FontSize(9.5f).Italic().FontColor(InkMuted);
 
                 row.ConstantItem(170).Column(sign =>
                 {
-                    sign.Item().PaddingBottom(3).LineHorizontal(0.8f).LineColor(Colors.Black);
-                    sign.Item().AlignCenter().Text("Authorised signature").FontSize(8.5f);
+                    sign.Item().PaddingBottom(3).LineHorizontal(0.8f).LineColor(InkMuted);
+                    sign.Item().AlignCenter().Text("Authorised signature")
+                        .FontSize(8.5f).FontColor(InkMuted);
                 });
             });
         });
     }
 
+    /// <summary>Flips the zebra flag and returns the shading the current row should use.</summary>
+    private static bool Alternate(ref bool zebra)
+    {
+        zebra = !zebra;
+        return !zebra;
+    }
+
     private static void ComposeReceiptFooter(IContainer container, PaymentReceiptDto model)
     {
-        container.BorderTop(0.8f).BorderColor(Colors.Grey.Medium).PaddingTop(5).Column(footer =>
+        container.PaddingHorizontal(ReceiptPad).PaddingBottom(16).Column(footer =>
         {
-            if (!string.IsNullOrWhiteSpace(model.FooterText))
-                footer.Item().AlignCenter().Text(model.FooterText!)
-                    .FontSize(8.5f).Italic().FontColor(Colors.Grey.Darken2);
+            footer.Item().PaddingBottom(6).LineHorizontal(2).LineColor(Brand);
 
-            footer.Item().PaddingTop(2).Row(row =>
+            if (!string.IsNullOrWhiteSpace(model.FooterText))
+                footer.Item().PaddingBottom(3).AlignCenter().Text(model.FooterText!)
+                    .FontSize(8.5f).Italic().FontColor(InkMuted);
+
+            footer.Item().Row(row =>
             {
                 row.RelativeItem()
                     .Text("This is a computer-generated receipt and is valid without a signature.")
-                    .FontSize(7.5f).FontColor(Colors.Grey.Darken1);
+                    .FontSize(7.5f).FontColor(InkMuted);
 
                 row.ConstantItem(90).AlignRight().Text(text =>
                 {
-                    text.DefaultTextStyle(s => s.FontSize(7.5f).FontColor(Colors.Grey.Darken1));
+                    text.DefaultTextStyle(s => s.FontSize(7.5f).FontColor(InkMuted));
                     text.Span("Page ");
                     text.CurrentPageNumber();
                     text.Span(" of ");
@@ -445,15 +539,16 @@ public sealed class PdfExportService : IPdfExportService
     }
 
     /// <summary>One line of the itemised breakdown. The amount column is always right-aligned.</summary>
-    private static void ItemRow(TableDescriptor table, string label, string amount, bool emphasise = false)
+    private static void ItemRow(TableDescriptor table, string label, string amount,
+        bool emphasise = false, bool shaded = false)
     {
-        var labelCell = table.Cell().Element(x => ItemCell(x, emphasise));
-        var amountCell = table.Cell().Element(x => ItemCell(x, emphasise)).AlignRight();
+        var labelCell = table.Cell().Element(x => ItemCell(x, emphasise, shaded));
+        var amountCell = table.Cell().Element(x => ItemCell(x, emphasise, shaded)).AlignRight();
 
         if (emphasise)
         {
-            labelCell.Text(label).FontSize(10).Bold();
-            amountCell.Text(amount).FontSize(10.5f).Bold();
+            labelCell.Text(label).FontSize(10).Bold().FontColor(BrandDeep);
+            amountCell.Text(amount).FontSize(11.5f).Bold().FontColor(BrandDeep);
         }
         else
         {
@@ -463,38 +558,72 @@ public sealed class PdfExportService : IPdfExportService
     }
 
     private static IContainer ItemHeaderCell(IContainer container) => container
-        .Background(Colors.Grey.Lighten2)
-        .BorderBottom(1).BorderColor(Colors.Black)
-        .PaddingVertical(5).PaddingHorizontal(9);
+        .Background(BrandDeep)
+        .PaddingVertical(6).PaddingHorizontal(11);
 
-    private static IContainer ItemCell(IContainer container, bool emphasise) => (emphasise
-            ? container.Background(Colors.Grey.Lighten3).BorderTop(0.8f).BorderColor(Colors.Grey.Darken1)
-            : container)
-        .BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten1)
-        .PaddingVertical(5).PaddingHorizontal(9);
+    private static IContainer ItemCell(IContainer container, bool emphasise, bool shaded) => (emphasise
+            ? container.Background(BrandSoft).BorderTop(1).BorderColor(Brand)
+            : shaded ? container.Background(ZebraTint) : container)
+        .BorderBottom(0.5f).BorderColor(Hairline)
+        .PaddingVertical(6).PaddingHorizontal(11);
 
-    /// <summary>A bordered block of caption plus label/value lines, used for the side-by-side panels.</summary>
+    /// <summary>
+    /// A bordered block of caption plus label/value lines, used for the side-by-side panels. The
+    /// caption bar carries the brand tint so the two panels read as a pair rather than as two
+    /// unrelated boxes.
+    /// </summary>
     private static void Panel(IContainer container, string caption, IEnumerable<(string Label, string Value)> lines)
     {
-        container.Border(0.8f).BorderColor(Colors.Grey.Darken1).Column(column =>
+        container.Border(1).BorderColor(Hairline).Column(column =>
         {
-            column.Item().Background(Colors.Grey.Lighten3)
-                .BorderBottom(0.8f).BorderColor(Colors.Grey.Darken1)
-                .PaddingVertical(3).PaddingHorizontal(9)
+            column.Item().Background(BrandSoft)
+                .BorderBottom(1).BorderColor(Hairline)
+                .PaddingVertical(4).PaddingHorizontal(11)
                 .Text(caption.ToUpperInvariant())
-                .FontSize(7.5f).Bold().LetterSpacing(0.1f).FontColor(Colors.Grey.Darken3);
+                .FontSize(7).Bold().LetterSpacing(0.12f).FontColor(Brand);
 
-            column.Item().PaddingVertical(6).PaddingHorizontal(9).Column(rows =>
+            column.Item().PaddingVertical(7).PaddingHorizontal(11).Column(rows =>
             {
-                rows.Spacing(2);
+                rows.Spacing(3);
 
                 foreach (var line in lines)
                 {
                     rows.Item().Row(row =>
                     {
                         row.ConstantItem(74).Text(line.Label)
-                            .FontSize(8.5f).FontColor(Colors.Grey.Darken2);
+                            .FontSize(8.5f).FontColor(InkMuted);
                         row.RelativeItem().Text(line.Value).FontSize(9.5f);
+                    });
+                }
+            });
+        });
+    }
+
+    /// <summary>
+    /// The same panel laid out across the page: the values sit side by side rather than stacked,
+    /// which suits a short run of facts that would otherwise leave half the width empty.
+    /// </summary>
+    private static void WidePanel(IContainer container, string caption, (string Label, string Value)[] lines)
+    {
+        container.Border(1).BorderColor(Hairline).Column(column =>
+        {
+            column.Item().Background(BrandSoft)
+                .BorderBottom(1).BorderColor(Hairline)
+                .PaddingVertical(4).PaddingHorizontal(11)
+                .Text(caption.ToUpperInvariant())
+                .FontSize(7).Bold().LetterSpacing(0.12f).FontColor(Brand);
+
+            column.Item().PaddingVertical(8).PaddingHorizontal(11).Row(row =>
+            {
+                row.Spacing(11);
+
+                foreach (var line in lines)
+                {
+                    row.RelativeItem().Column(cell =>
+                    {
+                        cell.Item().Text(line.Label.ToUpperInvariant())
+                            .FontSize(6.5f).SemiBold().LetterSpacing(0.1f).FontColor(InkMuted);
+                        cell.Item().PaddingTop(2).Text(line.Value).FontSize(9.5f);
                     });
                 }
             });
@@ -659,16 +788,4 @@ public sealed class PdfExportService : IPdfExportService
     {
         null => null,
         DateTime dt => dt,
-        DateTimeOffset dto => dto.LocalDateTime,
-        string s when DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed) => parsed,
-        _ => null
-    };
-
-    private static bool ToBool(object? value) => value switch
-    {
-        null => false,
-        bool b => b,
-        string s => bool.TryParse(s, out var parsed) ? parsed : s.Equals("yes", StringComparison.OrdinalIgnoreCase),
-        _ => ToDecimal(value) is > 0m
-    };
-}
+        DateTimeOffs

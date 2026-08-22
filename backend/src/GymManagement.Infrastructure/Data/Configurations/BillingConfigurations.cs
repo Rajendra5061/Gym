@@ -198,3 +198,44 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
             .HasForeignKey(x => x.PaymentMethodId).OnDelete(DeleteBehavior.SetNull);
     }
 }
+
+public class PaymentRequestConfiguration : IEntityTypeConfiguration<PaymentRequest>
+{
+    public void Configure(EntityTypeBuilder<PaymentRequest> b)
+    {
+        b.ToTable("PaymentRequests");
+        b.Property(x => x.Token).HasMaxLength(24).IsRequired();
+        b.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+        b.Property(x => x.Note).HasMaxLength(160);
+        b.Property(x => x.Reference).HasMaxLength(32).IsRequired();
+        b.Property(x => x.Status).HasConversion<int>();
+        b.Property(x => x.OrderId).HasMaxLength(64);
+        b.Property(x => x.GatewayProvider).HasMaxLength(32);
+        b.Property(x => x.QrData).HasMaxLength(1024);
+        b.Property(x => x.PaymentUrl).HasMaxLength(512);
+
+        // The token IS the public identity of the request — it must never collide.
+        b.HasIndex(x => x.Token).IsUnique();
+        b.HasIndex(x => x.Status);
+
+        b.HasOne(x => x.Member).WithMany()
+            .HasForeignKey(x => x.MemberId).OnDelete(DeleteBehavior.Cascade);
+
+        // No cascade from the subscription: a renewal that replaces the term must not
+        // invalidate a link already sitting in the member's inbox.
+        b.HasOne(x => x.Subscription).WithMany()
+            .HasForeignKey(x => x.SubscriptionId).OnDelete(DeleteBehavior.NoAction);
+
+        // No cascade in either direction for the pending payment: it is an accounting record
+        // that outlives the request. Deleting a request must never take a payment with it, and
+        // a payment moved to the recycle bin must not tear away the request row a member's
+        // phone may still be polling.
+        b.HasOne(x => x.Payment).WithMany()
+            .HasForeignKey(x => x.PaymentId).OnDelete(DeleteBehavior.NoAction);
+
+        // Restricted for the same reason as Payment.MembershipPlanId: a plan must not be
+        // deletable out from under a renewal link already sitting in a member's inbox.
+        b.HasOne(x => x.MembershipPlan).WithMany()
+            .HasForeignKey(x => x.MembershipPlanId).OnDelete(DeleteBehavior.NoAction);
+    }
+}

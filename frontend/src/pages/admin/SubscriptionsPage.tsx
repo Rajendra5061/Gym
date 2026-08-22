@@ -16,8 +16,8 @@ import {
   PageCard, PageCardHeader, Pager, Pill, SearchField, StatusPill, type PillTone,
 } from '@/components/ui';
 import {
-  IconCheck, IconCheckSquare, IconClock, IconCrown, IconFile, IconMoney, IconQr,
-  IconPlus, IconRefresh, IconSearch, IconUser,
+  IconCheck, IconCheckSquare, IconClock, IconCrown, IconFile, IconMessage, IconMoney,
+  IconQr, IconPlus, IconRefresh, IconSearch, IconUser,
 } from '@/components/icons';
 import { date as fmtDate, dateTime, money, words } from '@/lib/format';
 import {
@@ -530,7 +530,7 @@ function OverflowMenu({ label = '⋯', children }: { label?: string; children: (
 
 /* -------------------------------------------------------------------- the page */
 
-type RowAction = 'renew' | 'change' | 'freeze' | 'resume' | 'cancel' | 'history' | 'collect';
+type RowAction = 'renew' | 'change' | 'freeze' | 'resume' | 'cancel' | 'history' | 'collect' | 'request';
 
 export default function SubscriptionsPage() {
   const { can, isInRole, currency } = useAuth();
@@ -547,7 +547,9 @@ export default function SubscriptionsPage() {
   // reminder emails use, so the count on the tile and the rows on this list name the same members.
   const [searchParams, setSearchParams] = useSearchParams();
   const initialWindow = (() => {
-    const raw = Number(searchParams.get('endsWithinDays'));
+    const param = searchParams.get('endsWithinDays');
+    if (param === null) return null; // Number(null) is 0 — an absent param must not become day zero.
+    const raw = Number(param);
     return Number.isInteger(raw) && raw >= 0 && raw <= 60 ? raw : null;
   })();
   const [endWindowDays, setEndWindowDays] = useState<number | null>(initialWindow);
@@ -861,6 +863,12 @@ export default function SubscriptionsPage() {
                                 <IconMoney size={15} /> Collect payment
                               </button>
                               <button
+                                className="bill-menu-item" disabled={!mayCollect}
+                                onClick={() => { close(); setAction({ kind: 'request', row }); }}
+                              >
+                                <IconMessage size={15} /> Text pay link
+                              </button>
+                              <button
                                 className="bill-menu-item" disabled={!mayManage}
                                 onClick={() => { close(); setAction({ kind: 'change', row }); }}
                               >
@@ -932,6 +940,9 @@ export default function SubscriptionsPage() {
           row={action.row} plans={plans} methods={methods} currency={currency}
           onDone={() => afterMutation('Plan changed.')} onClose={() => setAction(null)}
         />
+      )}
+      {action?.kind === 'request' && (
+        <RequestPaymentModal row={action.row} onClose={() => setAction(null)} />
       )}
       {action?.kind === 'freeze' && (
         <FreezeModal row={action.row} onDone={() => afterMutation('Subscription frozen.')} onClose={() => setAction(null)} />
@@ -1291,6 +1302,111 @@ function ChangePlanModal(
 }
 
 /* ------------------------------------------------- freeze / resume / cancel */
+
+/**
+ * Texts the member a pay-by-UPI link for this subscription. On success the modal stays open
+ * showing what happened — and the link itself, so the operator can WhatsApp it by hand when
+ * SMS is switched off or the member has no number on file.
+ */
+function RequestPaymentModal({ row, onClose }: { row: SubscriptionDto; onClose: () => void }) {
+  const outstanding = Math.max(0, row.outstandingAmount);
+  const [amount, setAmount] = useState(outstanding > 0 ? outstanding : row.finalAmount);
+  const [note, setNote] = useState(`${row.planName} ${outstanding > 0 ? 'payment' : 'renewal'}`);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [result, setResult] = useState<{
+    link: string; smsSent: boolean; emailSent: boolean; detail: string;
+    memberPhone?: string | null; messageText: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  /** wa.me wants digits with country code; Indian 10-digit numbers get 91 in front. */
+  const whatsAppHref = result?.memberPhone
+    ? `https://wa.me/${(result.memberPhone.replace(/\D/g, '').length === 10 ? '91' : '')}${result.memberPhone.replace(/\D/g, '')}`
+      + `?text=${encodeURIComponent(result.messageText)}`
+    : null;
+
+  async function send() {
+    setBusy(true); setError(null);
+    try {
+      setResult(await paymentsApi.createPaymentRequest({
+        memberId: row.memberId, subscriptionId: row.id, amount, note: note.trim() || null,
+      }));
+    } catch (err) { setError(err); } finally { setBusy(false); }
+  }
+
+  async function copyLink() {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result.link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* the link stays visible to copy by hand */ }
+  }
+
+  return (
+    <Modal
+      title={`Text pay link — ${row.memberName}`} icon={<IconMessage size={18} />} onClose={onClose} width={560}
+      footer={result ? (
+        <button className="btn btn-dark" onClick={onClose}>Done</button>
+      ) : (
+        <>
+          <button className="btn btn-outline" onClick={onClose} disabled={busy}>Cancel</button>
+          <button className="btn btn-dark" onClick={send} disabled={busy || amount <= 0}>
+            {busy ? 'Sending…' : 'Send SMS'}
+          </button>
+        </>
+      )}
+    >
+      <div className="stack">
+        {error ? <ErrorAlert error={error} /> : null}
+        {result ? (
+          <>
+            <Alert tone={result.smsSent || result.emailSent ? 'success' : 'warning'}>{result.detail}</Alert>
+            <Field label="Pay link">
+              <div className="row" style={{ gap: 8 }}>
+                <input className="input" readOnly value={result.link} onFocus={(e) => e.target.select()} />
+                <button className="btn btn-outline" onClick={copyLink}>{copied ? 'Copied' : 'Copy'}</button>
+                {whatsAppHref && (
+                  <a className="btn btn-dark" href={whatsAppHref} target="_blank" rel="noreferrer">
+                    WhatsApp
+                  </a>
+                )}
+              </div>
+            </Field>
+            <Alert tone="info">
+              The member taps the link, picks PhonePe / Google Pay / Paytm or any UPI app, and
+              pays straight to the gym's UPI id. Record the payment here once the credit shows.
+            </Alert>
+          </>
+        ) : (
+          <>
+            <Alert tone="info">
+              An SMS goes to the member's phone with a link that opens their UPI app,
+              pre-filled to pay the gym's UPI id.
+            </Alert>
+            <div className="form-grid">
+              <Field label="Amount" required>
+                <input
+                  className="input" type="number" min={1} step="0.01" value={amount}
+                  onChange={(e) => setAmount(Number(e.target.value))}
+                />
+              </Field>
+              <Field label="Shown as">
+                <input className="input" maxLength={80} value={note} onChange={(e) => setNote(e.target.value)} />
+              </Field>
+            </div>
+            {outstanding > 0 && (
+              <div className="muted" style={{ fontSize: 13 }}>
+                Outstanding on this subscription: {outstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
 
 function FreezeModal({ row, onDone, onClose }: { row: SubscriptionDto; onDone: () => void; onClose: () => void }) {
   const [freezeStartDate, setStart] = useState(todayIso());

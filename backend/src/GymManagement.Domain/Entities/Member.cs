@@ -32,6 +32,20 @@ public class Member : SoftDeletableEntity
     public int? AssignedTrainerId { get; set; }
     public Trainer? AssignedTrainer { get; set; }
 
+    /// <summary>
+    /// Suppresses the goodwill messages — birthday wishes, festival wishes, streak congratulations.
+    /// Deliberately separate from <see cref="WhatsAppOptOut"/> and from the transactional messages:
+    /// a member who does not want to be wished happy birthday still wants their payment receipt,
+    /// and one flag covering both would either spam them or silently withhold their receipts.
+    /// </summary>
+    public bool WishesOptOut { get; set; }
+
+    /// <summary>
+    /// Suppresses the WhatsApp channel for this member; email is unaffected. Set when a member asks
+    /// not to be messaged on WhatsApp, or when the number on file is a landline.
+    /// </summary>
+    public bool WhatsAppOptOut { get; set; }
+
     public ICollection<MemberDocument> Documents { get; set; } = new List<MemberDocument>();
     public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();

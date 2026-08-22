@@ -1204,6 +1204,12 @@ namespace GymManagement.Infrastructure.Data.Migrations
                     b.Property<decimal?>("WeightKg")
                         .HasColumnType("decimal(6,2)");
 
+                    b.Property<bool>("WhatsAppOptOut")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("WishesOptOut")
+                        .HasColumnType("bit");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssignedTrainerId");
@@ -1356,6 +1362,51 @@ namespace GymManagement.Infrastructure.Data.Migrations
                     b.HasIndex("MemberId", "MeasuredOn");
 
                     b.ToTable("MemberMeasurements", (string)null);
+                });
+
+            modelBuilder.Entity("GymManagement.Domain.Entities.MemberNotificationLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeduplicationKey")
+                        .IsRequired()
+                        .HasMaxLength(96)
+                        .HasColumnType("nvarchar(96)");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<bool>("EmailSent")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MemberId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SentOnDate")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("WhatsAppSent")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SentOnDate");
+
+                    b.HasIndex("MemberId", "Kind", "DeduplicationKey")
+                        .IsUnique();
+
+                    b.ToTable("MemberNotificationLogs", (string)null);
                 });
 
             modelBuilder.Entity("GymManagement.Domain.Entities.MemberWorkoutPlan", b =>
@@ -1889,6 +1940,89 @@ namespace GymManagement.Infrastructure.Data.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("PaymentRefunds", (string)null);
+                });
+
+            modelBuilder.Entity("GymManagement.Domain.Entities.PaymentRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("GatewayProvider")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<int>("MemberId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MembershipPlanId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<string>("OrderId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("PaidAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("PaymentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PaymentUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("QrData")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<bool>("SmsSent")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SubscriptionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("nvarchar(24)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MemberId");
+
+                    b.HasIndex("MembershipPlanId");
+
+                    b.HasIndex("PaymentId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SubscriptionId");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("PaymentRequests", (string)null);
                 });
 
             modelBuilder.Entity("GymManagement.Domain.Entities.Permission", b =>
@@ -2994,6 +3128,17 @@ namespace GymManagement.Infrastructure.Data.Migrations
                     b.Navigation("RecordedByTrainer");
                 });
 
+            modelBuilder.Entity("GymManagement.Domain.Entities.MemberNotificationLog", b =>
+                {
+                    b.HasOne("GymManagement.Domain.Entities.Member", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Member");
+                });
+
             modelBuilder.Entity("GymManagement.Domain.Entities.MemberWorkoutPlan", b =>
                 {
                     b.HasOne("GymManagement.Domain.Entities.Member", "Member")
@@ -3096,6 +3241,38 @@ namespace GymManagement.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Payment");
+                });
+
+            modelBuilder.Entity("GymManagement.Domain.Entities.PaymentRequest", b =>
+                {
+                    b.HasOne("GymManagement.Domain.Entities.Member", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GymManagement.Domain.Entities.MembershipPlan", "MembershipPlan")
+                        .WithMany()
+                        .HasForeignKey("MembershipPlanId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("GymManagement.Domain.Entities.Payment", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("GymManagement.Domain.Entities.Subscription", "Subscription")
+                        .WithMany()
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Member");
+
+                    b.Navigation("MembershipPlan");
+
+                    b.Navigation("Payment");
+
+                    b.Navigation("Subscription");
                 });
 
             modelBuilder.Entity("GymManagement.Domain.Entities.RefreshToken", b =>

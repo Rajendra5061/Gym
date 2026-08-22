@@ -83,6 +83,17 @@ export interface MemberWorkoutPlanDto {
   exercises: WorkoutPlanExerciseDto[];
 }
 
+/** Training consistency computed from distinct check-in days — streaks, week goal, heat strip. */
+export interface AttendanceInsightsDto {
+  currentStreakDays: number;
+  bestStreakDays: number;
+  visitsThisWeek: number;
+  weeklyTargetDays: number;
+  activeDaysLast30: number;
+  /** Distinct visit dates over the trailing 12 weeks, oldest first. */
+  activeDays: string[];
+}
+
 export interface MemberDashboardDto {
   member: MemberDetailDto;
   activeSubscription?: SubscriptionDto | null;
@@ -91,6 +102,7 @@ export interface MemberDashboardDto {
   visitsThisMonth: number;
   totalVisits: number;
   lastVisit?: string | null;
+  attendanceInsights: AttendanceInsightsDto;
   recentAttendance: AttendanceDto[];
   recentPayments: PaymentDto[];
   activeWorkoutPlan?: MemberWorkoutPlanDto | null;

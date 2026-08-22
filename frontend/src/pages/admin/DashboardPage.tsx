@@ -12,6 +12,7 @@ import {
   IconMail, IconMoney, IconPlus, IconRefresh, IconUser, IconUsers, IconWarning,
 } from '@/components/icons';
 import { money, relativeTime } from '@/lib/format';
+import { prefersReducedMotion } from '@/lib/motion';
 import './admin.css';
 
 /* The palette lives in tokens.css; these are only the fallbacks when the var is unreadable. */
@@ -429,6 +430,7 @@ export default function DashboardPage() {
                 content={<ChartTooltip format={(value) => money(value, currency)} />}
               />
               <Area
+                isAnimationActive={!prefersReducedMotion}
                 type="monotone"
                 dataKey="value"
                 stroke={colors[0]}
@@ -462,6 +464,7 @@ export default function DashboardPage() {
                 content={<ChartTooltip format={(value) => `${value} check-in${value === 1 ? '' : 's'}`} />}
               />
               <Line
+                isAnimationActive={!prefersReducedMotion}
                 type="monotone"
                 dataKey="value"
                 stroke={colors[3]}

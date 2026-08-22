@@ -117,9 +117,37 @@ public class MemberDashboardDto
     public int VisitsThisMonth { get; set; }
     public int TotalVisits { get; set; }
     public DateTime? LastVisit { get; set; }
+    public AttendanceInsightsDto AttendanceInsights { get; set; } = new();
     public List<AttendanceDto> RecentAttendance { get; set; } = new();
     public List<PaymentDto> RecentPayments { get; set; } = new();
     public MemberWorkoutPlanDto? ActiveWorkoutPlan { get; set; }
     public List<NotificationDto> Notifications { get; set; } = new();
     public List<ChartSeriesDto> AttendanceTrend { get; set; } = new();
+}
+
+/// <summary>
+/// The member's training consistency, computed from the distinct calendar days they checked
+/// in. A day with three check-ins counts once — streaks reward showing up, not door traffic.
+/// </summary>
+public class AttendanceInsightsDto
+{
+    /// <summary>Consecutive gym days running through today. A day without a visit yet does
+    /// not break it until it is over — the streak ends only when a full day is missed.</summary>
+    public int CurrentStreakDays { get; set; }
+
+    /// <summary>The longest run of consecutive gym days on record.</summary>
+    public int BestStreakDays { get; set; }
+
+    /// <summary>Distinct gym days in the current Monday-to-Sunday week.</summary>
+    public int VisitsThisWeek { get; set; }
+
+    /// <summary>Sessions per week the portal presents as the goal line.</summary>
+    public int WeeklyTargetDays { get; set; }
+
+    /// <summary>Distinct gym days in the last 30 days — the consistency score's numerator.</summary>
+    public int ActiveDaysLast30 { get; set; }
+
+    /// <summary>Distinct visit dates over the trailing 12 weeks, oldest first, for the
+    /// activity heat strip. Dates only, normalised to midnight.</summary>
+    public List<DateTime> ActiveDays { get; set; } = new();
 }

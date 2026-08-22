@@ -26,18 +26,23 @@ public sealed class DietPlanService : IDietPlanService
     private readonly IAuditService _audit;
     private readonly ILogger<DietPlanService> _logger;
 
+    /// <summary>Optional so tests construct the service without messaging; null sends nothing.</summary>
+    private readonly IMemberNotifier? _memberNotifier;
+
     public DietPlanService(
         GymDbContext db,
         IDateTimeProvider clock,
         ICurrentUserService currentUser,
         IAuditService audit,
-        ILogger<DietPlanService> logger)
+        ILogger<DietPlanService> logger,
+        IMemberNotifier? memberNotifier = null)
     {
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _memberNotifier = memberNotifier;
     }
 
     private static readonly Expression<Func<DietPlan, DietPlanDto>> ToDto = p => new DietPlanDto
@@ -244,6 +249,20 @@ public sealed class DietPlanService : IDietPlanService
             description: $"{(isNew ? "Created" : "Updated")} diet plan '{plan.Title}' for {memberName} " +
                          $"with {meals.Count} meal(s).",
             ct: ct).ConfigureAwait(false);
+
+        // Tell the member their plan is ready. After the commit, and never allowed to turn a
+        // saved plan into a failed request — the notifier promises not to throw and is wrapped anyway.
+        if (_memberNotifier is not null)
+        {
+            try
+            {
+                await _memberNotifier.NotifyDietPlanAsync(plan.Id, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Diet plan notification for plan {PlanId} failed.", plan.Id);
+            }
+        }
 
         return await GetByIdAsync(plan.Id, ct).ConfigureAwait(false);
     }

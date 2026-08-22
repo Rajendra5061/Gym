@@ -37,6 +37,9 @@ public sealed class AttendanceService : IAttendanceService
     private readonly INotificationService _notifications;
     private readonly ILogger<AttendanceService> _logger;
 
+    /// <summary>Optional so tests construct the service without messaging; null congratulates nobody.</summary>
+    private readonly IMemberNotifier? _memberNotifier;
+
     public AttendanceService(
         GymDbContext db,
         IDateTimeProvider clock,
@@ -44,7 +47,8 @@ public sealed class AttendanceService : IAttendanceService
         IAuditService audit,
         ISettingsService settings,
         INotificationService notifications,
-        ILogger<AttendanceService> logger)
+        ILogger<AttendanceService> logger,
+        IMemberNotifier? memberNotifier = null)
     {
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
@@ -53,6 +57,7 @@ public sealed class AttendanceService : IAttendanceService
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _notifications = notifications ?? throw new ArgumentNullException(nameof(notifications));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _memberNotifier = memberNotifier;
     }
 
     /// <summary>Server side projection used by every read on this service.</summary>
@@ -162,6 +167,27 @@ public sealed class AttendanceService : IAttendanceService
             },
             description: $"Check-in for {member.FullName} ({member.MemberCode}) via {method}.",
             ct: ct).ConfigureAwait(false);
+
+        // A check-in may complete a streak milestone. The notifier decides whether this length
+        // is one (and has already congratulated it); the check-in itself must never fail over it.
+        if (_memberNotifier is not null)
+        {
+            try
+            {
+                var trainingDays = await _db.Attendance.AsNoTracking()
+                    .Where(a => a.MemberId == member.Id)
+                    .Select(a => a.AttendanceDate.Date)
+                    .Distinct()
+                    .OrderBy(d => d)
+                    .ToListAsync(ct).ConfigureAwait(false);
+                var (currentStreak, _) = DashboardService.ComputeStreaks(trainingDays, today);
+                await _memberNotifier.NotifyStreakAsync(member.Id, currentStreak, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Streak notification after check-in for member {MemberId} failed.", member.Id);
+            }
+        }
 
         return await GetDtoAsync(entity.Id, ct).ConfigureAwait(false);
     }

@@ -121,6 +121,25 @@ public enum RefundStatus
     Completed = 4
 }
 
+/// <summary>Lifecycle of a texted pay-by-link request.</summary>
+public enum PaymentRequestStatus
+{
+    /// <summary>Sent and payable. The link renders and the gateway may still settle it.</summary>
+    Pending = 0,
+
+    /// <summary>The gateway settled the payment behind the link; the request's work is done.</summary>
+    Paid = 1,
+
+    /// <summary>The gateway reported the collection failed. The member may simply retry the link.</summary>
+    Failed = 2,
+
+    /// <summary>The link outlived its validity window without being paid.</summary>
+    Expired = 3,
+
+    /// <summary>Withdrawn by staff before it was paid.</summary>
+    Cancelled = 4
+}
+
 public enum LoginResult
 {
     Success = 1,
@@ -269,4 +288,30 @@ public static class AuditActions
     public const string LicenseActivated = "LicenseActivated";
     public const string BackupCreated = "BackupCreated";
     public const string BackupRestored = "BackupRestored";
+}
+
+/// <summary>
+/// The occasions on which a member is messaged directly, on their own email address and their own
+/// WhatsApp number. One value per occasion, because the value is half of the idempotency key that
+/// stops a restart or a retry greeting the same member twice.
+/// </summary>
+public enum MemberNotificationKind
+{
+    /// <summary>A confirmed payment that starts a member's first membership.</summary>
+    PaymentReceived = 0,
+
+    /// <summary>A confirmed payment for a member who has trained here before.</summary>
+    RenewalPayment = 1,
+
+    /// <summary>A diet plan was written for the member, or its meals were revised.</summary>
+    DietPlan = 2,
+
+    /// <summary>The member's run of consecutive training days reached a milestone.</summary>
+    StreakMilestone = 3,
+
+    /// <summary>Birthday wishes, sent on the day by the daily run.</summary>
+    Birthday = 4,
+
+    /// <summary>Festival wishes, sent on a configured date by the daily run.</summary>
+    Festival = 5,
 }

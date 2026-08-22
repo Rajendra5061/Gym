@@ -25,6 +25,10 @@ public class MemberListDto
     public SubscriptionStatus? SubscriptionStatus { get; set; }
     public decimal OutstandingAmount { get; set; }
     public bool IsExpiringSoon { get; set; }
+
+    // Messaging preferences, surfaced so the grid can badge members who asked not to be contacted.
+    public bool WishesOptOut { get; set; }
+    public bool WhatsAppOptOut { get; set; }
 }
 
 public class MemberDetailDto
@@ -53,6 +57,13 @@ public class MemberDetailDto
     public int? AssignedTrainerId { get; set; }
     public string? AssignedTrainerName { get; set; }
     public bool HasUserAccount { get; set; }
+
+    /// <summary>Suppresses birthday, festival and streak messages; receipts are unaffected.</summary>
+    public bool WishesOptOut { get; set; }
+
+    /// <summary>Suppresses the WhatsApp channel for this member; email is unaffected.</summary>
+    public bool WhatsAppOptOut { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
@@ -83,6 +94,13 @@ public class CreateMemberDto
     public decimal? WeightKg { get; set; }
     public string? Notes { get; set; }
     public int? AssignedTrainerId { get; set; }
+
+    /// <summary>Suppresses birthday, festival and streak messages; receipts are unaffected.</summary>
+    public bool WishesOptOut { get; set; }
+
+    /// <summary>Suppresses the WhatsApp channel for this member; email is unaffected.</summary>
+    public bool WhatsAppOptOut { get; set; }
+
     /// <summary>When true a member login account is created and a temporary password returned.</summary>
     public bool CreateUserAccount { get; set; }
 }

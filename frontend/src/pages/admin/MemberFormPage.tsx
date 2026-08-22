@@ -40,6 +40,8 @@ interface FormState {
   emergencyContactName: string; emergencyContactPhone: string; emergencyContactRelation: string;
   joiningDate: string; assignedTrainerId: string; heightCm: string; weightKg: string; notes: string;
   createUserAccount: boolean;
+  /* Stored as the API's opt-OUTs; the checkboxes render the positive reading (!optOut). */
+  wishesOptOut: boolean; whatsAppOptOut: boolean;
 }
 
 const BLANK: FormState = {
@@ -48,6 +50,7 @@ const BLANK: FormState = {
   emergencyContactName: '', emergencyContactPhone: '', emergencyContactRelation: '',
   joiningDate: todayInput(), assignedTrainerId: '', heightCm: '', weightKg: '', notes: '',
   createUserAccount: false,
+  wishesOptOut: false, whatsAppOptOut: false,
 };
 
 /** Server validation keys arrive in the C# PascalCase; match them case-insensitively. */
@@ -133,6 +136,8 @@ export default function MemberFormPage() {
           weightKg: m.weightKg === null || m.weightKg === undefined ? '' : String(m.weightKg),
           notes: m.notes ?? '',
           createUserAccount: false,
+          wishesOptOut: m.wishesOptOut,
+          whatsAppOptOut: m.whatsAppOptOut,
         });
         setError(null);
       })
@@ -182,6 +187,8 @@ export default function MemberFormPage() {
       notes: form.notes.trim() || null,
       assignedTrainerId: form.assignedTrainerId ? Number(form.assignedTrainerId) : null,
       createUserAccount: isEdit ? false : form.createUserAccount,
+      wishesOptOut: form.wishesOptOut,
+      whatsAppOptOut: form.whatsAppOptOut,
     };
     if (isEdit) body.status = carried.current.status;
 
@@ -335,6 +342,33 @@ export default function MemberFormPage() {
                       placeholder="O+"
                     />
                   </Field>
+                </div>
+                {/* Messaging preferences. Positive labels; the API stores the opt-OUT. */}
+                <div className="stack" style={{ marginTop: 'var(--sp-4)' }}>
+                  <div className="check-row">
+                    <input
+                      id="member-whatsapp"
+                      type="checkbox"
+                      checked={!form.whatsAppOptOut}
+                      onChange={(e) => set('whatsAppOptOut', !e.target.checked)}
+                    />
+                    <label htmlFor="member-whatsapp">
+                      <div className="check-row-label">Send WhatsApp messages</div>
+                      <div className="check-row-help">Receipts and reminders still go by email/SMS.</div>
+                    </label>
+                  </div>
+                  <div className="check-row">
+                    <input
+                      id="member-wishes"
+                      type="checkbox"
+                      checked={!form.wishesOptOut}
+                      onChange={(e) => set('wishesOptOut', !e.target.checked)}
+                    />
+                    <label htmlFor="member-wishes">
+                      <div className="check-row-label">Send birthday &amp; festival wishes</div>
+                      <div className="check-row-help">Transactional messages are unaffected.</div>
+                    </label>
+                  </div>
                 </div>
               </FormSection>
 

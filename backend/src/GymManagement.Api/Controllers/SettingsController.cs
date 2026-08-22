@@ -3,6 +3,7 @@ using GymManagement.Application.Common;
 using GymManagement.Application.DTOs;
 using GymManagement.Application.Interfaces;
 using GymManagement.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GymManagement.Api.Controllers;
@@ -38,12 +39,14 @@ public sealed class SettingsController : ApiControllerBase
     /// details already published on the anonymous landing page.
     /// </summary>
     /// <remarks>
-    /// Authenticated callers only, but no permission — every role has to render the navbar and
-    /// format money. The full profile on <c>GET /api/settings/gym</c> stays behind
-    /// <c>settings.view</c> because it also carries the UPI payment handle, the tax number,
-    /// receipt/member numbering and the account-lockout thresholds.
+    /// Anonymous — the landing page and the login screens print this data before anyone signs
+    /// in, and every field is public by nature (the name on the door, the front-desk contact,
+    /// the currency on the price list). The full profile on <c>GET /api/settings/gym</c> stays
+    /// behind <c>settings.view</c> because it also carries the UPI payment handle, the tax
+    /// number, receipt/member numbering and the account-lockout thresholds.
     /// </remarks>
     [HttpGet("branding")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<GymBrandingDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<GymBrandingDto>>> GetGymBranding(CancellationToken ct) =>
         Success(await _settings.GetGymBrandingAsync(ct));

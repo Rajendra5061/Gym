@@ -227,3 +227,12 @@
   font-family: Consolas, "SF Mono", ui-monospace, monospace; font-size: var(--fs-md);
 }
 .set-secret-note { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--text-muted); }
+
+/* Phone: the desktop dashboard grids promise each column ~400px, which a 390px viewport
+   cannot keep. These live here, not base.css, because this file loads later and would
+   otherwise win the tie and quietly restore the overflow. */
+@media (max-width: 880px) {
+  .chart-grid { grid-template-columns: minmax(0, 1fr); }
+  .dash-two { grid-template-columns: minmax(0, 1fr); }
+}
+

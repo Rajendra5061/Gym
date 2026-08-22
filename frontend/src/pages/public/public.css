@@ -286,6 +286,10 @@
   .pub-main { padding: var(--sp-4); }
   .pub-auth-single { padding: 24px 20px; }
   .pub-auth-wrap { padding: 24px 16px; }
+  /* Two login buttons leave the gym name a few pixels — a name shorn to "M…" reads worse
+     than no name, so on a phone the logo mark carries the brand alone. */
+  .pub-brand-name { display: none; }
+  .pub-nav-actions .btn { padding: 8px 12px; font-size: var(--fs-sm); }
 }
 
 /* Owner contact beside the footer line. Hidden entirely when the gym has none on file. */
@@ -1017,7 +1021,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pub-auth-glass { animation: none; }
+  /* Every pub-glass-rise rider: the keyframe starts at opacity 0 with fill "both", so a
+     suppressed animation MUST fall back to the base style (visible), never the from-state. */
+  .pub-auth-glass, .pub-auth-formwrap { animation: none; }
 }
 
 /* ---------------------------------------------------------------- footer v3
@@ -1234,6 +1240,15 @@ a.pub-footer3-line:hover { color: #fff; text-decoration: none; }
   .pub-auth-photocopy { padding: 26px; }
 }
 
+@media (max-width: 620px) {
+  /* Phone: the login IS the form. The photograph thins to a signature strip — tagline
+     only, checklist gone — so the fields own the screen on every login page. */
+  .pub-auth-photoside { min-height: 148px; }
+  .pub-auth-photocopy { padding: 18px 22px; }
+  .pub-auth-photocopy .pub-auth-pitch-title { font-size: 19px; }
+  .pub-auth-photocopy .pub-auth-pitch-list { display: none; }
+}
+
 /* ==========================================================================
    Auth split, refined: photo left, an unmistakable login column right
    ========================================================================== */
@@ -1344,3 +1359,165 @@ a.pub-footer3-line:hover { color: #fff; text-decoration: none; }
 /* Badge beside the heading rather than above it — one row announcing the page. */
 .pub-auth-titlerow { display: flex; align-items: center; gap: 14px; }
 .pub-auth-titlerow .pub-auth-mark { width: 46px; height: 46px; border-radius: 13px; margin-bottom: 0; }
+
+/* ------------------------------------------------------------ texted pay page */
+/* Opened from an SMS on a phone with no session: one dark, focused sheet whose only job
+   is handing the payment to a UPI app. Single-theme by design — it commits to the same
+   near-black world as the public navbar, and every colour here is explicit. */
+.pub-pay-shell {
+  min-height: 100dvh; padding: 18px 14px 24px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background:
+    radial-gradient(120% 70% at 85% -10%, #7c3aed44 0%, transparent 60%),
+    radial-gradient(120% 80% at 0% 110%, #db277744 0%, transparent 55%),
+    linear-gradient(160deg, #171522 0%, #0d0c15 100%);
+}
+.pub-pay-card {
+  width: 100%; max-width: 420px;
+  background: #ffffff; color: #1c1930;
+  border-radius: 18px; padding: 22px;
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, .8);
+}
+.pub-pay-foot { font-size: 12px; color: #8f8aa8; }
+
+.pub-pay-head { display: flex; align-items: center; gap: 12px; }
+.pub-pay-mark {
+  width: 42px; height: 42px; border-radius: 12px; flex: none;
+  display: grid; place-items: center; color: #fff;
+  background: linear-gradient(120deg, #7c3aed, #db2777);
+}
+.pub-pay-gym { font-size: 17px; font-weight: 800; }
+.pub-pay-sub { font-size: 12.5px; color: #75718c; }
+
+.pub-pay-amount {
+  margin-top: 18px; padding: 18px;
+  border-radius: 14px; text-align: center;
+  background: #f4f3fb; border: 1px solid #e6e4f2;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.pub-pay-amount-label { font-size: 13.5px; color: #55516e; }
+.pub-pay-amount-value { font-size: 38px; font-weight: 800; letter-spacing: -.5px; color: #4f46e5; }
+.pub-pay-amount-note { font-size: 13px; color: #75718c; }
+
+.pub-pay-apps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.pub-pay-app {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 10px; border-radius: 12px;
+  font-weight: 700; font-size: 14.5px;
+  color: var(--app-tone, #1c1930); background: #ffffff;
+  border: 1.5px solid #e0def0; text-decoration: none;
+}
+.pub-pay-app:hover { border-color: var(--app-tone, #4f46e5); text-decoration: none; }
+.pub-pay-app-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--app-tone); }
+.pub-pay-app-any {
+  grid-column: 1 / -1; color: #fff; border-color: transparent;
+  background: linear-gradient(120deg, #4f46e5, #7c3aed);
+}
+.pub-pay-app-any:hover { color: #fff; border-color: transparent; filter: brightness(1.06); }
+
+.pub-pay-vpa {
+  margin-top: 14px; padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  border: 1px dashed #cfcbe4; border-radius: 12px;
+}
+.pub-pay-vpa-label { display: block; font-size: 11.5px; color: #75718c; }
+.pub-pay-vpa-id { font-weight: 700; font-size: 14.5px; word-break: break-all; }
+.pub-pay-hint { margin-top: 14px; font-size: 12.5px; line-height: 1.55; color: #75718c; }
+
+.pub-pay-state { text-align: center; padding: 12px 4px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.pub-pay-state-icon {
+  width: 54px; height: 54px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: #f4f3fb; color: #7c3aed;
+}
+.pub-pay-state h1 { font-size: 19px; }
+.pub-pay-state p { color: #55516e; font-size: 14px; max-width: 34ch; }
+.pub-pay-state .btn { margin-top: 6px; background: #4f46e5; border-color: transparent; }
+
+/* ------------------------------------------- gateway pay flow (QR + live status) */
+/* Same single-theme sheet as above: explicit colours, no theme tokens. */
+
+.pub-pay-code { margin-top: 4px; font-size: 11.5px; color: #a5a1bd; }
+
+.pub-pay-qrpanel { margin-top: 16px; text-align: center; }
+.pub-pay-qrhead {
+  font-size: 12px; font-weight: 800; letter-spacing: .14em;
+  text-transform: uppercase; color: #55516e;
+}
+.pub-pay-qrbox {
+  width: 216px; height: 216px; margin: 10px auto 0; padding: 8px;
+  background: #ffffff; border: 1px solid #e6e4f2; border-radius: 14px;
+}
+.pub-pay-qrbox svg, .pub-pay-qrbox img {
+  display: block; width: 100%; height: 100%; object-fit: contain;
+}
+.pub-pay-qrline { margin-top: 10px; font-size: 12.5px; line-height: 1.5; color: #75718c; }
+
+.pub-pay-or {
+  display: flex; align-items: center; gap: 10px; margin: 14px 0;
+  color: #a5a1bd; font-size: 11.5px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+}
+.pub-pay-or::before, .pub-pay-or::after { content: ''; flex: 1; height: 1px; background: #e6e4f2; }
+
+.pub-pay-now {
+  display: flex; width: 100%; align-items: center; justify-content: center;
+  padding: 14px 10px; border: 0; border-radius: 12px; cursor: pointer;
+  font-weight: 800; font-size: 15px; letter-spacing: .05em; text-transform: uppercase;
+  color: #fff; background: linear-gradient(120deg, #4f46e5, #7c3aed);
+  text-decoration: none;
+}
+.pub-pay-now:hover { color: #fff; text-decoration: none; filter: brightness(1.06); }
+
+/* The live strip. Pending pulses; terminal states are shown once before the screen swaps. */
+.pub-pay-status {
+  margin-top: 14px; padding: 11px 12px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  font-size: 13.5px; font-weight: 600;
+}
+.pub-pay-status-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.pub-pay-status--pending { background: #fdf5e3; color: #92600a; }
+.pub-pay-status--pending .pub-pay-status-dot {
+  background: #e8a13d; animation: pub-pay-pulse 1.4s ease-in-out infinite;
+}
+.pub-pay-status--paid { background: #e9f7ef; color: #157347; }
+.pub-pay-status--paid .pub-pay-status-dot { background: #1da766; }
+.pub-pay-status--failed { background: #fdecec; color: #b42323; }
+.pub-pay-status--failed .pub-pay-status-dot { background: #d94040; }
+.pub-pay-status--expired { background: #f0eff6; color: #75718c; }
+.pub-pay-status--expired .pub-pay-status-dot { background: #a5a1bd; }
+@keyframes pub-pay-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .35; transform: scale(.72); }
+}
+
+/* Terminal screens. */
+.pub-pay-state-icon--ok { background: #e9f7ef; color: #157347; }
+.pub-pay-state-icon--fail { background: #fdecec; color: #b42323; }
+.pub-pay-done-title { text-transform: uppercase; letter-spacing: .07em; }
+.pub-pay-done-amount { font-size: 34px; font-weight: 800; letter-spacing: -.5px; color: #157347; }
+.pub-pay-rows { width: 100%; margin-top: 6px; border-top: 1px solid #eceaf5; }
+.pub-pay-row {
+  display: flex; justify-content: space-between; gap: 14px;
+  padding: 9px 2px; border-bottom: 1px solid #eceaf5; font-size: 13px;
+}
+.pub-pay-row span:first-child { color: #75718c; flex: none; text-align: left; }
+.pub-pay-row span:last-child { font-weight: 600; word-break: break-all; text-align: right; }
+.pub-pay-close { font-size: 12.5px; color: #8f8aa8; }
+
+/* Dev-only simulator affordances. */
+.pub-pay-dev {
+  margin-top: 14px; padding: 10px 12px; text-align: center;
+  border: 1.5px dashed #c9b7f2; border-radius: 12px;
+  font-size: 12.5px; color: #55516e; background: #faf8ff;
+}
+.pub-pay-dev a { font-weight: 700; color: #7c3aed; }
+.pub-pay-sim-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.pub-pay-sim-ok, .pub-pay-sim-fail {
+  padding: 13px 10px; border-radius: 12px; cursor: pointer;
+  font-weight: 700; font-size: 14.5px;
+}
+.pub-pay-sim-ok { border: 0; color: #fff; background: #1da766; }
+.pub-pay-sim-fail { border: 1.5px solid #eab6b6; color: #b42323; background: #fff; }
+.pub-pay-sim-ok:disabled, .pub-pay-sim-fail:disabled { opacity: .6; cursor: default; }
+.pub-pay-sim-err { margin-top: 10px; text-align: center; font-size: 13px; color: #b42323; }

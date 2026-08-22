@@ -138,7 +138,7 @@ export default function MyPaymentsPage() {
                     <td className="fit"><span className="cell-icon"><IconCalendar size={14} />{date(row.paymentDate)}</span></td>
                     <td className="fit"><Pill tone="info">{row.paymentMethodName}</Pill></td>
                     <td className="fit"><StatusPill status={row.statusText} /></td>
-                    <td className="muted" style={{ maxWidth: 240 }}>{row.notes || '—'}</td>
+                    <td className="muted"><span className="cell-clip" style={{ maxWidth: 240 }}>{row.notes || '—'}</span></td>
                     <td className="actions">
                       <button
                         className="btn btn-outline btn-sm"

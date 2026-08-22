@@ -55,22 +55,55 @@ public static class NumberToWords
         if (isNegative && (whole > 0m || fraction > 0)) builder.Append("Minus ");
 
         builder.Append(IntegerToWords(whole));
-        AppendUnit(builder, currencyName);
+        AppendUnit(builder, currencyName, whole);
 
         if (fraction > 0)
         {
             builder.Append(" and ").Append(IntegerToWords(fraction));
-            AppendUnit(builder, fractionName);
+            AppendUnit(builder, fractionName, fraction);
         }
 
         builder.Append(" Only");
         return builder.ToString();
     }
 
-    private static void AppendUnit(StringBuilder builder, string? unitName)
+    /// <summary>
+    /// Irregular singulars. A trailing "s" is stripped for everything else, which covers Dollars,
+    /// Euros, Cents and the rest; these four do not follow that rule and are the ones a receipt in
+    /// this market will actually print.
+    /// </summary>
+    private static readonly Dictionary<string, string> SingularUnits =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Rupees"] = "Rupee",
+            ["Paise"] = "Paisa",
+            ["Pence"] = "Penny",
+            ["Fils"] = "Fils",
+        };
+
+    /// <summary>
+    /// Appends the unit, made singular when there is exactly one of it: a receipt for ₹1.18 read
+    /// "One Rupees and Eighteen Paise", which is the sort of thing a member photographs and sends
+    /// back to the front desk.
+    /// </summary>
+    private static void AppendUnit(StringBuilder builder, string? unitName, decimal quantity)
     {
         if (string.IsNullOrWhiteSpace(unitName)) return;
-        builder.Append(' ').Append(unitName.Trim());
+
+        var name = unitName.Trim();
+
+        if (quantity == 1m)
+        {
+            name = SingularUnits.TryGetValue(name, out var singular)
+                ? singular
+                // Only a plural "…s" is trimmed. A unit that is already singular, or one whose
+                // plural does not end in s, is left exactly as the gym configured it.
+                : name.Length > 1 && name.EndsWith('s') && !name.EndsWith("ss", StringComparison.OrdinalIgnoreCase)
+                    ? name[..^1]
+                    : name;
+        }
+
+        builder.Append(' ').Append(name);
     }
 
     /// <summary>

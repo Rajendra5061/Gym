@@ -38,6 +38,17 @@ builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.Is
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
+// The read side of the app is JSON all the way down, and several list screens ship hundreds of
+// rows per response. Brotli/gzip cuts those bodies by ~80–90% for one-time CPU pennies —
+// worthwhile even on localhost, decisive on a slow link.
+builder.Services.AddMemoryCache();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+});
+
 builder.Services
     .AddControllers(options => options.Filters.Add<ValidationFilter>())
     .AddJsonOptions(options =>
@@ -260,6 +271,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 
 app.UseHttpsRedirection();
+app.UseResponseCompression();
 app.UseSerilogRequestLogging();
 app.UseCors(CorsPolicy);
 

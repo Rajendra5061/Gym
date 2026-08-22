@@ -168,3 +168,8 @@
 .timeline li { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--divider); font-size: var(--fs-md); }
 .timeline li:last-child { border-bottom: 0; }
 .timeline .when { flex: none; width: 130px; color: var(--text-muted); font-size: var(--fs-xs); }
+
+/* Phone: the payment tab strip is wider than the screen; it scrolls like .detail-tabs. */
+@media (max-width: 880px) {
+  .bill-tabs { overflow-x: auto; }
+}

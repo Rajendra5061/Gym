@@ -119,6 +119,64 @@ export interface UpiIntentInput {
   notes?: string | null;
 }
 
+/** Asks the server to text the member a pay-by-UPI link. */
+export interface CreatePaymentRequestInput {
+  memberId: number;
+  subscriptionId?: number | null;
+  amount: number;
+  note?: string | null;
+}
+
+export interface PaymentRequestCreatedDto {
+  token: string;
+  link: string;
+  smsSent: boolean;
+  emailSent: boolean;
+  detail: string;
+  memberPhone?: string | null;
+  memberEmail?: string | null;
+  /** The exact message the SMS carries — reused verbatim for a WhatsApp share. */
+  messageText: string;
+}
+
+/** Lifecycle of a texted payment request, as the anonymous pay page sees it. */
+export type PublicPaymentStatus = 'pending' | 'paid' | 'failed' | 'expired';
+
+/**
+ * What the anonymous pay page renders — payee, amount, note, the gateway QR/checkout when a
+ * gateway drives the flow, and the UPI deep link as the fallback intent.
+ *
+ * `qrData` convention: a value starting `image:` is a hosted QR image URL to render as an
+ * <img>; anything else is a raw payload to encode locally; null means encode `upiDeepLink`.
+ */
+export interface PublicPaymentRequestDto {
+  gymName: string;
+  memberFirstName: string;
+  planName?: string | null;
+  amount: number;
+  currencySymbol: string;
+  note?: string | null;
+  upiId: string;
+  payeeName: string;
+  upiDeepLink: string;
+  expired: boolean;
+  status: PublicPaymentStatus;
+  orderId?: string | null;
+  qrData?: string | null;
+  paymentUrl?: string | null;
+  gatewayEnabled: boolean;
+  paymentCode: string;
+}
+
+/** Live answer of `GET /api/payments/requests/{token}/status` — polled while pending. */
+export interface PaymentRequestStatusDto {
+  status: PublicPaymentStatus;
+  receiptNumber?: string | null;
+  gatewayTransactionId?: string | null;
+  paidAtUtc?: string | null;
+  validUntil?: string | null;
+}
+
 /** Query string accepted by `GET /api/payments`. Mirrors PaymentQueryDto. */
 export interface PaymentQuery {
   pageNumber?: number;
@@ -165,6 +223,22 @@ export const paymentsApi = {
 
   upiIntent: (body: UpiIntentInput) =>
     api.post<UpiPaymentIntentDto>('/api/payments/upi-intent', body),
+
+  createPaymentRequest: (body: CreatePaymentRequestInput) =>
+    api.post<PaymentRequestCreatedDto>('/api/payments/requests', body),
+
+  /** Anonymous — the texted pay link resolves through this. */
+  paymentRequest: (token: string) =>
+    api.get<PublicPaymentRequestDto>(`/api/payments/requests/${encodeURIComponent(token)}`),
+
+  /** Anonymous — the pay page polls this while the request is pending. */
+  paymentRequestStatus: (token: string, signal?: AbortSignal) =>
+    api.get<PaymentRequestStatusDto>(
+      `/api/payments/requests/${encodeURIComponent(token)}/status`, undefined, signal),
+
+  /** Dev-only simulated gateway outcome; the server answers 404 outside Development. */
+  simulatePayment: (token: string, outcome: 'success' | 'failure') =>
+    api.post<void>(`/api/payments/dev/simulate/${encodeURIComponent(token)}`, { outcome }),
 
   createRefund: (body: CreateRefundInput) =>
     api.post<PaymentRefundDto>('/api/payments/refunds', body),

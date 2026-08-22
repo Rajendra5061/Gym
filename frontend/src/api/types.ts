@@ -130,9 +130,9 @@ export interface NotificationDto {
 }
 
 /**
- * `GET /api/settings/branding` — the slice of the gym profile every signed-in user may read, so
- * the shell can render the gym's identity and format money. The rest of the profile (UPI handle,
- * tax number, receipt numbering, lockout thresholds) stays behind `settings.view`.
+ * `GET /api/settings/branding` — the anonymous slice of the gym profile, so both the public
+ * screens and the shell can render the gym's identity and format money. The rest of the profile
+ * (UPI handle, tax number, receipt numbering, lockout thresholds) stays behind `settings.view`.
  */
 export interface GymBranding {
   gymName: string; logoPath?: string | null;

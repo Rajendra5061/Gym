@@ -13,6 +13,12 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  // Pre-bundling the heavyweights up front stops Vite from pausing the page mid-session to
+  // re-optimise when a lazy route first pulls them in — the "reloading because a new
+  // dependency was found" stall that reads as a slow app.
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'recharts'],
+  },
   server: {
     port: 5173,
     proxy: {
@@ -24,5 +30,27 @@ export default defineConfig({
       '/health': { target: 'https://localhost:7135', changeOrigin: true, secure: false },
     },
   },
-  build: { outDir: 'dist', sourcemap: true },
+  // `vite preview` serves the production build with the same proxy, so the minified app can
+  // be demoed on the dev machine at production speed without a separate web server.
+  preview: {
+    port: 5175,
+    proxy: {
+      '/api': { target: 'https://localhost:7135', changeOrigin: true, secure: false },
+      '/health': { target: 'https://localhost:7135', changeOrigin: true, secure: false },
+    },
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    // recharts is the single biggest chunk; splitting it keeps every non-chart page's
+    // JavaScript small and lets charts arrive only where they are drawn.
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          charts: ['recharts'],
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
+  },
 });

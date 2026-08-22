@@ -6,7 +6,7 @@ import { initials } from '@/lib/format';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   IconDashboard, IconUsers, IconUser, IconCrown, IconCard, IconCalendar, IconDumbbell,
-  IconChart, IconBell, IconShield, IconFile, IconTrash, IconSettings, IconLogout,
+  IconChart, IconBell, IconShield, IconFile, IconTrash, IconSettings, IconLogout, IconMenu,
   IconMessage, IconBox, IconCheckSquare, IconMoney, IconChevronsLeft, IconPhone, IconMail,
 } from '@/components/icons';
 import type { ReactNode } from 'react';
@@ -57,6 +57,7 @@ const adminNav: NavSection[] = [
       { to: '/admin/enquiries',     label: 'Enquiries',     icon: <IconMessage size={16} />, permission: 'enquiries.view' },
       { to: '/admin/feedback',      label: 'Feedback',      icon: <IconMessage size={16} />, permission: 'feedback.view' },
       { to: '/admin/notifications', label: 'Notifications', icon: <IconBell size={16} />,    permission: 'notifications.view' },
+      { to: '/admin/communications', label: 'Communications', icon: <IconPhone size={16} />, permission: 'notifications.view' },
     ],
   },
   {
@@ -166,6 +167,33 @@ export function AppLayout({ area }: { area: 'admin' | 'trainer' | 'member' }) {
   );
   useEffect(() => { localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0'); }, [collapsed]);
 
+  // Warm the heavy lazy routes once the shell is idle, so the first click on Dashboard or
+  // Members doesn't pay the chunk download (and, in dev, the compile) while the user watches
+  // a spinner. Fire-and-forget: a failed prefetch just means the click loads it as before.
+  useEffect(() => {
+    const warm = () => {
+      const routes: Array<() => Promise<unknown>> = [
+        () => import('@/pages/admin/DashboardPage'),
+        () => import('@/pages/admin/MembersPage'),
+        () => import('@/pages/admin/SubscriptionsPage'),
+        () => import('@/pages/admin/PaymentsPage'),
+        () => import('@/pages/admin/CommunicationsPage'),
+        () => import('@/pages/member/MemberDashboardPage'),
+        () => import('@/pages/trainer/TrainerDashboardPage'),
+      ];
+      routes.forEach((load) => { load().catch(() => { /* loaded on demand instead */ }); });
+    };
+    const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
+    const handle = idle ? idle(warm) : window.setTimeout(warm, 1500);
+    return () => {
+      if (!idle) window.clearTimeout(handle as number);
+    };
+  }, []);
+
+  // Phone drawer: the rail slides in over the page and any navigation dismisses it.
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  useEffect(() => setDrawerOpen(false), [location.pathname]);
+
   // Drop destinations the signed-in user may not reach, then drop any heading left with nothing
   // under it — an "Engagement" label above empty space reads as a broken menu.
   const sections = NAV_BY_AREA[area]
@@ -227,7 +255,7 @@ export function AppLayout({ area }: { area: 'admin' | 'trainer' | 'member' }) {
 
   return (
     <div className="app">
-      <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+      <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${drawerOpen ? 'mobile-open' : ''}`}>
         <a
           className="sidebar-brand"
           href={`/${area}/dashboard`}
@@ -272,8 +300,20 @@ export function AppLayout({ area }: { area: 'admin' | 'trainer' | 'member' }) {
 
       </aside>
 
+      {drawerOpen && (
+        <div className="sidebar-backdrop" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
+      )}
+
       <div className="app-main">
         <header className="topbar">
+          <button
+            type="button"
+            className="topbar-menu"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open navigation"
+          >
+            <IconMenu size={19} />
+          </button>
           <div className="topbar-title">{title}</div>
 
           <div className="topbar-actions">

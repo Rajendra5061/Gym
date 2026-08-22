@@ -26,8 +26,8 @@ public class PaymentDto
     public string? SubscriptionCode { get; set; }
 
     /// <summary>
-    /// The plan the payment was for. Taken from the linked subscription when there is one — that
-    /// remains authoritative — and otherwise from the plan recorded directly on the payment, so a
+    /// The plan the payment was for. Taken from the linked subscription when there is one â that
+    /// remains authoritative â and otherwise from the plan recorded directly on the payment, so a
     /// payment collected without a subscription still shows what it was for.
     /// </summary>
     public string? PlanName { get; set; }
@@ -170,7 +170,7 @@ public class ApproveRefundDto
 /// <summary>What a receipt is covering, which decides the wording of the covering email.</summary>
 public enum ReceiptPurpose
 {
-    /// <summary>Money taken without a membership being sold — a balance, a day pass, an extra.</summary>
+    /// <summary>Money taken without a membership being sold â a balance, a day pass, an extra.</summary>
     Payment = 0,
 
     /// <summary>A membership sold for the first time on this subscription.</summary>
@@ -192,7 +192,7 @@ public class PaymentReceiptDto
     public string? GymEmail { get; set; }
     public string? GymLogoPath { get; set; }
     public string? TaxNumber { get; set; }
-    public string CurrencySymbol { get; set; } = "₹";
+    public string CurrencySymbol { get; set; } = "â¹";
     public string? FooterText { get; set; }
 
     public string MemberCode { get; set; } = string.Empty;
@@ -226,7 +226,7 @@ public class PaymentReceiptDto
 
 /// <summary>
 /// The rendered receipt email: subject plus the HTML body and its plain-text alternative.
-/// Carries no card number, CVV, UPI PIN or password — the source
+/// Carries no card number, CVV, UPI PIN or password â the source
 /// <see cref="PaymentReceiptDto"/> holds none of those in the first place.
 /// </summary>
 public sealed record ReceiptEmailContent(string Subject, string HtmlBody, string TextBody);
@@ -246,10 +246,10 @@ public class UpiPaymentIntentDto
     public string MemberName { get; set; } = string.Empty;
     public int? SubscriptionId { get; set; }
     public decimal Amount { get; set; }
-    public string CurrencySymbol { get; set; } = "₹";
+    public string CurrencySymbol { get; set; } = "â¹";
     public string? UpiId { get; set; }
     public string? PayeeName { get; set; }
-    /// <summary>Standard UPI deep link (<c>upi://pay?…</c>) that the client renders as a QR code.</summary>
+    /// <summary>Standard UPI deep link (<c>upi://pay?â¦</c>) that the client renders as a QR code.</summary>
     public string? UpiDeepLink { get; set; }
     /// <summary>Path to the gym's static QR image, when one is configured instead.</summary>
     public string? QrImagePath { get; set; }
@@ -261,6 +261,101 @@ public class UpiPaymentIntentDto
     /// </summary>
     public bool RequiresManualVerification { get; set; } = true;
     public string Instructions { get; set; } = string.Empty;
+}
+
+/// <summary>Asks the server to text a member a pay-by-UPI link.</summary>
+public class CreatePaymentRequestDto
+{
+    public int MemberId { get; set; }
+    public int? SubscriptionId { get; set; }
+    public decimal Amount { get; set; }
+
+    /// <summary>Short line shown on the pay page and in the UPI app ("Monthly renewal").</summary>
+    public string? Note { get; set; }
+
+    /// <summary>
+    /// The plan a RENEWAL request sells. When set, the request targets the member's NEXT term:
+    /// the amount defaults to the plan's price when none is given, no subscription is bound
+    /// (the renewed term does not exist until the money arrives), and a gateway settlement
+    /// renews the membership automatically. Leave null for a due-balance request.
+    /// </summary>
+    public int? MembershipPlanId { get; set; }
+}
+
+/// <summary>What the operator gets back after sending a payment request.</summary>
+public class PaymentRequestCreatedDto
+{
+    public string Token { get; set; } = string.Empty;
+    /// <summary>The public link the message carries; share it by hand if no channel could go.</summary>
+    public string Link { get; set; } = string.Empty;
+    public bool SmsSent { get; set; }
+    public bool EmailSent { get; set; }
+    public string Detail { get; set; } = string.Empty;
+
+    /// <summary>The member's contact points, so the screen can offer hand-share routes (WhatsApp).</summary>
+    public string? MemberPhone { get; set; }
+    public string? MemberEmail { get; set; }
+
+    /// <summary>The exact message the SMS carries — reused verbatim for a WhatsApp share.</summary>
+    public string MessageText { get; set; } = string.Empty;
+}
+
+/// <summary>Everything the anonymous pay page needs to render and launch a UPI app.</summary>
+public class PublicPaymentRequestDto
+{
+    public string GymName { get; set; } = string.Empty;
+    public string MemberFirstName { get; set; } = string.Empty;
+    public string? PlanName { get; set; }
+    public decimal Amount { get; set; }
+    public string CurrencySymbol { get; set; } = "₹";
+    public string? Note { get; set; }
+    public string UpiId { get; set; } = string.Empty;
+    public string PayeeName { get; set; } = string.Empty;
+    /// <summary>Standard <c>upi://pay?…</c> link; the page derives the app-specific schemes from it.</summary>
+    public string UpiDeepLink { get; set; } = string.Empty;
+    public bool Expired { get; set; }
+
+    /// <summary>One of <c>pending</c> | <c>paid</c> | <c>failed</c> | <c>expired</c>.</summary>
+    public string Status { get; set; } = "pending";
+
+    /// <summary>The gateway's order id, when an order backs this request.</summary>
+    public string? OrderId { get; set; }
+
+    /// <summary>
+    /// QR material for the gateway order. A value starting <c>image:</c> is a hosted QR image
+    /// URL; anything else is a raw payload the page encodes itself.
+    /// </summary>
+    public string? QrData { get; set; }
+
+    /// <summary>The gateway's hosted checkout page, when it offers one.</summary>
+    public string? PaymentUrl { get; set; }
+
+    /// <summary>True when a gateway settles this link automatically, so the page should poll.</summary>
+    public bool GatewayEnabled { get; set; }
+
+    /// <summary>The collection reference, shown on screen as the payment id.</summary>
+    public string PaymentCode { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Live outcome of a pay link, polled by the public pay page every few seconds while it waits
+/// for the gateway. Carries an outcome word and receipt facts — never money credentials.
+/// </summary>
+public class PublicPaymentRequestStatusDto
+{
+    /// <summary>One of <c>pending</c> | <c>paid</c> | <c>failed</c> | <c>expired</c>.</summary>
+    public string Status { get; set; } = "pending";
+
+    /// <summary>Receipt number of the settled payment, once there is one.</summary>
+    public string? ReceiptNumber { get; set; }
+
+    /// <summary>The gateway's own transaction id / UTR, when its webhook carried one.</summary>
+    public string? GatewayTransactionId { get; set; }
+
+    public DateTime? PaidAtUtc { get; set; }
+
+    /// <summary>End date of the membership term the settled payment credited, when one did.</summary>
+    public DateTime? ValidUntil { get; set; }
 }
 
 public class OutstandingBalanceDto

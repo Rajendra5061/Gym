@@ -13,13 +13,17 @@ import {
 } from '@/components/ui';
 import {
   IconArrowLeft, IconBell, IconBox, IconCalendar, IconCard, IconCheckSquare, IconCrown,
-  IconDownload, IconDumbbell, IconEdit, IconFile, IconMail, IconPhone, IconUser,
+  IconDownload, IconDumbbell, IconEdit, IconFile, IconMail, IconMessage, IconPhone, IconUser,
 } from '@/components/icons';
 import { date, dateTime, initials, money } from '@/lib/format';
+import { communicationsApi, type CommunicationLogDto } from '@/api/endpoints/communications';
+import { ChannelTicks, KindPill } from './CommunicationsPage';
 import './admin.css';
+import './communications.css';
 
 const TABS = [
   'Overview', 'Subscriptions', 'Payments', 'Attendance', 'Workouts', 'Measurements', 'Documents',
+  'Communications',
 ] as const;
 type Tab = typeof TABS[number];
 
@@ -63,6 +67,11 @@ export default function MemberDetailsPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [tab, setTab] = useState<Tab>('Overview');
 
+  // Loaded on demand the first time the Communications tab opens; null = not fetched yet.
+  const [commLogs, setCommLogs] = useState<CommunicationLogDto[] | null>(null);
+  const [commLoading, setCommLoading] = useState(false);
+  const [commError, setCommError] = useState<unknown>(null);
+
   const [receiptBusy, setReceiptBusy] = useState<number | null>(null);
   const [documentBusy, setDocumentBusy] = useState<number | null>(null);
   const [statusOpen, setStatusOpen] = useState(false);
@@ -91,6 +100,18 @@ export default function MemberDetailsPage() {
       .finally(() => { if (current) setLoading(false); });
     return () => { current = false; controller.abort(); };
   }, [memberId, reloadKey]);
+
+  useEffect(() => {
+    if (tab !== 'Communications' || commLogs !== null || !Number.isFinite(memberId)) return;
+    const controller = new AbortController();
+    setCommLoading(true);
+    setCommError(null);
+    communicationsApi.forMember(memberId, controller.signal)
+      .then((rows) => { if (!controller.signal.aborted) setCommLogs(rows); })
+      .catch((err) => { if (!controller.signal.aborted) setCommError(err); })
+      .finally(() => { if (!controller.signal.aborted) setCommLoading(false); });
+    return () => controller.abort();
+  }, [tab, commLogs, memberId]);
 
   async function downloadReceipt(paymentId: number) {
     setReceiptBusy(paymentId);
@@ -170,6 +191,7 @@ export default function MemberDetailsPage() {
     Workouts: history.workoutSessions.length,
     Measurements: history.measurements.length,
     Documents: history.documents.length,
+    Communications: commLogs ? commLogs.length : null,
   };
 
   return (
@@ -182,6 +204,8 @@ export default function MemberDetailsPage() {
             <div className="hero-name">
               {member.fullName}
               <StatusPill status={memberStatusLabel(member.status)} />
+              {member.whatsAppOptOut ? <Pill tone="neutral">No WhatsApp</Pill> : null}
+              {member.wishesOptOut ? <Pill tone="neutral">No wishes</Pill> : null}
             </div>
             <div className="hero-code">{member.memberCode}</div>
 
@@ -559,6 +583,33 @@ export default function MemberDetailsPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )
+        )}
+
+        {tab === 'Communications' && (
+          commLoading ? (
+            <Loading message="Loading messages..." />
+          ) : commError ? (
+            <div style={{ padding: 'var(--sp-5)' }}><ErrorAlert error={commError} /></div>
+          ) : !commLogs || commLogs.length === 0 ? (
+            <EmptyState
+              icon={<IconMessage size={40} />}
+              title="No messages yet"
+              message="Receipts and wishes will appear here."
+            />
+          ) : (
+            <div className="page-card-body">
+              <ul className="comm-timeline">
+                {commLogs.map((log) => (
+                  <li key={log.id}>
+                    <span className="comm-when"><IconCalendar size={13} />{date(log.sentOnDate)}</span>
+                    <KindPill kind={log.kind} />
+                    <span className="comm-what">{log.detail || <span className="muted">&mdash;</span>}</span>
+                    <ChannelTicks emailSent={log.emailSent} whatsAppSent={log.whatsAppSent} />
+                  </li>
+                ))}
+              </ul>
             </div>
           )
         )}

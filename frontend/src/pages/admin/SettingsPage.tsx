@@ -957,7 +957,7 @@ export default function SettingsPage() {
                                 />
                               )}
                             </td>
-                            <td className="muted" style={{ maxWidth: 320 }}>{setting.description || '—'}</td>
+                            <td className="muted"><span className="cell-clip" style={{ maxWidth: 320 }}>{setting.description || '—'}</span></td>
                             <td className="actions">
                               {mayManage && !setting.isReadOnly ? (
                                 <button

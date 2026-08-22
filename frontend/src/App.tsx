@@ -15,6 +15,8 @@ const HomePage = lazy(() => import('@/pages/public/HomePage'));
 const AdminLoginPage = lazy(() => import('@/pages/public/AdminLoginPage'));
 const MemberLoginPage = lazy(() => import('@/pages/public/MemberLoginPage'));
 const ForgotPasswordPage = lazy(() => import('@/pages/public/ForgotPasswordPage'));
+const PayPage = lazy(() => import('@/pages/public/PayPage'));
+const PaySimulatePage = lazy(() => import('@/pages/public/PaySimulatePage'));
 
 /* Admin */
 const DashboardPage = lazy(() => import('@/pages/admin/DashboardPage'));
@@ -45,6 +47,7 @@ const DietPlansPage = lazy(() => import('@/pages/admin/DietPlansPage'));
 const DietPlanFormPage = lazy(() => import('@/pages/admin/DietPlanFormPage'));
 const ExpenseFormPage = lazy(() => import('@/pages/admin/ExpenseFormPage'));
 const NotificationsPage = lazy(() => import('@/pages/admin/NotificationsPage'));
+const CommunicationsPage = lazy(() => import('@/pages/admin/CommunicationsPage'));
 const UsersPage = lazy(() => import('@/pages/admin/UsersPage'));
 const UserFormPage = lazy(() => import('@/pages/admin/UserFormPage'));
 const AuditPage = lazy(() => import('@/pages/admin/AuditPage'));
@@ -137,6 +140,9 @@ function AppRoutes() {
       <Route path="/admin-login" element={page(<AdminLoginPage />)} />
       <Route path="/login" element={page(<MemberLoginPage />)} />
       <Route path="/forgot-password" element={page(<ForgotPasswordPage />)} />
+      {/* Texted pay links land here — anonymous by design. */}
+      <Route path="/pay/:token" element={page(<PayPage />)} />
+      <Route path="/pay/:token/simulate" element={page(<PaySimulatePage />)} />
 
       <Route element={<Protected area="admin"><AppLayout area="admin" /></Protected>}>
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
@@ -177,6 +183,7 @@ function AppRoutes() {
         <Route path="/admin/diet-plans/new" element={page(<DietPlanFormPage />)} />
         <Route path="/admin/diet-plans/:id/edit" element={page(<DietPlanFormPage />)} />
         <Route path="/admin/notifications" element={page(<NotificationsPage />)} />
+        <Route path="/admin/communications" element={page(<CommunicationsPage />)} />
         <Route path="/admin/users" element={page(<UsersPage />)} />
         <Route path="/admin/users/new" element={page(<UserFormPage />)} />
         <Route path="/admin/users/:id/edit" element={page(<UserFormPage />)} />

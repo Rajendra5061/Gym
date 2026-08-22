@@ -6,6 +6,7 @@ using GymManagement.Domain.Entities;
 using GymManagement.Domain.Enums;
 using GymManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GymManagement.Infrastructure.Services;
 
@@ -15,31 +16,54 @@ namespace GymManagement.Infrastructure.Services;
 /// </summary>
 public sealed class SettingsService : ISettingsService
 {
+    /// <summary>
+    /// The gym profile is read on every shell load, every receipt, every reminder and every
+    /// money format — and it changes a handful of times a year. A short cache decouples all of
+    /// those reads from the database, so a slow or stalled SQL instance can no longer make every
+    /// page wait for a row that has not changed since the last request. Sixty seconds keeps a
+    /// stale read invisible in practice; updates evict immediately anyway.
+    /// </summary>
+    private const string GymSettingsCacheKey = "gym-settings";
+    private static readonly TimeSpan GymSettingsCacheTtl = TimeSpan.FromSeconds(60);
+
     private readonly GymDbContext _db;
     private readonly IAuditService _audit;
+    private readonly IMemoryCache? _cache;
 
-    public SettingsService(GymDbContext db, IAuditService audit)
+    public SettingsService(GymDbContext db, IAuditService audit, IMemoryCache? cache = null)
     {
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
+        _cache = cache;
     }
 
     public async Task<GymSettingsDto> GetGymSettingsAsync(CancellationToken ct = default)
     {
+        if (_cache is not null && _cache.TryGetValue(GymSettingsCacheKey, out GymSettingsDto? cached) && cached is not null)
+            return cached;
+
         var entity = await _db.GymSettings
             .AsNoTracking()
             .OrderBy(g => g.Id)
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
 
-        if (entity is not null) return Map(entity);
+        GymSettingsDto dto;
+        if (entity is not null)
+        {
+            dto = Map(entity);
+        }
+        else
+        {
+            // First run: materialise a default row so the rest of the application always has one.
+            var created = new GymSetting();
+            _db.GymSettings.Add(created);
+            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+            dto = Map(created);
+        }
 
-        // First run: materialise a default row so the rest of the application always has one.
-        var created = new GymSetting();
-        _db.GymSettings.Add(created);
-        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
-
-        return Map(created);
+        _cache?.Set(GymSettingsCacheKey, dto, GymSettingsCacheTtl);
+        return dto;
     }
 
     public async Task<GymBrandingDto> GetGymBrandingAsync(CancellationToken ct = default)
@@ -118,6 +142,7 @@ public sealed class SettingsService : ISettingsService
         entity.AllowExpiredMemberCheckIn = dto.AllowExpiredMemberCheckIn;
 
         await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        _cache?.Remove(GymSettingsCacheKey);
 
         var after = Map(entity);
 

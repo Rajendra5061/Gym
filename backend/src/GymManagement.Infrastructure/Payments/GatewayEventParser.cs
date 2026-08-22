@@ -43,7 +43,14 @@ public static class GatewayEventParser
     private const int MaxDepth = 6;
 
     private static readonly string[] EventIdNames =
-        { "eventid", "id", "event_id", "webhookid", "webhook_id", "deliveryid", "delivery_id", "notificationid" };
+    {
+        "eventid", "id", "event_id", "webhookid", "webhook_id", "deliveryid", "delivery_id",
+        "notificationid",
+        // Cashfree names its payment id cf_payment_id and sends no other stable identifier;
+        // one payment settles once, so it serves as the idempotency key exactly like
+        // Razorpay's pay_… id does.
+        "cf_payment_id",
+    };
 
     private static readonly string[] EventTypeNames =
         { "event", "type", "eventtype", "event_type", "eventname", "action" };
@@ -59,7 +66,12 @@ public static class GatewayEventParser
     };
 
     private static readonly string[] AmountNames =
-        { "amount", "amountpaid", "amount_paid", "paidamount", "paid_amount", "value", "txnamount" };
+    {
+        "amount", "amountpaid", "amount_paid", "paidamount", "paid_amount", "value", "txnamount",
+        // Cashfree quotes the collected amount as payment_amount (order_amount is what was
+        // asked; the payment is what arrived, so it is listed first).
+        "payment_amount", "order_amount",
+    };
 
     private static readonly string[] CurrencyNames = { "currency", "currencycode", "currency_code" };
 

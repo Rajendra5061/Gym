@@ -21,9 +21,9 @@ export function dashboardPathFor(user: CurrentUser): string {
 export const DEFAULT_GYM_NAME = 'Gym Management';
 
 /**
- * Branding for the signed-out screens. `/api/settings/branding` still requires a token — it just
- * no longer requires `settings.view`, so any signed-in account gets the real name. An anonymous
- * visitor keeps the fallback name, which is expected rather than an error.
+ * Branding for the signed-out screens. `/api/settings/branding` is anonymous — it carries only
+ * what the landing page already prints (name, contact, currency) — so visitors see the real gym
+ * name; the fallback covers only an unreachable API.
  */
 export function useGymSettings(): { settings: GymBranding | null; gymName: string } {
   const { gym } = useAuth();

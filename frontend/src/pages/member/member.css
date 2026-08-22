@@ -97,29 +97,8 @@
   .member-panes { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* ------------------------------------------------------------ profile card */
-.profile-summary { text-align: center; padding: 26px 20px; }
-.m-avatar-xl {
-  width: 96px; height: 96px; border-radius: 50%; margin: 0 auto 14px;
-  background: var(--grad-hero); color: var(--on-dark);
-  display: grid; place-items: center; font-size: 32px; font-weight: 700;
-}
-.profile-name { font-size: var(--fs-xl); font-weight: 700; }
-.profile-username { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 3px; }
+/* The profile card itself is styled in base.css so the member and staff cards match. */
 
-.m-quick-info { margin-top: 20px; text-align: left; }
-.m-quick-info-heading {
-  font-size: var(--fs-sm); font-weight: 700; color: var(--text-2);
-  text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px;
-}
-.m-quick-info-row {
-  display: flex; align-items: center; gap: var(--sp-2);
-  padding: 10px 0; border-bottom: 1px solid var(--divider); font-size: var(--fs-md);
-}
-.m-quick-info-row:last-child { border-bottom: 0; }
-.m-quick-info-row .label { color: var(--text-2); display: inline-flex; align-items: center; gap: 7px; }
-.m-quick-info-row .label svg { color: var(--text-muted); }
-.m-quick-info-row .value { margin-left: auto; font-weight: 600; text-align: right; }
 
 /* ------------------------------------------------------ dark caption bar */
 .caption-bar {
@@ -320,3 +299,223 @@ a.m-notice-card:hover { text-decoration: none; box-shadow: var(--shadow-card); }
   .m-diet-stack .m-plan-card, .m-meal-group, .m-meal-item, .m-diet-past { transition: none; }
   .m-diet-stack .m-plan-card:hover { transform: none; }
 }
+
+/* ------------------------------------------------- consistency & streaks */
+.m-streak-grid {
+  display: grid; gap: var(--sp-4);
+  grid-template-columns: 220px repeat(auto-fit, minmax(220px, 1fr));
+  align-items: stretch;
+}
+.m-streak-hero {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 18px;
+  border-radius: var(--r-lg); border: 1px solid var(--divider);
+  background: var(--surface-alt); color: var(--text-2);
+}
+.m-streak-hero .m-streak-flame {
+  width: 54px; height: 54px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--text-muted) 14%, transparent);
+  color: var(--text-muted);
+}
+/* A live streak burns: warm gradient, white flame, numbers with weight behind them. */
+.m-streak-hero.alive {
+  border-color: transparent; color: #fff;
+  background: linear-gradient(155deg, #f97316 0%, #ef4444 60%, #db2777 100%);
+  box-shadow: 0 10px 26px -12px #ef444488;
+}
+.m-streak-hero.alive .m-streak-flame { background: #ffffff2e; color: #fff; }
+.m-streak-count { font-size: 40px; font-weight: 800; line-height: 1.05; margin-top: 6px; }
+.m-streak-hero.alive .m-streak-count { color: #fff; }
+.m-streak-label { font-size: var(--fs-sm); font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+.m-streak-best { margin-top: 8px; font-size: var(--fs-sm); }
+.m-streak-hero.alive .m-streak-best { color: #ffffffd9; }
+
+.m-streak-panel {
+  display: flex; flex-direction: column; justify-content: center; gap: 8px;
+  padding: 18px; border-radius: var(--r-lg);
+  border: 1px solid var(--divider); background: var(--card);
+}
+.m-streak-panel-title {
+  font-size: var(--fs-sm); font-weight: 600; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.m-streak-panel-value { font-size: 26px; font-weight: 800; }
+.m-streak-panel-value span { font-size: var(--fs-md); font-weight: 500; color: var(--text-2); }
+.m-streak-panel-sub { font-size: var(--fs-sm); color: var(--text-2); }
+
+.m-week-dots { display: flex; gap: 6px; }
+.m-week-dot {
+  width: 30px; height: 30px; border-radius: 50%; flex: none;
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 700;
+  border: 1px solid var(--divider); background: var(--surface-alt); color: var(--text-muted);
+}
+.m-week-dot.done { background: var(--primary); border-color: var(--primary); color: var(--on-dark); }
+.m-week-dot.today:not(.done) { border-color: var(--primary); color: var(--primary); }
+.m-week-dot.future { opacity: .45; }
+
+.m-goal-track {
+  height: 8px; border-radius: 4px; overflow: hidden;
+  background: var(--surface-alt); border: 1px solid var(--divider);
+}
+.m-goal-fill {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--primary), #a855f7);
+  transition: width .3s ease;
+}
+
+/* The 12-week strip: one column per week, Monday at the top.
+ *
+ * The columns flex to fill the card instead of sitting as fixed squares in the middle of an
+ * empty band — the grid is the widest thing on the card, so it should own that width. A min
+ * width keeps the boxes legible when the card is narrow, at which point the strip scrolls
+ * rather than crushing them.
+ */
+.m-heat { margin-top: var(--sp-5); }
+.m-heat-head {
+  display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: 9px;
+}
+.m-heat-title {
+  font-size: var(--fs-sm); font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.m-heat-count { margin-left: auto; font-size: var(--fs-sm); color: var(--text-2); }
+.m-heat-count b { font-size: var(--fs-lg); font-weight: 800; color: var(--text); }
+
+/* The frame carries the padding and the scroll, so the month row and the grid stay in step. */
+.m-heat-frame {
+  padding: 14px; border-radius: var(--r-lg);
+  border: 1px solid var(--divider);
+  background: linear-gradient(180deg, var(--surface-alt), var(--card));
+  overflow-x: auto; overscroll-behavior-x: contain;
+}
+.m-heat-months, .m-heat-grid { display: flex; gap: 5px; min-width: 420px; }
+.m-heat-months { margin-bottom: 6px; }
+.m-heat-month {
+  flex: 1 1 0; min-width: 30px;
+  font-size: 10px; font-weight: 700; letter-spacing: .04em;
+  color: var(--text-muted); text-align: left;
+}
+/* Matches the weekday gutter so the month labels sit over the right columns. */
+.m-heat-daygutter, .m-heat-days { flex: 0 0 16px; }
+
+.m-heat-days { display: flex; flex-direction: column; gap: 5px; }
+/* Same height and gap as a cell, not flex:1 — an even split over the column drifted a few
+   pixels per row and the labels stopped lining up with the days they name. */
+.m-heat-days span {
+  height: 30px; display: flex; align-items: center;
+  font-size: 10px; font-weight: 700; color: var(--text-muted);
+}
+.m-heat-col { display: flex; flex-direction: column; gap: 5px; flex: 1 1 0; min-width: 30px; }
+.m-heat-cell {
+  display: block; width: 100%; height: 30px; flex: none;
+  border-radius: 6px;
+  /* A rest day is a real mark, not empty space — faint enough to recede, solid enough to
+     show the lattice the gym days sit in. */
+  background: color-mix(in srgb, var(--text-muted) 22%, transparent);
+  box-shadow: inset 0 1px 0 #ffffff14;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+/* A gym day is the brand gradient rather than a flat block: it lifts off the grid, and the
+   run of them across a good fortnight reads as one ribbon. */
+.m-heat-cell.done {
+  background: linear-gradient(150deg, var(--primary), var(--accent));
+  box-shadow: 0 3px 8px -2px color-mix(in srgb, var(--primary) 55%, transparent);
+}
+.m-heat-cell.today {
+  outline: 2px solid var(--primary); outline-offset: 2px;
+}
+.m-heat-cell.future { background: color-mix(in srgb, var(--text-muted) 8%, transparent); box-shadow: none; }
+/* Hover lifts the day under the pointer — the title attribute carries the date. */
+.m-heat-cell:not(.future):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px -4px color-mix(in srgb, var(--primary) 60%, transparent);
+}
+
+.m-heat-legend {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: 9px; font-size: var(--fs-xs); color: var(--text-muted);
+}
+.m-heat-key { display: inline-flex; align-items: center; gap: 6px; }
+.m-heat-short { display: none; }
+.m-heat-key .m-heat-cell {
+  width: 22px; height: 14px; border-radius: 4px; box-shadow: none; transition: none;
+}
+
+@media (max-width: 880px) {
+  .m-streak-grid { grid-template-columns: minmax(0, 1fr); }
+  .m-streak-grid > * { min-width: 0; }
+}
+
+/* Phones: the strip scrolls rather than squeezing, the boxes stay square but a shade smaller,
+   and the week dots wrap instead of pushing the card past the screen edge. */
+@media (max-width: 560px) {
+  /* Twelve weeks of big boxes cannot fit a phone, and shrinking them to fit is what made the
+     strip unreadable. The phone shows the most recent SIX weeks at full size instead: the older
+     half is dropped rather than squeezed, and nothing scrolls sideways. */
+  .m-heat-frame { padding: 10px; overflow-x: visible; }
+  .m-heat-months, .m-heat-grid { min-width: 0; }
+  .m-heat-col:nth-child(-n+7), .m-heat-month:nth-child(-n+7) { display: none; }
+  .m-heat-col, .m-heat-month { min-width: 0; }
+  .m-heat-cell, .m-heat-days span { height: 34px; }
+  .m-heat-cell { border-radius: 7px; }
+  .m-heat-full { display: none; }
+  .m-heat-short { display: inline; }
+  /* 30px keeps all seven days on one row inside the panel at 360px; at 32 the last day
+     wrapped to a line of its own and the week stopped reading as a week. */
+  .m-week-dots { gap: 5px; }
+  .m-week-dot { width: 30px; height: 30px; }
+  .m-heat-legend { flex-wrap: wrap; row-gap: 4px; }
+  .m-streak-count { font-size: 34px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m-goal-fill { transition: none; }
+}
+
+/* Coach line: one friendly sentence about the very next step, warm when the streak lives. */
+.m-coach {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; margin-bottom: var(--sp-4);
+  border-radius: var(--r-md); font-size: var(--fs-md); font-weight: 500;
+  background: var(--primary-soft); color: var(--primary-dark);
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
+}
+.m-coach-icon { display: inline-flex; flex: none; }
+.m-coach.alive {
+  background: linear-gradient(120deg, #f9731622, #db277722);
+  color: var(--text); border-color: #f9731655;
+}
+.m-coach.alive .m-coach-icon { color: #f97316; }
+
+/* Streak badges: milestones to collect; the next one shows exactly how close it is. */
+.m-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--sp-4); }
+.m-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: var(--r-pill);
+  font-size: var(--fs-sm); font-weight: 600;
+  border: 1px dashed var(--divider); background: var(--surface-alt); color: var(--text-muted);
+}
+.m-badge svg { opacity: .55; }
+.m-badge.earned {
+  border-style: solid; border-color: transparent; color: #fff;
+  background: linear-gradient(120deg, #f97316, #db2777);
+  box-shadow: 0 6px 16px -8px #ef444488;
+}
+.m-badge.earned svg { opacity: 1; }
+.m-badge.next { border-style: solid; border-color: var(--primary); color: var(--primary-dark); background: var(--primary-soft); }
+.m-badge.next svg { color: var(--primary); opacity: 1; }
+.m-badge em {
+  font-style: normal; font-weight: 700; font-size: var(--fs-xs);
+  padding: 2px 7px; border-radius: var(--r-pill);
+  background: var(--primary); color: var(--on-dark);
+}
+.m-goal-met { color: var(--success); font-weight: 600; }
+
+
+/* An empty streak still greets warmly — soft primary, not judgement grey. */
+.m-streak-hero:not(.alive) { background: var(--primary-soft); border-color: transparent; color: var(--text-2); }
+.m-streak-hero:not(.alive) .m-streak-flame { background: color-mix(in srgb, var(--primary) 16%, transparent); color: var(--primary); }
+.m-streak-hero:not(.alive) .m-streak-count { color: var(--primary-dark); }
+

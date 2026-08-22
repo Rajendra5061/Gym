@@ -11,7 +11,7 @@ public class NumberToWordsTests
 {
     [Theory(DisplayName = "Y-12 ToWords renders the amount in Indian numbering with rupees and paise")]
     [InlineData(0, "Zero Rupees Only")]
-    [InlineData(1, "One Rupees Only")]
+    [InlineData(1, "One Rupee Only")]
     [InlineData(0.50, "Zero Rupees and Fifty Paise Only")]
     [InlineData(1200.50, "One Thousand Two Hundred Rupees and Fifty Paise Only")]
     [InlineData(100000, "One Lakh Rupees Only")]
@@ -30,7 +30,7 @@ public class NumberToWordsTests
     [Theory(DisplayName = "Y-12 Paise are rounded away from zero to two decimal places")]
     [InlineData(1200.505, "One Thousand Two Hundred Rupees and Fifty One Paise Only")]
     [InlineData(1200.504, "One Thousand Two Hundred Rupees and Fifty Paise Only")]
-    [InlineData(0.005, "Zero Rupees and One Paise Only")]
+    [InlineData(0.005, "Zero Rupees and One Paisa Only")]
     [InlineData(0.004, "Zero Rupees Only")]
     public void ToWords_RoundsThePaiseAwayFromZero(decimal amount, string expected)
     {
@@ -40,7 +40,7 @@ public class NumberToWordsTests
     [Fact(DisplayName = "Y-12 A fraction that rounds up to a whole rupee carries into the rupee part")]
     public void ToWords_FractionRoundingUpToOne_CarriesIntoTheWholePart()
     {
-        NumberToWords.ToWords(0.999m).Should().Be("One Rupees Only");
+        NumberToWords.ToWords(0.999m).Should().Be("One Rupee Only");
     }
 
     [Fact(DisplayName = "Y-12 A fraction that rounds up never prints 'Hundred Paise'")]

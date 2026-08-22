@@ -4,6 +4,7 @@ using GymManagement.Infrastructure.Common;
 using GymManagement.Infrastructure.Data;
 using GymManagement.Infrastructure.Messaging;
 using GymManagement.Infrastructure.Payments;
+using GymManagement.Infrastructure.Payments.Checkout;
 using GymManagement.Infrastructure.Reporting;
 using GymManagement.Infrastructure.Security;
 using GymManagement.Infrastructure.Services;
@@ -81,6 +82,36 @@ public static class InfrastructureServiceCollectionExtensions
             sp.GetRequiredService<ILoggerFactory>(),
             isDevelopment));
 
+        // Outbound WhatsApp, same rules again — and the same file-sink default in Development,
+        // so building a messaging feature can never buzz a real phone.
+        services.Configure<WhatsAppOptions>(configuration.GetSection(WhatsAppOptions.SectionName));
+        services.AddSingleton<IWhatsAppSender>(sp => WhatsAppSenderFactory.CreateFromOptionsAccessor(
+            () => sp.GetRequiredService<IOptions<WhatsAppOptions>>().Value,
+            sp.GetRequiredService<ILoggerFactory>(),
+            isDevelopment));
+
+        // The direct member messages (receipts, diet plans, streaks, wishes) and their per-occasion
+        // channel switches. Options resolved once; the notifier itself is scoped like every service
+        // that reads the DbContext.
+        services.Configure<MemberNotificationsOptions>(
+            configuration.GetSection(MemberNotificationsOptions.SectionName));
+        services.AddScoped<IMemberNotifier>(sp => new MemberNotifier(
+            sp.GetRequiredService<GymDbContext>(),
+            sp.GetRequiredService<IEmailSender>(),
+            sp.GetRequiredService<IWhatsAppSender>(),
+            sp.GetRequiredService<ISettingsService>(),
+            sp.GetRequiredService<IDateTimeProvider>(),
+            sp.GetRequiredService<IOptions<MemberNotificationsOptions>>().Value,
+            sp.GetRequiredService<IOptions<WhatsAppOptions>>().Value,
+            sp.GetRequiredService<ILogger<MemberNotifier>>()));
+        services.AddScoped<IWishesDispatcher>(sp => new WishesDispatcher(
+            sp.GetRequiredService<GymDbContext>(),
+            sp.GetRequiredService<IMemberNotifier>(),
+            sp.GetRequiredService<IDateTimeProvider>(),
+            sp.GetRequiredService<IOptions<MemberNotificationsOptions>>().Value,
+            sp.GetRequiredService<ILogger<WishesDispatcher>>()));
+        services.AddScoped<ICommunicationLogService, CommunicationLogService>();
+
         services.AddScoped<ICodeGeneratorService, CodeGeneratorService>();
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<ISettingsService, SettingsService>();
@@ -116,6 +147,16 @@ public static class InfrastructureServiceCollectionExtensions
         services.Configure<PaymentGatewayOptions>(configuration.GetSection(PaymentGatewayOptions.SectionName));
         services.AddSingleton<IPaymentGatewayConfiguration, PaymentGatewayConfiguration>();
         services.AddScoped<IPaymentWebhookService, PaymentWebhookService>();
+
+        // The OUTBOUND side of the same gateway: order creation for dynamic-QR collection.
+        // Same factory idiom as the message senders — provider from configuration, credentials
+        // from environment/user secrets only, the Development default is the local simulator,
+        // and misconfiguration degrades to a disabled client rather than a crash.
+        services.Configure<PaymentCheckoutOptions>(configuration.GetSection(PaymentCheckoutOptions.SectionName));
+        services.AddSingleton<IPaymentGatewayClient>(sp => PaymentGatewayClientFactory.CreateFromOptionsAccessor(
+            () => sp.GetRequiredService<IOptions<PaymentCheckoutOptions>>().Value,
+            sp.GetRequiredService<ILoggerFactory>(),
+            isDevelopment));
         services.AddScoped<IExpenseService, ExpenseService>();
         services.AddScoped<ISalaryPaymentService, SalaryPaymentService>();
 

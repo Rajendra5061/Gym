@@ -26,6 +26,8 @@ export interface MemberDetailDto {
   heightCm?: number | null; weightKg?: number | null;
   status: MemberStatus; notes?: string | null;
   assignedTrainerId?: number | null; assignedTrainerName?: string | null;
+  /** Opt-OUTs: true means the member does NOT want that kind of message. */
+  wishesOptOut: boolean; whatsAppOptOut: boolean;
   hasUserAccount: boolean; createdAt: string; updatedAt?: string | null;
   activeSubscription?: SubscriptionDto | null;
   totalPaid: number; totalOutstanding: number; totalVisits: number; lastVisitDate?: string | null;
@@ -104,6 +106,8 @@ export interface SaveMemberDto {
   joiningDate: string; profilePhotoPath?: string | null; bloodGroup?: string | null;
   heightCm?: number | null; weightKg?: number | null; notes?: string | null;
   assignedTrainerId?: number | null; createUserAccount: boolean;
+  /** Opt-OUTs: true means the member does NOT want that kind of message. */
+  wishesOptOut: boolean; whatsAppOptOut: boolean;
   status?: MemberStatus;
 }
 

@@ -3,6 +3,7 @@ using GymManagement.Application.Common;
 using GymManagement.Application.DTOs;
 using GymManagement.Application.Interfaces;
 using GymManagement.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GymManagement.Api.Controllers;
@@ -158,6 +159,46 @@ public sealed class PaymentsController : ApiControllerBase
     public async Task<ActionResult<ApiResponse<UpiPaymentIntentDto>>> CreateUpiIntent(
         [FromBody] UpiPaymentRequestDto request, CancellationToken ct) =>
         Success(await _payments.CreateUpiIntentAsync(request, ct));
+
+    /// <summary>Creates a pay-by-UPI request and texts the public link to the member's phone.</summary>
+    [HttpPost("requests")]
+    [HasPermission(Permissions.PaymentsCollect)]
+    [ProducesResponseType(typeof(ApiResponse<PaymentRequestCreatedDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<PaymentRequestCreatedDto>>> CreatePaymentRequest(
+        [FromBody] CreatePaymentRequestDto dto, CancellationToken ct)
+    {
+        var result = await _payments.CreatePaymentRequestAsync(dto, ct);
+        return Success(result, result.Detail);
+    }
+
+    /// <summary>
+    /// Resolves a texted pay link for the public pay page. Anonymous by design: the link lands on
+    /// a member's phone with no session, and the token is unguessable while the payload carries
+    /// only what a paper invoice would — payee, amount and note.
+    /// </summary>
+    [HttpGet("requests/{token}")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<PublicPaymentRequestDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<PublicPaymentRequestDto>>> GetPaymentRequest(
+        string token, CancellationToken ct) =>
+        Success(await _payments.GetPaymentRequestAsync(token, ct));
+
+    /// <summary>
+    /// Live outcome of a texted pay link, polled by the pay page every few seconds while it
+    /// waits for the gateway to settle. Anonymous for the same reason the link itself is: it is
+    /// keyed by the unguessable token and answers with an outcome word and receipt facts —
+    /// never money credentials.
+    /// </summary>
+    [HttpGet("requests/{token}/status")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<PublicPaymentRequestStatusDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<PublicPaymentRequestStatusDto>>> GetPaymentRequestStatus(
+        string token, CancellationToken ct) =>
+        Success(await _payments.GetPaymentRequestStatusAsync(token, ct));
 
     /// <summary>Raises a refund request. Immediate approval is honoured only for callers holding payments.refund.</summary>
     [HttpPost("refunds")]

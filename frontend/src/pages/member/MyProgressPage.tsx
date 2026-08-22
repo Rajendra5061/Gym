@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { EmptyState, ErrorAlert, Loading, PageCard, PageCardHeader } from '@/components/ui';
 import { IconCalendar, IconChart, IconUser } from '@/components/icons';
+import { prefersReducedMotion } from '@/lib/motion';
 import { optional } from '@/api/endpoints/member';
 import { membersApi } from '@/api/endpoints/members';
 import type { MemberMeasurementDto, MemberProgressDto, ProgressPointDto } from '@/api/endpoints/members';
@@ -53,6 +54,7 @@ function ProgressChart(
                 formatter={(value: number) => [`${value}${unit}`, title]}
               />
               <Line
+                isAnimationActive={!prefersReducedMotion}
                 type="monotone"
                 dataKey="value"
                 stroke={color}
